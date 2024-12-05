@@ -1,5 +1,5 @@
 [build-system]
-requires = ["pdm-backend", "sqlalchemy", "sqlmodel", "str_case_util"]
+requires = ["pdm-backend"]
 build-backend = "pdm.backend"
 
 [project]
@@ -10,7 +10,7 @@ description = "Provides an automatic DAO layer for your models"
 keywords = ["dao", "crud", "model", "database", "db", "search", "query", "sql", "sqlmodel", "sqlalchemy", "pydantic"]
 readme = "README.md"
 requires-python = ">=3.7"
-dependencies = []
+dependencies = ["sqlalchemy", "sqlmodel", "str_case_util"]
 license = {text = "MIT"}
 classifiers = [
     "License :: OSI Approved :: MIT License",
