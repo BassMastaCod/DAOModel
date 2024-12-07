@@ -6,8 +6,8 @@ from sqlalchemy import func, Column, text, UnaryExpression
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
-from daomodel.util import values_from_dict, filter_dict, MissingInput, ensure_iter, dedupe, is_set_, is_not_set_
-from util import to_bool, NotBoolValue
+from daomodel.util import (values_from_dict, filter_dict, MissingInput, ensure_iter, dedupe, is_set_, is_not_set_,
+                           to_bool, NotBoolValue)
 
 from daomodel import DAOModel
 
