@@ -4,8 +4,7 @@ from sqlalchemy import Column
 from str_case_util import Case
 from sqlalchemy.ext.declarative import declared_attr
 
-from daomodel.util import reference_of
-from util import names_of
+from daomodel.util import reference_of, names_of
 
 
 class DAOModel(SQLModel):
