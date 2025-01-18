@@ -53,6 +53,10 @@ class SearchResults(list[T]):
             string = f"Page {self.page}; {self.per_page} of {self.total} results {string}"
         return string
 
+    def first(self):
+        """Returns the first result or None if there are no results"""
+        return next(iter(self), None)
+
 
 class DAO:
     """A DAO implementation for SQLAlchemy to make your code less SQLly."""
