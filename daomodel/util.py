@@ -90,17 +90,6 @@ def to_bool(value: Any) -> bool:
     raise NotBoolValue
 
 
-def either(preferred, default):
-    """
-    Returns the preferred value if present, otherwise the default value.
-
-    :param preferred: The value to return if not None
-    :param default: The value to return if the preferred is None
-    :return: either the preferred value or the default value
-    """
-    return preferred if preferred is not None else default
-
-
 def ensure_iter(elements):
     """
     Ensures that the provided argument is iterable.
