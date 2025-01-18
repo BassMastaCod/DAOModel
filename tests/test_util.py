@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy.testing.schema import Column
 
 from daomodel import reference_of
-from daomodel.util import to_bool, NotBoolValue, names_of, values_from_dict, filter_dict, MissingInput, either, \
+from daomodel.util import to_bool, NotBoolValue, names_of, values_from_dict, filter_dict, MissingInput, \
     ensure_iter, dedupe
 from tests.conftest import Person, Book
 
@@ -91,24 +91,6 @@ def test_to_bool__bool(boolean: int, expected: bool):
 def test_to_bool__not_bool_value(value: Any):
     with pytest.raises(NotBoolValue):
         to_bool(value)
-
-
-@pytest.mark.parametrize("preferred, default, expected", [
-    (1, 2, 1),
-    (0, 1, 0),
-    (None, 1, 1),
-    (False, True, False),
-    (None, True, True),
-    ("preferred", "default", "preferred"),
-    ("", "default", ""),
-    (None, "default", "default"),
-    ([1, 2], [3, 4, 5], [1, 2]),
-    ([], [3, 4, 5], []),
-    (None, [3, 4, 5], [3, 4, 5]),
-    (None, None, None)
-])
-def test_either(preferred: Any, default: Any, expected: Any):
-    assert either(preferred, default) == expected
 
 
 @pytest.mark.parametrize("elements, expected", [

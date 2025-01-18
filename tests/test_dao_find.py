@@ -13,14 +13,28 @@ def test_find__all(student_dao: DAO):
     assert student_dao.find() == SearchResults(all_students, total=len(all_students))
 
 
+def test_first__multiple_results(student_dao: DAO):
+    assert student_dao.find().first() == all_students[0]
+
+
 def test_find__single_result(daos: TestDAOFactory):
     dao = daos[Student]
     dao.create(100)
     assert dao.find() == SearchResults([Student(id=100)], total=1)
 
 
+def test_first__single_result(daos: TestDAOFactory):
+    dao = daos[Student]
+    dao.create(100)
+    assert dao.find().first() == Student(id=100)
+
+
 def test_find__no_results(daos: TestDAOFactory):
     assert daos[Student].find() == SearchResults([], total=0)
+
+
+def test_first__no_results(daos: TestDAOFactory):
+    assert daos[Student].find().first() is None
 
 
 def test_find__limit(student_dao: DAO):
