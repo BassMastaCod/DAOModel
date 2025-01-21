@@ -1,6 +1,6 @@
 from typing import Iterable, Any, OrderedDict
 
-from sqlalchemy import Column
+from sqlalchemy import Column, ColumnElement
 from sqlmodel import or_, and_
 
 
@@ -117,3 +117,43 @@ def dedupe(original: list) -> list:
 def next_id() -> None:
     """Indicates to the model that an id should be auto incremented"""
     return None
+
+
+class ComparisonOperator:
+    """A utility class to easily generate common expressions"""
+    def __init__(self, *values: Any):
+        self.values = values
+
+    def get_expression(self, column: ColumnElement) -> ColumnElement:
+        """Builds and returns the appropriate expression.
+
+        :param column: The column on which to evaluate
+        :return: the expression
+        """
+        raise NotImplementedError("Must implement `get_expression` in subclass")
+
+
+class GreaterThan(ComparisonOperator):
+    def get_expression(self, column: ColumnElement) -> ColumnElement:
+        return column > self.values[0]
+
+
+class GreaterThanEqualTo(ComparisonOperator):
+    def get_expression(self, column: ColumnElement) -> ColumnElement:
+        return column >= self.values[0]
+
+
+class LessThan(ComparisonOperator):
+    def get_expression(self, column: ColumnElement) -> ColumnElement:
+        return column < self.values[0]
+
+
+class LessThanEqualTo(ComparisonOperator):
+    def get_expression(self, column: ColumnElement) -> ColumnElement:
+        return column <= self.values[0]
+
+
+class Between(ComparisonOperator):
+    def get_expression(self, column: ColumnElement) -> ColumnElement:
+        lower_bound, upper_bound = self.values
+        return and_(column >= lower_bound, column <= upper_bound)
