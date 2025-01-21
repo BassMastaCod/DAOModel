@@ -3,7 +3,7 @@ from sqlmodel import desc
 
 from daomodel import Unsearchable
 from daomodel.dao import DAO, SearchResults
-from daomodel.util import MissingInput
+from daomodel.util import MissingInput, LessThan, GreaterThan, GreaterThanEqualTo, LessThanEqualTo, Between
 from tests.conftest import all_students, TestDAOFactory, Student, Person, page_one, page_two, page_three, age_ordered, \
     pk_ordered, duplicated_names, active, inactive, active_females, having_gender, not_having_name, unique_names, Book, \
     Hall
@@ -121,6 +121,31 @@ def test_find__filter_by_different_foreign_tables(school_dao: DAO):
 def test_find__filter_by_nested_foreign_property(school_dao: DAO):
     expected = [Student(id=102), Student(id=107), Student(id=110)]
     assert school_dao.find(**{"hall.color": "blue"}) == SearchResults(expected, total=len(expected))
+
+
+def test_find__filter_by_gt(school_dao: DAO):
+    expected = [Student(id=109), Student(id=110), Student(id=111), Student(id=112)]
+    assert school_dao.find(id=GreaterThan(108)) == SearchResults(expected, total=len(expected))
+
+
+def test_find__filter_by_gteq(school_dao: DAO):
+    expected = [Student(id=108), Student(id=109), Student(id=110), Student(id=111), Student(id=112)]
+    assert school_dao.find(id=GreaterThanEqualTo(108)) == SearchResults(expected, total=len(expected))
+
+
+def test_find__filter_by_lt(school_dao: DAO):
+    expected = [Student(id=100), Student(id=101), Student(id=102), Student(id=103)]
+    assert school_dao.find(id=LessThan(104)) == SearchResults(expected, total=len(expected))
+
+
+def test_find__filter_by_lteq(school_dao: DAO):
+    expected = [Student(id=100), Student(id=101), Student(id=102), Student(id=103), Student(id=104)]
+    assert school_dao.find(id=LessThanEqualTo(104)) == SearchResults(expected, total=len(expected))
+
+
+def test_find__filter_by_between(school_dao: DAO):
+    expected = [Student(id=104), Student(id=105), Student(id=106), Student(id=107), Student(id=108)]
+    assert school_dao.find(id=Between(104, 108)) == SearchResults(expected, total=len(expected))
 
 
 def test_find__default_order(person_dao: DAO):

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
 from daomodel.util import (values_from_dict, filter_dict, MissingInput, ensure_iter, dedupe, is_set_, is_not_set_,
-                           to_bool, NotBoolValue)
+                           to_bool, NotBoolValue, ComparisonOperator)
 
 from daomodel import DAOModel
 
@@ -241,13 +241,14 @@ class DAO:
 
     def _filter(self, query, key, value, foreign_tables):
         column = self.model_class.find_searchable_column(key, foreign_tables)
-        try:
-            if to_bool(value):
-                return query.filter(is_set_(column))
-            else:
-                return query.filter(is_not_set_(column))
-        except NotBoolValue:
-            return query.filter(column == value)
+        if isinstance(value, ComparisonOperator):
+            expression = value.get_expression(column)
+        else:
+            try:
+                expression = is_set_(column) if to_bool(value) else is_not_set_(column)
+            except NotBoolValue:
+                expression = column == value
+        return query.filter(expression)
 
     def filter_find(self, query: Query, **filters) -> Query:
         """
