@@ -3,7 +3,8 @@ from sqlmodel import desc
 
 from daomodel import Unsearchable
 from daomodel.dao import DAO, SearchResults
-from daomodel.util import MissingInput, LessThan, GreaterThan, GreaterThanEqualTo, LessThanEqualTo, Between
+from daomodel.util import MissingInput, LessThan, GreaterThan, GreaterThanEqualTo, LessThanEqualTo, Between, \
+    AnyOf, NoneOf
 from tests.conftest import all_students, TestDAOFactory, Student, Person, page_one, page_two, page_three, age_ordered, \
     pk_ordered, duplicated_names, active, inactive, active_females, having_gender, not_having_name, unique_names, Book, \
     Hall
@@ -145,7 +146,25 @@ def test_find__filter_by_lteq(school_dao: DAO):
 
 def test_find__filter_by_between(school_dao: DAO):
     expected = [Student(id=104), Student(id=105), Student(id=106), Student(id=107), Student(id=108)]
-    assert school_dao.find(id=Between(104, 108)) == SearchResults(expected, total=len(expected))
+    assert school_dao.find(id=Between(104, 108)) == SearchResults(expected)
+
+
+def test_find__filter_by_any_of(person_dao: DAO):
+    expected = [
+        Person(name="Greg", age=31),
+        Person(name="John", age=23),
+        Person(name="John", age=45)
+    ]
+    assert person_dao.find(name=AnyOf("John", "Greg")) == SearchResults(expected)
+
+
+def test_find__filter_by_none_of(person_dao: DAO):
+    expected = [
+        Person(name="Mike", age=18),
+        Person(name="Mike", age=25),
+        Person(name="Paul", age=25)
+    ]
+    assert person_dao.find(name=NoneOf("John", "Joe", "Greg")) == SearchResults(expected)
 
 
 def test_find__default_order(person_dao: DAO):

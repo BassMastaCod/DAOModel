@@ -119,7 +119,7 @@ def next_id() -> None:
     return None
 
 
-class ComparisonOperator:
+class ConditionOperator:
     """A utility class to easily generate common expressions"""
     def __init__(self, *values: Any):
         self.values = values
@@ -133,27 +133,37 @@ class ComparisonOperator:
         raise NotImplementedError("Must implement `get_expression` in subclass")
 
 
-class GreaterThan(ComparisonOperator):
+class GreaterThan(ConditionOperator):
     def get_expression(self, column: ColumnElement) -> ColumnElement:
         return column > self.values[0]
 
 
-class GreaterThanEqualTo(ComparisonOperator):
+class GreaterThanEqualTo(ConditionOperator):
     def get_expression(self, column: ColumnElement) -> ColumnElement:
         return column >= self.values[0]
 
 
-class LessThan(ComparisonOperator):
+class LessThan(ConditionOperator):
     def get_expression(self, column: ColumnElement) -> ColumnElement:
         return column < self.values[0]
 
 
-class LessThanEqualTo(ComparisonOperator):
+class LessThanEqualTo(ConditionOperator):
     def get_expression(self, column: ColumnElement) -> ColumnElement:
         return column <= self.values[0]
 
 
-class Between(ComparisonOperator):
+class Between(ConditionOperator):
     def get_expression(self, column: ColumnElement) -> ColumnElement:
         lower_bound, upper_bound = self.values
         return and_(column >= lower_bound, column <= upper_bound)
+
+
+class AnyOf(ConditionOperator):
+    def get_expression(self, column: ColumnElement) -> ColumnElement:
+        return or_(*[column == value for value in self.values])
+
+
+class NoneOf(ConditionOperator):
+    def get_expression(self, column: ColumnElement) -> ColumnElement:
+        return and_(*[column != value for value in self.values])

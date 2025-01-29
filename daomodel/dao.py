@@ -6,8 +6,7 @@ from sqlalchemy import func, Column, text, UnaryExpression
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
-from daomodel.util import (values_from_dict, filter_dict, MissingInput, ensure_iter, dedupe, is_set_, is_not_set_,
-                           to_bool, NotBoolValue, ComparisonOperator)
+from daomodel.util import values_from_dict, filter_dict, MissingInput, ensure_iter, dedupe, ConditionOperator
 
 from daomodel import DAOModel
 
@@ -189,14 +188,15 @@ class DAO:
         order = self.model_class.get_pk()
         foreign_tables = []
 
+        # TODO: Add support for checking for specific values within foreign tables
         for key, value in filters.items():
-            if key == "order":
+            if key == "order":  # TODO: rename to avoid collisions with actual column names
                 order = self._order(value, foreign_tables)
             elif key == "duplicate":
                 query = self._count(query, value, foreign_tables, "dupe").where(text(f"dupe.count > 1"))
             elif key == "unique":
                 query = self._count(query, value, foreign_tables, "uniq").where(text(f"uniq.count <= 1"))
-            else:
+            else:  # TODO: Add logic for is_set and not_set
                 query = self._filter(query, key, value, foreign_tables)
 
         for table in dedupe(foreign_tables):
@@ -241,14 +241,7 @@ class DAO:
 
     def _filter(self, query, key, value, foreign_tables):
         column = self.model_class.find_searchable_column(key, foreign_tables)
-        if isinstance(value, ComparisonOperator):
-            expression = value.get_expression(column)
-        else:
-            try:
-                expression = is_set_(column) if to_bool(value) else is_not_set_(column)
-            except NotBoolValue:
-                expression = column == value
-        return query.filter(expression)
+        return query.filter(value.get_expression(column) if isinstance(value, ConditionOperator) else column == value)
 
     def filter_find(self, query: Query, **filters) -> Query:
         """
