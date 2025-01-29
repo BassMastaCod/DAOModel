@@ -10,21 +10,6 @@ class MissingInput(Exception):
         self.detail = detail
 
 
-class NotBoolValue(Exception):
-    """Indicates that a value is not representative of a boolean."""
-    pass
-
-
-def is_set_(column):
-    """Expression to filter to rows that have a value set for a specific Column"""
-    return or_(column == True, and_(column != None, column != False))
-
-
-def is_not_set_(column):
-    """Expression to filter to rows that have no value set for a specific Column"""
-    return or_(column == False, column == None)
-
-
 def reference_of(column: Column) -> str:
     """
     Prepares a str reference of a column.
@@ -73,23 +58,6 @@ def filter_dict(*keys, **values) -> dict[str, Any]:
     return {key: values[key] for key in keys}
 
 
-def to_bool(value: Any) -> bool:
-    """
-    Converts a value to a boolean
-
-    :param value: A value of Any type that may represent a boolean
-    :return: The appropriate boolean value
-    :raises NotBoolValue: If a boolean value cannot be accurately determined
-    """
-    if type(value) is str:
-        value = value.lower()
-    if value in [False, "false", "no"]:
-        return False
-    elif value in [True, "true", "yes"]:
-        return True
-    raise NotBoolValue
-
-
 def ensure_iter(elements):
     """
     Ensures that the provided argument is iterable.
@@ -119,7 +87,7 @@ def next_id() -> None:
     return None
 
 
-class ComparisonOperator:
+class ConditionOperator:
     """A utility class to easily generate common expressions"""
     def __init__(self, *values: Any):
         self.values = values
@@ -133,27 +101,37 @@ class ComparisonOperator:
         raise NotImplementedError("Must implement `get_expression` in subclass")
 
 
-class GreaterThan(ComparisonOperator):
+class GreaterThan(ConditionOperator):
     def get_expression(self, column: ColumnElement) -> ColumnElement:
         return column > self.values[0]
 
 
-class GreaterThanEqualTo(ComparisonOperator):
+class GreaterThanEqualTo(ConditionOperator):
     def get_expression(self, column: ColumnElement) -> ColumnElement:
         return column >= self.values[0]
 
 
-class LessThan(ComparisonOperator):
+class LessThan(ConditionOperator):
     def get_expression(self, column: ColumnElement) -> ColumnElement:
         return column < self.values[0]
 
 
-class LessThanEqualTo(ComparisonOperator):
+class LessThanEqualTo(ConditionOperator):
     def get_expression(self, column: ColumnElement) -> ColumnElement:
         return column <= self.values[0]
 
 
-class Between(ComparisonOperator):
+class Between(ConditionOperator):
     def get_expression(self, column: ColumnElement) -> ColumnElement:
         lower_bound, upper_bound = self.values
         return and_(column >= lower_bound, column <= upper_bound)
+
+
+class AnyOf(ConditionOperator):
+    def get_expression(self, column: ColumnElement) -> ColumnElement:
+        return or_(*[column == value for value in self.values])
+
+
+class NoneOf(ConditionOperator):
+    def get_expression(self, column: ColumnElement) -> ColumnElement:
+        return and_(*[column != value for value in self.values])

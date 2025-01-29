@@ -265,8 +265,26 @@ having_gender = [
     Student(id=108),
     Student(id=109)
 ]
+having_book = [
+    Student(id=100),
+    Student(id=101),
+    Student(id=102),
+    Student(id=103)
+]
+having_math_book = [
+    Student(id=102),
+    Student(id=103)
+]
 not_having_name = [
     Student(id=111),
     Student(id=112)
+]
+not_having_locker = [
+    Student(id=112)
+]
+in_blue_hall = [
+    Student(id=102),
+    Student(id=107),
+    Student(id=110)
 ]
 page_one, page_two, page_three = split(all_students, 5)
