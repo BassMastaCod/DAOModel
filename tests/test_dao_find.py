@@ -75,40 +75,40 @@ def test_find__unsearchable_property(daos: TestDAOFactory):
 
 def test_find__invalid_property(daos: TestDAOFactory):
     with pytest.raises(Unsearchable):
-        daos[Student].find(sex="m")
+        daos[Student].find(sex='m')
 
 
 def test_find__filter_by_multiple_properties(student_dao: DAO):
-    assert student_dao.find(gender="f", active=True) == SearchResults(active_females)
+    assert student_dao.find(gender='f', active=True) == SearchResults(active_females)
 
 
-@pytest.mark.skip(reason="Not yet implemented")
+@pytest.mark.skip(reason='Not yet implemented')
 def test_find__is_set(student_dao: DAO):
     assert student_dao.find(is_set_=Student.gender) == SearchResults(having_gender)
 
 
-@pytest.mark.skip(reason="Not yet implemented")
+@pytest.mark.skip(reason='Not yet implemented')
 def test_find__is_set_foreign_property(student_dao: DAO):
     assert student_dao.find(is_set_=Book.name) == SearchResults(having_book)
 
 
-@pytest.mark.skip(reason="Not yet implemented")
+@pytest.mark.skip(reason='Not yet implemented')
 def test_find__is_set_unsearchable(student_dao: DAO):
     with pytest.raises(Unsearchable):
         student_dao.find(is_set_=Hall.floor)
 
 
-@pytest.mark.skip(reason="Not yet implemented")
+@pytest.mark.skip(reason='Not yet implemented')
 def test_find__not_set(student_dao: DAO):
     assert student_dao.find(not_set_=Student.name) == SearchResults(not_having_name)
 
 
-@pytest.mark.skip(reason="Not yet implemented")
+@pytest.mark.skip(reason='Not yet implemented')
 def test_find__not_set_foreign_property(student_dao: DAO):
     assert student_dao.find(not_set_=Locker.number) == SearchResults(not_having_locker)
 
 
-@pytest.mark.skip(reason="Not yet implemented")
+@pytest.mark.skip(reason='Not yet implemented')
 def test_find__not_set_unsearchable(student_dao: DAO):
     with pytest.raises(Unsearchable):
         student_dao.find(not_set_=Locker.location)
@@ -121,21 +121,21 @@ def test_find__filter_by_0_value(daos: TestDAOFactory):
 
 
 def test_find__filter_by_foreign_property(school_dao: DAO):
-    assert school_dao.find(**{"book.subject": "Math"}) == SearchResults(having_math_book)
+    assert school_dao.find(**{'book.subject': 'Math'}) == SearchResults(having_math_book)
 
 
 def test_find__filter_by_multiple_foreign_property(school_dao: DAO):
-    filters = {"book.name": "Calculus", "book.subject": "Math"}
+    filters = {'book.name': 'Calculus', 'book.subject': 'Math'}
     assert school_dao.find(**filters) == SearchResults([Student(id=103)])
 
 
 def test_find__filter_by_different_foreign_tables(school_dao: DAO):
-    filters = {"book.name": "Biology 101", "locker.number": 1101}
+    filters = {'book.name': 'Biology 101', 'locker.number': 1101}
     assert school_dao.find(**filters) == SearchResults([Student(id=100)])
 
 
 def test_find__filter_by_nested_foreign_property(school_dao: DAO):
-    assert school_dao.find(**{"hall.color": "blue"}) == SearchResults(in_blue_hall)
+    assert school_dao.find(**{'hall.color': 'blue'}) == SearchResults(in_blue_hall)
 
 
 def test_find__filter_by_gt(school_dao: DAO):
@@ -165,20 +165,20 @@ def test_find__filter_by_between(school_dao: DAO):
 
 def test_find__filter_by_any_of(person_dao: DAO):
     expected = [
-        Person(name="Greg", age=31),
-        Person(name="John", age=23),
-        Person(name="John", age=45)
+        Person(name='Greg', age=31),
+        Person(name='John', age=23),
+        Person(name='John', age=45)
     ]
-    assert person_dao.find(name=AnyOf("John", "Greg")) == SearchResults(expected)
+    assert person_dao.find(name=AnyOf('John', 'Greg')) == SearchResults(expected)
 
 
 def test_find__filter_by_none_of(person_dao: DAO):
     expected = [
-        Person(name="Mike", age=18),
-        Person(name="Mike", age=25),
-        Person(name="Paul", age=25)
+        Person(name='Mike', age=18),
+        Person(name='Mike', age=25),
+        Person(name='Paul', age=25)
     ]
-    assert person_dao.find(name=NoneOf("John", "Joe", "Greg")) == SearchResults(expected)
+    assert person_dao.find(name=NoneOf('John', 'Joe', 'Greg')) == SearchResults(expected)
 
 
 def test_find__default_order(person_dao: DAO):
@@ -194,7 +194,7 @@ def test_find__reverse_order(student_dao: DAO):
 
 
 def test_find__order_without_table(person_dao: DAO):
-    assert person_dao.find(order="age") == SearchResults(age_ordered)
+    assert person_dao.find(order='age') == SearchResults(age_ordered)
 
 
 def test_find__order_by_multiple_properties(student_dao: DAO):
@@ -273,9 +273,9 @@ def test_find__unique_unsearchable(daos: TestDAOFactory):
 
 def test_find__duplicate_and_unique(person_dao: DAO):
     expected = [
-        Person(name="John", age=23),
-        Person(name="John", age=45),
-        Person(name="Mike", age=18)
+        Person(name='John', age=23),
+        Person(name='John', age=45),
+        Person(name='Mike', age=18)
     ]
     assert person_dao.find(duplicate=Person.name, unique=Person.age) == SearchResults(expected)
 
@@ -308,4 +308,4 @@ def test_search_results__str(student_dao: DAO):
 
 def test_search_results__str__page(student_dao: DAO):
     result = str(student_dao.find(page=2, per_page=5))
-    assert result.split("[")[0] == "Page 2; 5 of 13 results "
+    assert result.split('[')[0] == 'Page 2; 5 of 13 results '
