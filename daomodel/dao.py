@@ -196,7 +196,7 @@ class DAO:
                 query = self._count(query, value, foreign_tables, "dupe").where(text(f"dupe.count > 1"))
             elif key == "unique":
                 query = self._count(query, value, foreign_tables, "uniq").where(text(f"uniq.count <= 1"))
-            else:  # TODO: Add logic for is_set and not_set
+            else:  # TODO: Add logic for is_set and not_set that works for foreign values
                 query = self._filter(query, key, value, foreign_tables)
 
         for table in dedupe(foreign_tables):
