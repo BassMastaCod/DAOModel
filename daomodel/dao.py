@@ -26,10 +26,10 @@ class Conflict(Exception):
 T = TypeVar("T")
 class SearchResults(list[T]):
     """The paginated results of a filtered search."""
-    def __init__(self, results: list[T], total: int, page: Optional[int] = None, per_page: Optional[int] = None):
+    def __init__(self, results: list[T], total: int = None, page: Optional[int] = None, per_page: Optional[int] = None):
         super().__init__(results)
         self.results = results
-        self.total = total
+        self.total = len(results) if total is None else total
         self.page = page
         self.per_page = per_page
 

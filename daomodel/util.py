@@ -10,21 +10,6 @@ class MissingInput(Exception):
         self.detail = detail
 
 
-class NotBoolValue(Exception):
-    """Indicates that a value is not representative of a boolean."""
-    pass
-
-
-def is_set_(column):
-    """Expression to filter to rows that have a value set for a specific Column"""
-    return or_(column == True, and_(column != None, column != False))
-
-
-def is_not_set_(column):
-    """Expression to filter to rows that have no value set for a specific Column"""
-    return or_(column == False, column == None)
-
-
 def reference_of(column: Column) -> str:
     """
     Prepares a str reference of a column.
@@ -71,23 +56,6 @@ def filter_dict(*keys, **values) -> dict[str, Any]:
     :return: The filter down values as a new dict
     """
     return {key: values[key] for key in keys}
-
-
-def to_bool(value: Any) -> bool:
-    """
-    Converts a value to a boolean
-
-    :param value: A value of Any type that may represent a boolean
-    :return: The appropriate boolean value
-    :raises NotBoolValue: If a boolean value cannot be accurately determined
-    """
-    if type(value) is str:
-        value = value.lower()
-    if value in [False, "false", "no"]:
-        return False
-    elif value in [True, "true", "yes"]:
-        return True
-    raise NotBoolValue
 
 
 def ensure_iter(elements):

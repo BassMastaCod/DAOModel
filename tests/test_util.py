@@ -4,8 +4,7 @@ import pytest
 from sqlalchemy.testing.schema import Column
 
 from daomodel import reference_of
-from daomodel.util import to_bool, NotBoolValue, names_of, values_from_dict, filter_dict, MissingInput, \
-    ensure_iter, dedupe
+from daomodel.util import names_of, values_from_dict, filter_dict, MissingInput, ensure_iter, dedupe
 from tests.conftest import Person, Book
 
 
@@ -65,32 +64,6 @@ def test_filter_dict(keys: tuple[str], expected: tuple[Any]):
 def test_filter_dict__missing(keys: tuple[str], dictionary: dict[str, Any]):
     with pytest.raises(KeyError):
         filter_dict("missing")
-
-
-@pytest.mark.parametrize("string", ["false", "False", "FALSE", "fAlSe", "no", "No", "NO", "nO"])
-def test_to_bool__str_false(string: str):
-    assert not to_bool(string)
-
-
-@pytest.mark.parametrize("string", ["true", "True", "TRUE", "tRuE", "yes", "Yes", "YES", "yEs"])
-def test_to_bool__str_true(string: str):
-    assert to_bool(string)
-
-
-@pytest.mark.parametrize("number, expected", [(0, False), (1, True)])
-def test_to_bool__number(number: int, expected: bool):
-    assert to_bool(number) == expected
-
-
-@pytest.mark.parametrize("boolean, expected", [(False, False), (True, True)])
-def test_to_bool__bool(boolean: int, expected: bool):
-    assert to_bool(boolean) == expected
-
-
-@pytest.mark.parametrize("value", ["", "bool", -1, 100, None])
-def test_to_bool__not_bool_value(value: Any):
-    with pytest.raises(NotBoolValue):
-        to_bool(value)
 
 
 @pytest.mark.parametrize("elements, expected", [
