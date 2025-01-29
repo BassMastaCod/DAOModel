@@ -135,3 +135,19 @@ class AnyOf(ConditionOperator):
 class NoneOf(ConditionOperator):
     def get_expression(self, column: ColumnElement) -> ColumnElement:
         return and_(*[column != value for value in self.values])
+
+
+class IsSet(ConditionOperator):
+    """Expression to filter to rows that have a value set for a specific Column"""
+    def get_expression(self, column: ColumnElement) -> ColumnElement:
+        return or_(column == True, and_(column != None, column != False))
+
+
+class NotSet(ConditionOperator):
+    """Expression to filter to rows that have no value set for a specific Column"""
+    def get_expression(self, column: ColumnElement) -> ColumnElement:
+        return or_(column == False, column == None)
+
+
+is_set = IsSet()
+not_set = NotSet()

@@ -4,7 +4,7 @@ from sqlmodel import desc
 from daomodel import Unsearchable
 from daomodel.dao import DAO, SearchResults
 from daomodel.util import MissingInput, LessThan, GreaterThan, GreaterThanEqualTo, LessThanEqualTo, Between, \
-    AnyOf, NoneOf
+    AnyOf, NoneOf, IsSet, is_set, NotSet, not_set
 from tests.conftest import all_students, TestDAOFactory, Student, Person, page_one, page_two, page_three, age_ordered, \
     pk_ordered, duplicated_names, active, inactive, active_females, having_gender, not_having_name, unique_names, Book, \
     Hall, having_book, Locker, not_having_locker, having_math_book, in_blue_hall
@@ -82,9 +82,10 @@ def test_find__filter_by_multiple_properties(student_dao: DAO):
     assert student_dao.find(gender='f', active=True) == SearchResults(active_females)
 
 
-@pytest.mark.skip(reason='Not yet implemented')
 def test_find__is_set(student_dao: DAO):
-    assert student_dao.find(is_set_=Student.gender) == SearchResults(having_gender)
+    #assert student_dao.find(is_set_=Student.gender) == SearchResults(having_gender)
+    assert student_dao.find(gender=IsSet()) == SearchResults(having_gender)
+    assert student_dao.find(gender=is_set) == SearchResults(having_gender)
 
 
 @pytest.mark.skip(reason='Not yet implemented')
@@ -98,9 +99,10 @@ def test_find__is_set_unsearchable(student_dao: DAO):
         student_dao.find(is_set_=Hall.floor)
 
 
-@pytest.mark.skip(reason='Not yet implemented')
 def test_find__not_set(student_dao: DAO):
-    assert student_dao.find(not_set_=Student.name) == SearchResults(not_having_name)
+    #assert student_dao.find(not_set_=Student.name) == SearchResults(not_having_name)
+    assert student_dao.find(name=NotSet()) == SearchResults(not_having_name)
+    assert student_dao.find(name=not_set) == SearchResults(not_having_name)
 
 
 @pytest.mark.skip(reason='Not yet implemented')
@@ -108,10 +110,9 @@ def test_find__not_set_foreign_property(student_dao: DAO):
     assert student_dao.find(not_set_=Locker.number) == SearchResults(not_having_locker)
 
 
-@pytest.mark.skip(reason='Not yet implemented')
-def test_find__not_set_unsearchable(student_dao: DAO):
+def test_find__condition_operator_unsearchable(person_dao: DAO):
     with pytest.raises(Unsearchable):
-        student_dao.find(not_set_=Locker.location)
+        person_dao.find(ssn=is_set)
 
 
 def test_find__filter_by_0_value(daos: TestDAOFactory):
