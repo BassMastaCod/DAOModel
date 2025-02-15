@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 import pytest
@@ -20,6 +21,11 @@ class Person(DAOModel, table=True):
     @classmethod
     def get_searchable_properties(cls) -> set[Column]:
         return {cls.name, cls.age}
+
+
+class PersonDisplay(Person):
+    name: str = Field(primary_key=True)
+    age: int = Field(primary_key=True)
 
 
 class Book(DAOModel, table=True):
@@ -48,9 +54,16 @@ class Locker(DAOModel, table=True):
     floor: int
 
 
-class Student(DAOModel, table=True):
+class BasePerson(DAOModel):
     id: int = Field(primary_key=True)
     name: Optional[str]
+
+
+class Staff(BasePerson, table=True):
+    hire_date: datetime
+
+
+class Student(BasePerson, table=True):
     gender: Optional[str]
     active: bool = Field(default=True)
 
