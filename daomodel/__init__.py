@@ -1,6 +1,6 @@
 from typing import Any, Self, Iterable, Union
 from sqlmodel import SQLModel
-from sqlalchemy import Column
+from sqlalchemy import Column, Engine, inspect
 from str_case_util import Case
 from sqlalchemy.ext.declarative import declared_attr
 
