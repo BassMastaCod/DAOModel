@@ -78,11 +78,20 @@ class DAOModel(SQLModel):
     @classmethod
     def get_fk_properties(cls) -> set[Column]:
         """
-        Returns the Columns that represent Foreign Keys for this Model.
+        Returns the Columns of this Model that represent Foreign Keys.
 
         :return: An unordered set of foreign key columns
         """
         return {fk.parent for fk in cls.__table__.foreign_keys}
+
+    @classmethod
+    def get_references_of(cls, model: Self) -> set[Column]:
+        """
+        Returns the Columns of this Model that represent Foreign Keys of the specified Model.
+
+        :return: An unordered set of foreign key columns
+        """
+        return {fk.parent for fk in cls.__table__.foreign_keys if model.has_column(fk.column)}
 
     @classmethod
     def get_properties(cls) -> Iterable[Column]:
