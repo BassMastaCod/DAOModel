@@ -1,10 +1,11 @@
-from typing import Any
+from typing import Any, Iterable
 
 import pytest
 from sqlalchemy import Column
 from sqlmodel import Field
 
-from daomodel import DAOModel, names_of, Unsearchable
+from daomodel import DAOModel, names_of, Unsearchable, reference_of
+from tests.labeled_tests import labeled_tests
 
 
 class SimpleModel(DAOModel, table=True):
@@ -17,6 +18,12 @@ class ForeignKEYModel(DAOModel, table=True):
     pkB: int = Field(primary_key=True)
     prop: str
     fkA: int = Field(foreign_key='simple_model.pkA')
+
+
+class MultiForeignKEYModel(DAOModel, table=True):
+    pfk1: int = Field(primary_key=True, foreign_key='complicated_model.pk1')
+    pfk2: int = Field(primary_key=True, foreign_key='complicated_model.pk2')
+    fk3: str = Field(foreign_key='foreign_key_model.prop')
 
 
 class ComplicatedModel(DAOModel, table=True):
@@ -89,12 +96,27 @@ def test_get_fk_properties__multi_column():
     assert set(names_of(ComplicatedModel.get_fk_properties())) == {'fk1', 'fk2'}
 
 
-def test_get_properties__single_column():
-    assert names_of(SimpleModel.get_properties()) == ['pkA']
+def to_str(columns: Iterable[Column]):
+    """Converts columns to strings instead to make assert comparisons simpler"""
+    return {reference_of(column) for column in columns}
 
 
-def test_get_properties__multi_column():
-    assert names_of(ComplicatedModel.get_properties()) == ['pk1', 'pk2', 'prop1', 'prop2', 'fk1', 'fk2']
+@labeled_tests({
+    'single column':
+        (ForeignKEYModel, SimpleModel, {ForeignKEYModel.fkA}),
+    'some applicable columns': [
+        (ComplicatedModel, SimpleModel, {ComplicatedModel.fk1}),
+        (ComplicatedModel, ForeignKEYModel, {ComplicatedModel.fk2})
+    ],
+    'no applicable columns':
+        (MultiForeignKEYModel, SimpleModel, {}),
+    'non primary key':
+        (MultiForeignKEYModel, ForeignKEYModel, {MultiForeignKEYModel.fk3}),
+    'multiple columns':
+        (MultiForeignKEYModel, ComplicatedModel, {MultiForeignKEYModel.pfk1, MultiForeignKEYModel.pfk2})
+})
+def test_get_references_of(model: DAOModel, reference: DAOModel, expected: set[Column]):
+    assert to_str(model.get_references_of(reference)) == to_str(expected)
 
 
 def test_get_searchable_properties__single_column():
