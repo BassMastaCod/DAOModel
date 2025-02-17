@@ -1,4 +1,4 @@
-from typing import Any, Iterable
+from typing import Iterable, Union
 
 import pytest
 from sqlalchemy import Column
@@ -6,6 +6,10 @@ from sqlmodel import Field
 
 from daomodel import DAOModel, names_of, Unsearchable, reference_of
 from tests.labeled_tests import labeled_tests
+
+
+class Model(DAOModel):
+    pass
 
 
 class SimpleModel(DAOModel, table=True):
@@ -46,54 +50,86 @@ def test_tablename():
     assert ForeignKEYModel.__tablename__ == 'foreign_key_model'
 
 
-def test_normalized_name():
-    assert SimpleModel.normalized_name() == 'simple_model'
-    assert ForeignKEYModel.normalized_name() == 'foreign_key_model'
+@labeled_tests({
+    'single word':
+        (Model, 'model'),
+    'multiple words': [
+        (SimpleModel, 'simple_model'),
+        (ComplicatedModel, 'complicated_model')
+    ],
+    'acronym': [
+        (ForeignKEYModel, 'foreign_key_model'),
+        (MultiForeignKEYModel, 'multi_foreign_key_model')
+    ]
+})
+def test_normalized_name(model: type[DAOModel], expected: str):
+    assert model.normalized_name() == expected
 
 
-def test_doc_name():
-    assert SimpleModel.doc_name() == 'Simple Model'
-    assert ForeignKEYModel.doc_name() == 'Foreign Key Model'
+@labeled_tests({
+    'single word':
+        (Model, 'Model'),
+    'multiple words': [
+        (SimpleModel, 'Simple Model'),
+        (ComplicatedModel, 'Complicated Model')
+    ],
+    'acronym': [
+        (ForeignKEYModel, 'Foreign Key Model'),
+        (MultiForeignKEYModel, 'Multi Foreign Key Model')
+    ]
+})
+def test_doc_name(model: type[DAOModel], expected: str):
+    assert model.doc_name() == expected
 
 
-def test_get_pk_names__single_column():
-    assert SimpleModel.get_pk_names() == ['pkA']
+@labeled_tests({
+    'single column':
+        (SimpleModel, ['pkA']),
+    'multiple columns':
+        (ComplicatedModel, ['pk1', 'pk2'])
+})
+def test_get_pk_names__single_column(model: type[DAOModel], expected: list[str]):
+    assert model.get_pk_names() == expected
 
 
-def test_get_pk_names__multi_column():
-    assert ComplicatedModel.get_pk_names() == ['pk1', 'pk2']
+@labeled_tests({
+    'single column':
+        (simple_instance, (23,)),
+    'multiple columns':
+        (complicated_instance, (17, 76))
+})
+def test_get_pk_values(model: DAOModel, expected: tuple[int]):
+    assert model.get_pk_values() == expected
 
 
-def test_get_pk_values__single_column():
-    assert simple_instance.get_pk_values() == (23,)
+@labeled_tests({
+    'single column':
+        (simple_instance, {'pkA': 23}),
+    'multiple columns':
+        (complicated_instance, {'pk1': 17, 'pk2': 76})
+})
+def test_get_pk_dict(model: DAOModel, expected: dict[str, int]):
+    assert model.get_pk_dict() == expected
 
 
-def test_get_pk_values__multi_column():
-    assert complicated_instance.get_pk_values() == (17, 76)
+@labeled_tests({
+    'single column':
+        (ForeignKEYModel, {'pkA'}),
+    'multiple columns':
+        (ComplicatedModel, {'pkA', 'pkB'})
+})
+def test_get_fks(model: type[DAOModel], expected: set[str]):
+    assert set(names_of(model.get_fks())) == expected
 
 
-def test_get_pk_dict__single_column():
-    assert simple_instance.get_pk_dict() == {'pkA': 23}
-
-
-def test_get_pk_dict__multi_column():
-    assert complicated_instance.get_pk_dict() == {'pk1': 17, 'pk2': 76}
-
-
-def test_get_fks__single_column():
-    assert names_of(ForeignKEYModel.get_fks()) == ['pkA']
-
-
-def test_get_fks__multi_column():
-    assert set(names_of(ComplicatedModel.get_fks())) == {'pkA', 'pkB'}
-
-
-def test_get_fk_properties__single_column():
-    assert names_of(ForeignKEYModel.get_fk_properties()) == ['fkA']
-
-
-def test_get_fk_properties__multi_column():
-    assert set(names_of(ComplicatedModel.get_fk_properties())) == {'fk1', 'fk2'}
+@labeled_tests({
+    'single column':
+        (ForeignKEYModel, {'fkA'}),
+    'multiple columns':
+        (ComplicatedModel, {'fk1', 'fk2'})
+})
+def test_get_fk_properties(model: type[DAOModel], expected: set[str]):
+    assert set(names_of(model.get_fk_properties())) == expected
 
 
 def to_str(columns: Iterable[Column]):
@@ -115,59 +151,65 @@ def to_str(columns: Iterable[Column]):
     'multiple columns':
         (MultiForeignKEYModel, ComplicatedModel, {MultiForeignKEYModel.pfk1, MultiForeignKEYModel.pfk2})
 })
-def test_get_references_of(model: DAOModel, reference: DAOModel, expected: set[Column]):
+def test_get_references_of(model: type[DAOModel], reference: type[DAOModel], expected: set[Column]):
     assert to_str(model.get_references_of(reference)) == to_str(expected)
 
 
-def test_get_searchable_properties__single_column():
-    assert names_of(SimpleModel.get_searchable_properties()) == ['pkA']
+@labeled_tests({
+    'single column':
+        (SimpleModel, ['pkA']),
+    'multiple columns':
+        (ComplicatedModel, ['pk1', 'pk2', 'prop1', 'prop2', 'fk1', 'fk2'])
+})
+def test_get_properties(model: type[DAOModel], expected: list[str]):
+    assert names_of(model.get_properties()) == expected
 
 
-def test_get_searchable_properties__multi_column():
-    assert set(names_of(ForeignKEYModel.get_searchable_properties())) == {'pkB', 'prop', 'fkA'}
+@labeled_tests({
+    'single column':
+        (SimpleModel, ['pkA']),
+    'multiple columns':
+        (ForeignKEYModel, ['pkB', 'prop', 'fkA'])
+})
+def test_get_searchable_properties__single_column(model: type[DAOModel], expected: list[str]):
+    assert names_of(model.get_searchable_properties()) == expected
 
 
-@pytest.mark.parametrize('prop', (
-    ComplicatedModel.pk1,
-    ComplicatedModel.pk2,
-    ComplicatedModel.prop1,
-    ComplicatedModel.fk1,
-    ComplicatedModel.fk2,
-    'complicated_model.pk1',
-    'complicated_model.pk2',
-    'complicated_model.prop1',
-    'complicated_model.fk1',
-    'complicated_model.fk2',
-    'pk1',
-    'pk2',
-    'prop1',
-    'fk1',
-    'fk2'
-))
-def test_find_searchable_column(prop: str|Any):
+@labeled_tests({
+    'column': [
+        (ComplicatedModel.pk1, []),
+        (ComplicatedModel.pk2, []),
+        (ComplicatedModel.prop1, []),
+        (ComplicatedModel.fk1, []),
+        (ComplicatedModel.fk2, [])
+    ],
+    'column reference': [
+        ('complicated_model.pk1', []),
+        ('complicated_model.pk2', []),
+        ('complicated_model.prop1', []),
+        ('complicated_model.fk1', []),
+        ('complicated_model.fk2', [])
+    ],
+    'column name': [
+        ('pk1', []),
+        ('pk2', []),
+        ('prop1', []),
+        ('fk1', []),
+        ('fk2', [])
+    ],
+    'foreign property': [
+        (ForeignKEYModel.prop, [ForeignKEYModel.normalized_name()]),
+        ('foreign_key_model.prop', [ForeignKEYModel.normalized_name()])
+    ],
+    'nested foreign property': [
+        (SimpleModel.pkA, [ForeignKEYModel.normalized_name(), SimpleModel.normalized_name()]),
+        ('simple_model.pkA', [ForeignKEYModel.normalized_name(), SimpleModel.normalized_name()])
+    ]
+})
+def test_find_searchable_column(prop: Union[str, Column], expected: list[str]):
     foreign_tables = []
     assert ComplicatedModel.find_searchable_column(prop, foreign_tables)
-    assert not foreign_tables
-
-
-@pytest.mark.parametrize('prop', (
-    ForeignKEYModel.prop,
-    'foreign_key_model.prop'
-))
-def test_find_searchable_column__foreign(prop: str|Any):
-    foreign_tables = []
-    assert ComplicatedModel.find_searchable_column(prop, foreign_tables)
-    assert [t.name for t in foreign_tables] == [ForeignKEYModel.normalized_name()]
-
-
-@pytest.mark.parametrize('prop', (
-    SimpleModel.pkA,
-    'simple_model.pkA'
-))
-def test_find_searchable_column__nested_foreign(prop: str|Any):
-    foreign_tables = []
-    assert ComplicatedModel.find_searchable_column(prop, foreign_tables)
-    assert [t.name for t in foreign_tables] == [ForeignKEYModel.normalized_name(), SimpleModel.normalized_name()]
+    assert [t.name for t in foreign_tables] == expected
 
 
 def test_find_searchable_column__foreign_without_table():
@@ -175,12 +217,14 @@ def test_find_searchable_column__foreign_without_table():
         assert ComplicatedModel.find_searchable_column('prop', [])
 
 
-def test_pk_values_to_dict__single_column():
-    assert SimpleModel.pk_values_to_dict((23,)) == {'pkA': 23}
-
-
-def test_pk_values_to_dict__multi_column():
-    assert ComplicatedModel.pk_values_to_dict((17, 76)) == {'pk1': 17, 'pk2': 76}
+@labeled_tests({
+    'single column':
+        (SimpleModel, (23,), {'pkA': 23}),
+    'multiple columns':
+        (ComplicatedModel, (17, 76), {'pk1': 17, 'pk2': 76})
+})
+def test_pk_values_to_dict__single_column(model: type[DAOModel], args: tuple[int, ...], expected: dict[str, int]):
+    assert model.pk_values_to_dict(args) == expected
 
 
 def test_copy_model():
@@ -213,31 +257,37 @@ def test_copy_values():
     }
 
 
-def test___eq___single_column():
-    assert simple_instance == SimpleModel(pkA=23)
-    assert simple_instance != SimpleModel(pkA=32)
+@labeled_tests({
+    'single column': (
+            simple_instance,
+            SimpleModel(pkA=23),
+            (
+                    SimpleModel(pkA=32),
+                    SimpleModel(pkA=45)
+            )
+    ),
+    'multiple columns': (
+            complicated_instance,
+            ComplicatedModel(pk1=17, pk2=76, prop1='different', prop2='values', fk1=1, fk2=2),
+            (
+                    ComplicatedModel(pk1=17, pk2=89, prop1='prop', prop2='erty', fk1=23, fk2=32),
+                    ComplicatedModel(pk1=17, pk2=89, prop1='prop', prop2='erty', fk1=23, fk2=32)
+            )
+    )
+})
+def test___eq____hash__(model: DAOModel, equivalent: DAOModel, different: tuple[DAOModel, ...]):
+    assert model == equivalent
+    assert hash(model) == hash(equivalent)
+    for instance in different:
+        assert model != instance
+        assert hash(model) != hash(instance)
 
 
-def test___eq___multi_column():
-    assert complicated_instance == ComplicatedModel(pk1=17, pk2=76, prop1='different', prop2='values', fk1=1, fk2=2)
-    assert complicated_instance != ComplicatedModel(pk1=17, pk2=89, prop1='prop', prop2='erty', fk1=23, fk2=32)
-    assert complicated_instance != ComplicatedModel(pk1=76, pk2=17, prop1='prop', prop2='erty', fk1=23, fk2=32)
-
-
-def test___hash___single_column():
-    assert hash(simple_instance) == hash(SimpleModel(pkA=23))
-    assert hash(simple_instance) != hash(SimpleModel(pkA=32))
-
-
-def test___hash___multi_column():
-    assert hash(complicated_instance) == hash(ComplicatedModel(pk1=17, pk2=76, prop1='different', prop2='values', fk1=1, fk2=2))
-    assert hash(complicated_instance) != hash(ComplicatedModel(pk1=17, pk2=89, prop1='prop', prop2='erty', fk1=23, fk2=32))
-    assert hash(complicated_instance) != hash(ComplicatedModel(pk1=76, pk2=17, prop1='prop', prop2='erty', fk1=23, fk2=32))
-
-
-def test___str___single_column():
-    assert str(simple_instance) == '23'
-
-
-def test___str___multi_column():
-    assert str(complicated_instance) == '(17, 76)'
+@labeled_tests({
+    'single column':
+        (simple_instance, '23'),
+    'multiple columns':
+        (complicated_instance, '(17, 76)')
+})
+def test___str___single_column(model: DAOModel, expected: str):
+    assert str(model) == expected
