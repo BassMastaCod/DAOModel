@@ -51,6 +51,66 @@ def test_tablename():
 
 
 @labeled_tests({
+    'true': [
+        (SimpleModel, SimpleModel.pkA, True),
+        (ForeignKEYModel, ForeignKEYModel.pkB, True),
+        (ForeignKEYModel, ForeignKEYModel.prop, True),
+        (ForeignKEYModel, ForeignKEYModel.fkA, True),
+        (ComplicatedModel, ComplicatedModel.pk1, True),
+        (ComplicatedModel, ComplicatedModel.pk2, True),
+        (ComplicatedModel, ComplicatedModel.prop1, True),
+        (ComplicatedModel, ComplicatedModel.prop2, True),
+        (ComplicatedModel, ComplicatedModel.fk1, True),
+        (ComplicatedModel, ComplicatedModel.fk2, True),
+        (MultiForeignKEYModel, MultiForeignKEYModel.pfk1, True),
+        (MultiForeignKEYModel, MultiForeignKEYModel.pfk2, True),
+        (MultiForeignKEYModel, MultiForeignKEYModel.fk3, True)
+    ],
+    'false': [
+        (SimpleModel, ForeignKEYModel.pkB, False),
+        (SimpleModel, ForeignKEYModel.prop, False),
+        (SimpleModel, ComplicatedModel.pk1, False),
+        (SimpleModel, ComplicatedModel.pk2, False),
+        (SimpleModel, ComplicatedModel.prop1, False),
+        (SimpleModel, ComplicatedModel.prop2, False),
+        (SimpleModel, ComplicatedModel.fk2, False),
+        (SimpleModel, MultiForeignKEYModel.fk3, False),
+        (ForeignKEYModel, ComplicatedModel.pk1, False),
+        (ForeignKEYModel, ComplicatedModel.pk2, False),
+        (ForeignKEYModel, ComplicatedModel.prop1, False),
+        (ForeignKEYModel, ComplicatedModel.prop2, False),
+        (ForeignKEYModel, ComplicatedModel.fk1, False),
+        (ForeignKEYModel, MultiForeignKEYModel.pfk1, False),
+        (ForeignKEYModel, MultiForeignKEYModel.pfk2, False),
+        (ComplicatedModel, ForeignKEYModel.prop, False),
+        (ComplicatedModel, MultiForeignKEYModel.fk3, False),
+        (MultiForeignKEYModel, SimpleModel.pkA, False),
+        (MultiForeignKEYModel, ComplicatedModel.prop1, False),
+        (MultiForeignKEYModel, ComplicatedModel.prop2, False),
+        (MultiForeignKEYModel, ComplicatedModel.fk1, False),
+        (MultiForeignKEYModel, ComplicatedModel.fk2, False)
+    ],
+    'foreign keys': [
+        (ForeignKEYModel, SimpleModel.pkA, False),
+        (ComplicatedModel, SimpleModel.pkA, False),
+        (ComplicatedModel, ForeignKEYModel.pkB, False),
+        (MultiForeignKEYModel, ComplicatedModel.pk1, False),
+        (MultiForeignKEYModel, ComplicatedModel.pk2, False),
+        (MultiForeignKEYModel, ForeignKEYModel.prop, False)
+    ],
+    'foreign references': [
+        (SimpleModel, ForeignKEYModel.fkA, False),
+        (ForeignKEYModel, ComplicatedModel.fk2, False),
+        (ForeignKEYModel, MultiForeignKEYModel.fk3, False),
+        (ComplicatedModel, MultiForeignKEYModel.pfk1, False),
+        (ComplicatedModel, MultiForeignKEYModel.pfk2, False)
+    ]
+})
+def test_has_column(model: DAOModel, column: Column, expected: bool):
+    assert model.has_column(column) == expected
+
+
+@labeled_tests({
     'single word':
         (Model, 'model'),
     'multiple words': [

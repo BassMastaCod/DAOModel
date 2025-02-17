@@ -15,6 +15,11 @@ class DAOModel(SQLModel):
         return self.normalized_name()
 
     @classmethod
+    def has_column(cls, column: Column) -> bool:
+        """Returns True if the specified Column belongs to this DAOModel"""
+        return column.table.name == cls.__tablename__
+
+    @classmethod
     def normalized_name(cls) -> str:
         """
         A normalized version of this Model name.
