@@ -103,6 +103,9 @@ class DAOModel(SQLModel):
         """
         Returns all the Columns for this Model.
 
+        Column order will match order they are defined in code.
+        Inherited properties will be listed first.
+
         :return: A list of columns
         """
         return cls.__table__.c

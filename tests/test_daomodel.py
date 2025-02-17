@@ -24,10 +24,13 @@ class ForeignKEYModel(DAOModel, table=True):
     fk: int = Field(foreign_key='simple_model.pkA')
 
 
-class ComplicatedModel(DAOModel, table=True):
+class BaseModel(DAOModel):
+    prop1: str
+
+
+class ComplicatedModel(BaseModel, table=True):
     pkC: int = Field(primary_key=True)
     pkD: int = Field(primary_key=True)
-    prop1: str
     prop2: str
     fkA: int = Field(foreign_key='simple_model.pkA')
     fkB: int = Field(foreign_key='foreign_key_model.pkB')
@@ -104,6 +107,11 @@ def test_tablename():
         (ForeignKEYModel, MultiForeignKEYModel.fk_prop, False),
         (ComplicatedModel, MultiForeignKEYModel.fkC, False),
         (ComplicatedModel, MultiForeignKEYModel.fkD, False)
+    ],
+    'inherited': [
+        (ComplicatedModel, ComplicatedModel.prop1, True),
+        (BaseModel, ComplicatedModel.prop1, False),
+        (BaseModel, ComplicatedModel.prop2, False)
     ]
 })
 def test_has_column(model: DAOModel, column: Column, expected: bool):
@@ -219,7 +227,9 @@ def test_get_references_of(model: type[DAOModel], reference: type[DAOModel], exp
     'single column':
         (SimpleModel, ['pkA']),
     'multiple columns':
-        (ComplicatedModel, ['pkC', 'pkD', 'prop1', 'prop2', 'fkA', 'fkB'])
+        (ForeignKEYModel, ['pkB', 'prop', 'fk']),
+    'inherited columns':
+        (ComplicatedModel, ['prop1', 'pkC', 'pkD', 'prop2', 'fkA', 'fkB'])
 })
 def test_get_properties(model: type[DAOModel], expected: list[str]):
     assert names_of(model.get_properties()) == expected
