@@ -85,7 +85,7 @@ class DAOModel(SQLModel):
         return {fk.parent for fk in cls.__table__.foreign_keys}
 
     @classmethod
-    def get_references_of(cls, model: Self) -> set[Column]:
+    def get_references_of(cls, model: type[Self]) -> set[Column]:
         """
         Returns the Columns of this Model that represent Foreign Keys of the specified Model.
 
@@ -103,7 +103,7 @@ class DAOModel(SQLModel):
         return cls.__table__.c
 
     @classmethod
-    def get_searchable_properties(cls) -> Iterable[Column|tuple[Self, ..., Column]]:
+    def get_searchable_properties(cls) -> Iterable[Column|tuple[type[Self], ..., Column]]:
         """
         Returns all the Columns for this Model that may be searched using the DAO find function.
 
@@ -112,7 +112,7 @@ class DAOModel(SQLModel):
         return cls.get_properties()
 
     @classmethod
-    def find_searchable_column(cls, prop: Union[str, Column], foreign_tables: list[Self]) -> Column:
+    def find_searchable_column(cls, prop: Union[str, Column], foreign_tables: list[type[Self]]) -> Column:
         """
         Returns the specified searchable Column.
 
