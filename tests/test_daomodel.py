@@ -24,12 +24,6 @@ class ForeignKEYModel(DAOModel, table=True):
     fkA: int = Field(foreign_key='simple_model.pkA')
 
 
-class MultiForeignKEYModel(DAOModel, table=True):
-    pfk1: int = Field(primary_key=True, foreign_key='complicated_model.pk1')
-    pfk2: int = Field(primary_key=True, foreign_key='complicated_model.pk2')
-    fk3: str = Field(foreign_key='foreign_key_model.prop')
-
-
 class ComplicatedModel(DAOModel, table=True):
     pk1: int = Field(primary_key=True)
     pk2: int = Field(primary_key=True)
@@ -43,6 +37,12 @@ class ComplicatedModel(DAOModel, table=True):
         return {cls.pk1, cls.pk2, cls.prop1, cls.fk1, cls.fk2, ForeignKEYModel.prop, (ForeignKEYModel, SimpleModel.pkA)}
 
 complicated_instance = ComplicatedModel(pk1=17, pk2=76, prop1='prop', prop2='erty', fk1=23, fk2=32)
+
+
+class MultiForeignKEYModel(DAOModel, table=True):
+    pfk1: int = Field(primary_key=True, foreign_key='complicated_model.pk1')
+    pfk2: int = Field(primary_key=True, foreign_key='complicated_model.pk2')
+    fk3: str = Field(foreign_key='foreign_key_model.prop')
 
 
 def test_tablename():
