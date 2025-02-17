@@ -21,28 +21,28 @@ simple_instance = SimpleModel(pkA=23)
 class ForeignKEYModel(DAOModel, table=True):
     pkB: int = Field(primary_key=True)
     prop: str
-    fkA: int = Field(foreign_key='simple_model.pkA')
+    fk: int = Field(foreign_key='simple_model.pkA')
 
 
 class ComplicatedModel(DAOModel, table=True):
-    pk1: int = Field(primary_key=True)
-    pk2: int = Field(primary_key=True)
+    pkC: int = Field(primary_key=True)
+    pkD: int = Field(primary_key=True)
     prop1: str
     prop2: str
-    fk1: int = Field(foreign_key='simple_model.pkA')
-    fk2: int = Field(foreign_key='foreign_key_model.pkB')
+    fkA: int = Field(foreign_key='simple_model.pkA')
+    fkB: int = Field(foreign_key='foreign_key_model.pkB')
 
     @classmethod
     def get_searchable_properties(cls) -> set[Column|tuple[DAOModel, ..., Column]]:
-        return {cls.pk1, cls.pk2, cls.prop1, cls.fk1, cls.fk2, ForeignKEYModel.prop, (ForeignKEYModel, SimpleModel.pkA)}
+        return {cls.pkC, cls.pkD, cls.prop1, cls.fkA, cls.fkB, ForeignKEYModel.prop, (ForeignKEYModel, SimpleModel.pkA)}
 
-complicated_instance = ComplicatedModel(pk1=17, pk2=76, prop1='prop', prop2='erty', fk1=23, fk2=32)
+complicated_instance = ComplicatedModel(pkC=17, pkD=76, prop1='prop', prop2='erty', fkA=23, fkB=32)
 
 
 class MultiForeignKEYModel(DAOModel, table=True):
-    pfk1: int = Field(primary_key=True, foreign_key='complicated_model.pk1')
-    pfk2: int = Field(primary_key=True, foreign_key='complicated_model.pk2')
-    fk3: str = Field(foreign_key='foreign_key_model.prop')
+    fkC: int = Field(primary_key=True, foreign_key='complicated_model.pkC')
+    fkD: int = Field(primary_key=True, foreign_key='complicated_model.pkD')
+    fk_prop: str = Field(foreign_key='foreign_key_model.prop')
 
 
 def test_tablename():
@@ -55,55 +55,55 @@ def test_tablename():
         (SimpleModel, SimpleModel.pkA, True),
         (ForeignKEYModel, ForeignKEYModel.pkB, True),
         (ForeignKEYModel, ForeignKEYModel.prop, True),
-        (ForeignKEYModel, ForeignKEYModel.fkA, True),
-        (ComplicatedModel, ComplicatedModel.pk1, True),
-        (ComplicatedModel, ComplicatedModel.pk2, True),
+        (ForeignKEYModel, ForeignKEYModel.fk, True),
+        (ComplicatedModel, ComplicatedModel.pkC, True),
+        (ComplicatedModel, ComplicatedModel.pkD, True),
         (ComplicatedModel, ComplicatedModel.prop1, True),
         (ComplicatedModel, ComplicatedModel.prop2, True),
-        (ComplicatedModel, ComplicatedModel.fk1, True),
-        (ComplicatedModel, ComplicatedModel.fk2, True),
-        (MultiForeignKEYModel, MultiForeignKEYModel.pfk1, True),
-        (MultiForeignKEYModel, MultiForeignKEYModel.pfk2, True),
-        (MultiForeignKEYModel, MultiForeignKEYModel.fk3, True)
+        (ComplicatedModel, ComplicatedModel.fkA, True),
+        (ComplicatedModel, ComplicatedModel.fkB, True),
+        (MultiForeignKEYModel, MultiForeignKEYModel.fkC, True),
+        (MultiForeignKEYModel, MultiForeignKEYModel.fkD, True),
+        (MultiForeignKEYModel, MultiForeignKEYModel.fk_prop, True)
     ],
     'false': [
         (SimpleModel, ForeignKEYModel.pkB, False),
         (SimpleModel, ForeignKEYModel.prop, False),
-        (SimpleModel, ComplicatedModel.pk1, False),
-        (SimpleModel, ComplicatedModel.pk2, False),
+        (SimpleModel, ComplicatedModel.pkC, False),
+        (SimpleModel, ComplicatedModel.pkD, False),
         (SimpleModel, ComplicatedModel.prop1, False),
         (SimpleModel, ComplicatedModel.prop2, False),
-        (SimpleModel, ComplicatedModel.fk2, False),
-        (SimpleModel, MultiForeignKEYModel.fk3, False),
-        (ForeignKEYModel, ComplicatedModel.pk1, False),
-        (ForeignKEYModel, ComplicatedModel.pk2, False),
+        (SimpleModel, ComplicatedModel.fkB, False),
+        (SimpleModel, MultiForeignKEYModel.fk_prop, False),
+        (ForeignKEYModel, ComplicatedModel.pkC, False),
+        (ForeignKEYModel, ComplicatedModel.pkD, False),
         (ForeignKEYModel, ComplicatedModel.prop1, False),
         (ForeignKEYModel, ComplicatedModel.prop2, False),
-        (ForeignKEYModel, ComplicatedModel.fk1, False),
-        (ForeignKEYModel, MultiForeignKEYModel.pfk1, False),
-        (ForeignKEYModel, MultiForeignKEYModel.pfk2, False),
+        (ForeignKEYModel, ComplicatedModel.fkA, False),
+        (ForeignKEYModel, MultiForeignKEYModel.fkC, False),
+        (ForeignKEYModel, MultiForeignKEYModel.fkD, False),
         (ComplicatedModel, ForeignKEYModel.prop, False),
-        (ComplicatedModel, MultiForeignKEYModel.fk3, False),
+        (ComplicatedModel, MultiForeignKEYModel.fk_prop, False),
         (MultiForeignKEYModel, SimpleModel.pkA, False),
         (MultiForeignKEYModel, ComplicatedModel.prop1, False),
         (MultiForeignKEYModel, ComplicatedModel.prop2, False),
-        (MultiForeignKEYModel, ComplicatedModel.fk1, False),
-        (MultiForeignKEYModel, ComplicatedModel.fk2, False)
+        (MultiForeignKEYModel, ComplicatedModel.fkA, False),
+        (MultiForeignKEYModel, ComplicatedModel.fkB, False)
     ],
     'foreign keys': [
         (ForeignKEYModel, SimpleModel.pkA, False),
         (ComplicatedModel, SimpleModel.pkA, False),
         (ComplicatedModel, ForeignKEYModel.pkB, False),
-        (MultiForeignKEYModel, ComplicatedModel.pk1, False),
-        (MultiForeignKEYModel, ComplicatedModel.pk2, False),
+        (MultiForeignKEYModel, ComplicatedModel.pkC, False),
+        (MultiForeignKEYModel, ComplicatedModel.pkD, False),
         (MultiForeignKEYModel, ForeignKEYModel.prop, False)
     ],
     'foreign references': [
-        (SimpleModel, ForeignKEYModel.fkA, False),
-        (ForeignKEYModel, ComplicatedModel.fk2, False),
-        (ForeignKEYModel, MultiForeignKEYModel.fk3, False),
-        (ComplicatedModel, MultiForeignKEYModel.pfk1, False),
-        (ComplicatedModel, MultiForeignKEYModel.pfk2, False)
+        (SimpleModel, ForeignKEYModel.fk, False),
+        (ForeignKEYModel, ComplicatedModel.fkB, False),
+        (ForeignKEYModel, MultiForeignKEYModel.fk_prop, False),
+        (ComplicatedModel, MultiForeignKEYModel.fkC, False),
+        (ComplicatedModel, MultiForeignKEYModel.fkD, False)
     ]
 })
 def test_has_column(model: DAOModel, column: Column, expected: bool):
@@ -146,7 +146,7 @@ def test_doc_name(model: type[DAOModel], expected: str):
     'single column':
         (SimpleModel, ['pkA']),
     'multiple columns':
-        (ComplicatedModel, ['pk1', 'pk2'])
+        (ComplicatedModel, ['pkC', 'pkD'])
 })
 def test_get_pk_names__single_column(model: type[DAOModel], expected: list[str]):
     assert model.get_pk_names() == expected
@@ -166,7 +166,7 @@ def test_get_pk_values(model: DAOModel, expected: tuple[int]):
     'single column':
         (simple_instance, {'pkA': 23}),
     'multiple columns':
-        (complicated_instance, {'pk1': 17, 'pk2': 76})
+        (complicated_instance, {'pkC': 17, 'pkD': 76})
 })
 def test_get_pk_dict(model: DAOModel, expected: dict[str, int]):
     assert model.get_pk_dict() == expected
@@ -184,9 +184,9 @@ def test_get_fks(model: type[DAOModel], expected: set[str]):
 
 @labeled_tests({
     'single column':
-        (ForeignKEYModel, {'fkA'}),
+        (ForeignKEYModel, {'fk'}),
     'multiple columns':
-        (ComplicatedModel, {'fk1', 'fk2'})
+        (ComplicatedModel, {'fkA', 'fkB'})
 })
 def test_get_fk_properties(model: type[DAOModel], expected: set[str]):
     assert set(names_of(model.get_fk_properties())) == expected
@@ -199,17 +199,17 @@ def to_str(columns: Iterable[Column]):
 
 @labeled_tests({
     'single column':
-        (ForeignKEYModel, SimpleModel, {ForeignKEYModel.fkA}),
+        (ForeignKEYModel, SimpleModel, {ForeignKEYModel.fk}),
     'some applicable columns': [
-        (ComplicatedModel, SimpleModel, {ComplicatedModel.fk1}),
-        (ComplicatedModel, ForeignKEYModel, {ComplicatedModel.fk2})
+        (ComplicatedModel, SimpleModel, {ComplicatedModel.fkA}),
+        (ComplicatedModel, ForeignKEYModel, {ComplicatedModel.fkB})
     ],
     'no applicable columns':
         (MultiForeignKEYModel, SimpleModel, {}),
     'non primary key':
-        (MultiForeignKEYModel, ForeignKEYModel, {MultiForeignKEYModel.fk3}),
+        (MultiForeignKEYModel, ForeignKEYModel, {MultiForeignKEYModel.fk_prop}),
     'multiple columns':
-        (MultiForeignKEYModel, ComplicatedModel, {MultiForeignKEYModel.pfk1, MultiForeignKEYModel.pfk2})
+        (MultiForeignKEYModel, ComplicatedModel, {MultiForeignKEYModel.fkC, MultiForeignKEYModel.fkD})
 })
 def test_get_references_of(model: type[DAOModel], reference: type[DAOModel], expected: set[Column]):
     assert to_str(model.get_references_of(reference)) == to_str(expected)
@@ -219,7 +219,7 @@ def test_get_references_of(model: type[DAOModel], reference: type[DAOModel], exp
     'single column':
         (SimpleModel, ['pkA']),
     'multiple columns':
-        (ComplicatedModel, ['pk1', 'pk2', 'prop1', 'prop2', 'fk1', 'fk2'])
+        (ComplicatedModel, ['pkC', 'pkD', 'prop1', 'prop2', 'fkA', 'fkB'])
 })
 def test_get_properties(model: type[DAOModel], expected: list[str]):
     assert names_of(model.get_properties()) == expected
@@ -229,7 +229,7 @@ def test_get_properties(model: type[DAOModel], expected: list[str]):
     'single column':
         (SimpleModel, ['pkA']),
     'multiple columns':
-        (ForeignKEYModel, ['pkB', 'prop', 'fkA'])
+        (ForeignKEYModel, ['pkB', 'prop', 'fk'])
 })
 def test_get_searchable_properties__single_column(model: type[DAOModel], expected: list[str]):
     assert names_of(model.get_searchable_properties()) == expected
@@ -237,25 +237,25 @@ def test_get_searchable_properties__single_column(model: type[DAOModel], expecte
 
 @labeled_tests({
     'column': [
-        (ComplicatedModel.pk1, []),
-        (ComplicatedModel.pk2, []),
+        (ComplicatedModel.pkC, []),
+        (ComplicatedModel.pkD, []),
         (ComplicatedModel.prop1, []),
-        (ComplicatedModel.fk1, []),
-        (ComplicatedModel.fk2, [])
+        (ComplicatedModel.fkA, []),
+        (ComplicatedModel.fkB, [])
     ],
     'column reference': [
-        ('complicated_model.pk1', []),
-        ('complicated_model.pk2', []),
+        ('complicated_model.pkC', []),
+        ('complicated_model.pkD', []),
         ('complicated_model.prop1', []),
-        ('complicated_model.fk1', []),
-        ('complicated_model.fk2', [])
+        ('complicated_model.fkA', []),
+        ('complicated_model.fkB', [])
     ],
     'column name': [
-        ('pk1', []),
-        ('pk2', []),
+        ('pkC', []),
+        ('pkD', []),
         ('prop1', []),
-        ('fk1', []),
-        ('fk2', [])
+        ('fkA', []),
+        ('fkB', [])
     ],
     'foreign property': [
         (ForeignKEYModel.prop, [ForeignKEYModel.normalized_name()]),
@@ -281,39 +281,39 @@ def test_find_searchable_column__foreign_without_table():
     'single column':
         (SimpleModel, (23,), {'pkA': 23}),
     'multiple columns':
-        (ComplicatedModel, (17, 76), {'pk1': 17, 'pk2': 76})
+        (ComplicatedModel, (17, 76), {'pkC': 17, 'pkD': 76})
 })
 def test_pk_values_to_dict__single_column(model: type[DAOModel], args: tuple[int, ...], expected: dict[str, int]):
     assert model.pk_values_to_dict(args) == expected
 
 
 def test_copy_model():
-    other = ComplicatedModel(pk1=12, pk2=34, prop1='different', prop2='values', fk1=1, fk2=2)
+    other = ComplicatedModel(pkC=12, pkD=34, prop1='different', prop2='values', fkA=1, fkB=2)
     other.copy_model(complicated_instance)
-    assert other.pk1 == 12
-    assert other.pk2 == 34
+    assert other.pkC == 12
+    assert other.pkD == 34
     assert other.prop1 == 'prop'
     assert other.prop2 == 'erty'
-    assert other.fk1 == 23
-    assert other.fk2 == 32
-    assert complicated_instance.pk1 == 17
-    assert complicated_instance.pk2 == 76
+    assert other.fkA == 23
+    assert other.fkB == 32
+    assert complicated_instance.pkC == 17
+    assert complicated_instance.pkD == 76
     assert complicated_instance.prop1 == 'prop'
     assert complicated_instance.prop2 == 'erty'
-    assert complicated_instance.fk1 == 23
-    assert complicated_instance.fk2 == 32
+    assert complicated_instance.fkA == 23
+    assert complicated_instance.fkB == 32
 
 
 def test_copy_values():
-    other = ComplicatedModel(pk1=12, pk2=34, prop1='different', prop2='values', fk1=1, fk2=2)
-    other.copy_values(pk1=0, prop1='new', other='extra')
+    other = ComplicatedModel(pkC=12, pkD=34, prop1='different', prop2='values', fkA=1, fkB=2)
+    other.copy_values(pkC=0, prop1='new', other='extra')
     assert other.model_dump() == {
-        'pk1': 12,
-        'pk2': 34,
+        'pkC': 12,
+        'pkD': 34,
         'prop1': 'new',
         'prop2': 'values',
-        'fk1': 1,
-        'fk2': 2
+        'fkA': 1,
+        'fkB': 2
     }
 
 
@@ -328,10 +328,10 @@ def test_copy_values():
     ),
     'multiple columns': (
             complicated_instance,
-            ComplicatedModel(pk1=17, pk2=76, prop1='different', prop2='values', fk1=1, fk2=2),
+            ComplicatedModel(pkC=17, pkD=76, prop1='different', prop2='values', fkA=1, fkB=2),
             (
-                    ComplicatedModel(pk1=17, pk2=89, prop1='prop', prop2='erty', fk1=23, fk2=32),
-                    ComplicatedModel(pk1=17, pk2=89, prop1='prop', prop2='erty', fk1=23, fk2=32)
+                    ComplicatedModel(pkC=17, pkD=89, prop1='prop', prop2='erty', fkA=23, fkB=32),
+                    ComplicatedModel(pkC=17, pkD=89, prop1='prop', prop2='erty', fkA=23, fkB=32)
             )
     )
 })
