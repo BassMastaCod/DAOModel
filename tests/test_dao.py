@@ -2,7 +2,7 @@ import pytest
 
 from daomodel.dao import DAO, NotFound, Conflict
 from daomodel.util import MissingInput
-from tests.conftest import TestDAOFactory, Student, Person
+from tests.conftest import TestDAOFactory, Student, Person, Book
 
 
 def test_create__single_column(daos: TestDAOFactory):
@@ -89,6 +89,75 @@ def test_upsert__existing(daos: TestDAOFactory):
     daos.assert_in_db(Student, 100, name=None)
     dao.upsert(model)
     daos.assert_in_db(Student, 100, name='Bob')
+
+
+def test_rename(daos: TestDAOFactory):
+    dao = daos[Student]
+    model = dao.create(100)
+    daos.assert_in_db(Student, 100)
+    daos.assert_not_in_db(Student, 200)
+    dao.rename(model, 200)
+    daos.assert_not_in_db(Student, 100)
+    daos.assert_in_db(Student, 200)
+
+
+def test_rename__multiple_columns(daos: TestDAOFactory):
+    dao = daos[Person]
+    model = dao.create('Alfred', 51)
+    daos.assert_in_db(Person, 'Alfred', 51)
+    daos.assert_not_in_db(Person, 'Al', 51)
+
+    dao.rename(model, 'Al', 51)
+    daos.assert_not_in_db(Person, 'Alfred', 51)
+    daos.assert_in_db(Person, 'Al', 51)
+
+    dao.rename(model, 'Fred', 52)
+    daos.assert_not_in_db(Person, 'Al', 51)
+    daos.assert_in_db(Person, 'Fred', 52)
+
+    dao.rename(model, 'Fred', 53)
+    daos.assert_not_in_db(Person, 'Fred', 52)
+    daos.assert_in_db(Person, 'Fred', 53)
+
+
+def test_rename__keep_property_values(daos: TestDAOFactory):
+    dao = daos[Student]
+    model = dao.create_with(id=100, name='Bob', gender='m', active=False)
+    daos.assert_in_db(Student, 100, name='Bob', gender='m', active=False)
+    daos.assert_not_in_db(Student, 200)
+    dao.rename(model, 200)
+    daos.assert_not_in_db(Student, 100)
+    daos.assert_in_db(Student, 200, name='Bob', gender='m', active=False)
+
+
+def test_rename__cascade_foreign_reference(daos: TestDAOFactory):
+    student_dao = daos[Student]
+    model = student_dao.create(100)
+    daos[Book].create_with(name='Algebra I', subject='Math', owner=100)
+    daos.assert_in_db(Book, 'Algebra I', subject='Math', owner=100)
+    student_dao.rename(model, 200)
+    daos.assert_in_db(Book, 'Algebra I', subject='Math', owner=200)
+
+
+def test_rename__keep_foreign_key(daos: TestDAOFactory):
+    daos[Student].create(100)
+    book_dao = daos[Book]
+    book = book_dao.create_with(name='Algebra I', subject='Math', owner=100)
+    daos.assert_in_db(Book, 'Algebra I', subject='Math', owner=100)
+    daos.assert_not_in_db(Book, 'Algebra II')
+    book_dao.rename(book, 'Algebra II')
+    daos.assert_not_in_db(Book, 'Algebra I')
+    daos.assert_in_db(Book, 'Algebra II', subject='Math', owner=100)
+
+
+def test_rename__already_exists(daos: TestDAOFactory):
+    dao = daos[Student]
+    model = dao.create(100)
+    dao.create(200)
+    daos.assert_in_db(Student, 100)
+    daos.assert_in_db(Student, 200)
+    with pytest.raises(Conflict):
+        dao.rename(model, 200)
 
 
 def test_exists_true(daos: TestDAOFactory):

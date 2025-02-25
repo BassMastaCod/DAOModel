@@ -23,7 +23,7 @@ class Conflict(Exception):
         self.detail = f"{model.__class__.doc_name()} {model} already exists"
 
 
-T = TypeVar("T")
+T = TypeVar("T", bound=DAOModel)
 class SearchResults(list[T]):
     """The paginated results of a filtered search."""
     def __init__(self, results: list[T], total: int = None, page: Optional[int] = None, per_page: Optional[int] = None):
@@ -133,6 +133,22 @@ class DAO:
         except NotFound:
             self.insert(model)
         return model
+
+    def rename(self, existing: T, *new_pk_values) -> None:
+        """
+        Updates the given model with new primary key values.
+
+        :param existing: The model to rename
+        :param new_pk_values: The new primary key values for the model
+        :raises: Conflict if an entry already exists for the new primary key
+        """
+        try:
+            raise Conflict(self.get(*new_pk_values))
+        except NotFound:
+            for k, v in zip(existing.get_pk_names(), new_pk_values):
+                setattr(existing, k, v)
+            self.update(existing)
+
 
     def exists(self, model: T) -> bool:
         """

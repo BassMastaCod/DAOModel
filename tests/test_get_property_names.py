@@ -2,29 +2,29 @@ from typing import Optional
 
 from sqlmodel import Field
 
-from daomodel import DAOModel
+from daomodel import DAOModel, PrimaryKey, ForeignKey
 from tests.labeled_tests import labeled_tests
 
 
 class ForeignModel(DAOModel, table=True):
-    pk: int = Field(primary_key=True)
+    pk: int = PrimaryKey
 
 
 class PropertyModel(DAOModel, table=True):
-    set_pk: int = Field(primary_key=True)
-    unset_pk: Optional[int] = Field(primary_key=True)
+    set_pk: int = PrimaryKey
+    unset_pk: Optional[int] = PrimaryKey
     default_pk: Optional[int] = Field(primary_key=True, default=0)
     set_default_pk: Optional[int] = Field(primary_key=True, default=0)
     default_none_pk: Optional[int] = Field(primary_key=True, default=None)
-    set_none_pk: Optional[int] = Field(primary_key=True)
+    set_none_pk: Optional[int] = PrimaryKey
     set_default_none_pk: Optional[int] = Field(primary_key=True, default=None)
-    set_fk: int = Field(foreign_key='foreign_model.pk')
-    unset_fk: Optional[int] = Field(foreign_key='foreign_model.pk')
-    default_fk: Optional[int] = Field(foreign_key='foreign_model.pk', default=0)
-    set_default_fk: Optional[int] = Field(foreign_key='foreign_model.pk', default=0)
-    default_none_fk: Optional[int] = Field(foreign_key='foreign_model.pk', default=None)
-    set_none_fk: Optional[int] = Field(foreign_key='foreign_model.pk')
-    set_default_none_fk: Optional[int] = Field(foreign_key='foreign_model.pk', default=None)
+    set_fk: int = ForeignKey('foreign_model.pk')
+    unset_fk: Optional[int] = ForeignKey('foreign_model.pk')
+    default_fk: Optional[int] = ForeignKey('foreign_model.pk', default=0)
+    set_default_fk: Optional[int] = ForeignKey('foreign_model.pk', default=0)
+    default_none_fk: Optional[int] = ForeignKey('foreign_model.pk', default=None)
+    set_none_fk: Optional[int] = ForeignKey('foreign_model.pk')
+    set_default_none_fk: Optional[int] = ForeignKey('foreign_model.pk', default=None)
     set: int
     unset: Optional[int]
     default: Optional[int] = 0
