@@ -101,6 +101,25 @@ def test_rename(daos: TestDAOFactory):
     daos.assert_in_db(Student, 200)
 
 
+def test_rename__multiple_columns(daos: TestDAOFactory):
+    dao = daos[Person]
+    model = dao.create('Alfred', 51)
+    daos.assert_in_db(Person, 'Alfred', 51)
+    daos.assert_not_in_db(Person, 'Al', 51)
+
+    dao.rename(model, 'Al', 51)
+    daos.assert_not_in_db(Person, 'Alfred', 51)
+    daos.assert_in_db(Person, 'Al', 51)
+
+    dao.rename(model, 'Fred', 52)
+    daos.assert_not_in_db(Person, 'Al', 51)
+    daos.assert_in_db(Person, 'Fred', 52)
+
+    dao.rename(model, 'Fred', 53)
+    daos.assert_not_in_db(Person, 'Fred', 52)
+    daos.assert_in_db(Person, 'Fred', 53)
+
+
 def test_rename__keep_property_values(daos: TestDAOFactory):
     dao = daos[Student]
     model = dao.create_with(id=100, name='Bob', gender='m', active=False)
