@@ -23,7 +23,7 @@ class Conflict(Exception):
         self.detail = f"{model.__class__.doc_name()} {model} already exists"
 
 
-T = TypeVar("T")
+T = TypeVar("T", bound=DAOModel)
 class SearchResults(list[T]):
     """The paginated results of a filtered search."""
     def __init__(self, results: list[T], total: int = None, page: Optional[int] = None, per_page: Optional[int] = None):
