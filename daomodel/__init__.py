@@ -113,6 +113,48 @@ class DAOModel(SQLModel):
         """
         return cls.__table__.c
 
+    def get_property_names(self, **kwargs: bool) -> list[str]:
+        """Returns the names of the specified properties of this Model
+
+        Supported property categories to specify are:
+            all: All model properties including those inherited
+            pk: Primary Key properties
+            fk: Foreign Key properties
+            standard: All other properties (that aren't pk or fk)
+            unset: Properties that have not been explicitly set (see Pydantic.model_dump for more info)
+            defaults: Properties that are equivalent to their default value (see Pydantic.model_dump for more info)
+            none: Properties that do not have a value (see Pydantic.model_dump for more info)
+        Property categories may be set to True (to include) or False (to exclude).
+        If no arguments are provided, no properties will be returned.
+        The categories are added/removed in the order that they are encountered as arguments.
+            Therefore, arguments of get_property_names(pk=False, all=True) will result in all properties.
+        unset, defaults, and none will overlap with each other and the other categories
+            so order is important to get the properties you intend.
+
+        :param kwargs: The property categories to include or exclude
+        :return: A list of property names in the order they are defined within the code (see get_properties)
+        """
+        property_order = names_of(self.get_properties())
+        all_properties = set(property_order)
+        result = set()
+
+        for key, value in kwargs.items():
+            if key not in property_categories:
+                raise ValueError(f'Unexpected keyword argument {key} is not one of {property_categories}')
+            if key is 'all':
+                props = all_properties
+            elif key in 'pk':
+                props = self.get_pk_names()
+            elif key is 'fk':
+                props = names_of(self.get_fk_properties())
+            elif key is 'standard':
+                props = all_properties.difference(self.get_pk_names()).difference(names_of(self.get_fk_properties()))
+            else:
+                props = all_properties.difference(self.model_dump(**{f'exclude_{key}': True}))
+
+            result = result.union(props) if value else result.difference(props)
+        return in_order(result, property_order)
+
     @classmethod
     def get_searchable_properties(cls) -> Iterable[Column|tuple[type[Self], ..., Column]]:
         """
