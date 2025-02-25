@@ -4,7 +4,10 @@ from sqlalchemy import Column, Engine, inspect
 from str_case_util import Case
 from sqlalchemy.ext.declarative import declared_attr
 
-from daomodel.util import reference_of, names_of
+from daomodel.util import reference_of, names_of, in_order
+
+
+property_categories = ['all', 'pk', 'fk', 'standard', 'unset', 'defaults', 'none']
 
 
 class DAOModel(SQLModel):
