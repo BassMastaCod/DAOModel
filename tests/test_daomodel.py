@@ -36,7 +36,7 @@ class ComplicatedModel(BaseModel, table=True):
     fkB: int = Field(foreign_key='foreign_key_model.pkB')
 
     @classmethod
-    def get_searchable_properties(cls) -> set[Column|tuple[DAOModel, ..., Column]]:
+    def get_searchable_properties(cls) -> set[Column|tuple[type[DAOModel], ..., Column]]:
         return {cls.pkC, cls.pkD, cls.prop1, cls.fkA, cls.fkB, ForeignKEYModel.prop, (ForeignKEYModel, SimpleModel.pkA)}
 
 complicated_instance = ComplicatedModel(pkC=17, pkD=76, prop1='prop', prop2='erty', fkA=23, fkB=32)

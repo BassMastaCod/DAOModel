@@ -82,6 +82,20 @@ def dedupe(original: list) -> list:
     return list(OrderedDict.fromkeys(original))
 
 
+def in_order(original: Iterable, order: list) -> list:
+    """Returns provided items as an ordered list.
+
+    Repeated items will be deduplicated.
+    Items not defined within the order will be excluded.
+    The order is allowed to contain extraneous items that aren't applicable to the provided items.
+
+    :param original: The (likely unordered) collection of items
+    :param order: The defined order of items
+    :return: a new list of the items following the defined order
+    """
+    return [item for item in order if item in original]
+
+
 def next_id() -> None:
     """Indicates to the model that an id should be auto incremented"""
     return None
