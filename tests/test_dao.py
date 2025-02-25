@@ -130,7 +130,6 @@ def test_rename__keep_property_values(daos: TestDAOFactory):
     daos.assert_in_db(Student, 200, name='Bob', gender='m', active=False)
 
 
-@pytest.mark.skip(reason='Not yet implemented')
 def test_rename__cascade_foreign_reference(daos: TestDAOFactory):
     student_dao = daos[Student]
     model = student_dao.create(100)

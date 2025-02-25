@@ -7,15 +7,15 @@ from sqlalchemy import Column, ForeignKeyConstraint
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import Field
 
-from daomodel import DAOModel
+from daomodel import DAOModel, PrimaryKey, ForeignKey
 from daomodel.dao import NotFound, DAO
 from daomodel.db import DAOFactory, create_engine, init_db
 from daomodel.util import next_id
 
 
 class Person(DAOModel, table=True):
-    name: str = Field(primary_key=True)
-    age: int = Field(primary_key=True)
+    name: str = PrimaryKey
+    age: int = PrimaryKey
     ssn: Optional[str]
 
     @classmethod
@@ -24,19 +24,19 @@ class Person(DAOModel, table=True):
 
 
 class PersonDisplay(Person):
-    name: str = Field(primary_key=True)
-    age: int = Field(primary_key=True)
+    name: str = PrimaryKey
+    age: int = PrimaryKey
 
 
 class Book(DAOModel, table=True):
-    name: str = Field(primary_key=True)
+    name: str = PrimaryKey
     subject: str
-    owner: int = Field(foreign_key='student.id')
+    owner: int = ForeignKey('student.id')
 
 
 class Hall(DAOModel, table=True):
-    location: str = Field(primary_key=True)
-    floor: int = Field(primary_key=True)
+    location: str = PrimaryKey
+    floor: int = PrimaryKey
     color: str
 
 
@@ -48,14 +48,14 @@ class Locker(DAOModel, table=True):
         ),
     )
 
-    number: int = Field(primary_key=True)
-    owner: int = Field(foreign_key='student.id')
+    number: int = PrimaryKey
+    owner: int = ForeignKey('student.id')
     location: str
     floor: int
 
 
 class BasePerson(DAOModel):
-    id: int = Field(primary_key=True)
+    id: int = PrimaryKey
     name: Optional[str]
 
 

@@ -1,5 +1,7 @@
-from typing import Any, Self, Iterable, Union
-from sqlmodel import SQLModel
+from typing import Any, Self, Iterable, Union, Optional
+
+import sqlalchemy
+from sqlmodel import SQLModel, Field
 from sqlalchemy import Column, Engine, inspect
 from str_case_util import Case
 from sqlalchemy.ext.declarative import declared_attr
@@ -261,3 +263,48 @@ def all_models(engine: Engine) -> set[DAOModel]:
 
     db_tables = set(inspect(engine).get_table_names())
     return {model for model in daomodel_subclasses(DAOModel) if model.__tablename__ in db_tables}
+
+
+PrimaryKey = Field(primary_key=True)
+
+
+def PrimaryForeignKey(foreign_property: str) -> Field:
+    """Shortcut for creating a Field that is both a PrimaryKey and ForeignKey.
+
+    :param foreign_property: The table/column reference for the foreign key
+    :return: The SQLModel Field object defining the sa_column
+    """
+    return ForeignKey(foreign_property, primary=True)
+
+
+_sentinel = object()
+
+def ForeignKey(foreign_property: str,
+               default: Optional[Any] = _sentinel,
+               ondelete: Optional[str] = 'CASCADE',
+               primary: Optional[bool] = False) -> Field:
+    """Shortcut for creating a Field that is a ForeignKey.
+
+    Deletions and updates are automatically set to cascade.
+
+    :param foreign_property: The table/column reference for the foreign key
+    :param default: An optional default value for the field
+    :param ondelete: As defined by SQLAlchemy, valid options include SET NULL and RESTRICT. It is CASCADE by default
+    :param primary: True if this field is also a primary key
+    :return: The SQLModel Field object defining the sa_column
+    """
+    sa_column = Column(sqlalchemy.ForeignKey(foreign_property, ondelete=ondelete, onupdate='CASCADE'),
+                       primary_key=primary)
+    return Field(sa_column=sa_column) if default is _sentinel else Field(default=default, sa_column=sa_column)
+
+
+def OptionalForeignKey(foreign_property: str, primary: Optional[bool] = False) -> Field:
+    """Shortcut for creating a Field that is a ForeignKey.
+
+    If the reference is deleted, this field will be set to NULL.
+
+    :param foreign_property: The table/column reference for the foreign key
+    :param primary: True if this field is also a primary key
+    :return: The SQLModel Field object defining the sa_column
+    """
+    return ForeignKey(foreign_property, ondelete='SET NULL', primary=primary)
