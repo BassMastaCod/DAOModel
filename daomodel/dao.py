@@ -19,8 +19,8 @@ class NotFound(Exception):
 
 class Conflict(Exception):
     """Indicates that the store could not be updated due to an existing conflict."""
-    def __init__(self, model: DAOModel):
-        self.detail = f"{model.__class__.doc_name()} {model} already exists"
+    def __init__(self, model: Optional[DAOModel] = None, msg: Optional[str] = None):
+        self.detail = msg if msg else f"{model.__class__.doc_name()} {model} already exists"
 
 
 T = TypeVar("T", bound=DAOModel)
@@ -148,7 +148,6 @@ class DAO:
             for k, v in zip(existing.get_pk_names(), new_pk_values):
                 setattr(existing, k, v)
             self.update(existing)
-
 
     def exists(self, model: T) -> bool:
         """
