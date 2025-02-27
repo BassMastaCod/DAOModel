@@ -313,13 +313,74 @@ def test_copy_model():
     assert complicated_instance.fkB == 32
 
 
+def test_copy_model__specific_fields():
+    other = ComplicatedModel(pkC=12, pkD=34, prop1='different', prop2='values', fkA=1, fkB=2)
+    other.copy_model(complicated_instance, 'prop1', 'fkA')
+    assert other.pkC == 12
+    assert other.pkD == 34
+    assert other.prop1 == 'prop'
+    assert other.prop2 == 'values'
+    assert other.fkA == 23
+    assert other.fkB == 2
+
+
+def test_copy_model__pk():
+    other = ComplicatedModel(pkC=12, pkD=34, prop1='different', prop2='values', fkA=1, fkB=2)
+    other.copy_model(complicated_instance, 'pkD')
+    assert other.pkC == 12
+    assert other.pkD == 76
+    assert other.prop1 == 'different'
+    assert other.prop2 == 'values'
+    assert other.fkA == 1
+    assert other.fkB == 2
+
+
 def test_copy_values():
     other = ComplicatedModel(pkC=12, pkD=34, prop1='different', prop2='values', fkA=1, fkB=2)
-    other.copy_values(pkC=0, prop1='new', other='extra')
+    other.copy_values(prop1='new', fkB=3)
     assert other.model_dump() == {
         'pkC': 12,
         'pkD': 34,
         'prop1': 'new',
+        'prop2': 'values',
+        'fkA': 1,
+        'fkB': 3
+    }
+
+
+def test_copy_values__extra_values():
+    other = ComplicatedModel(pkC=12, pkD=34, prop1='different', prop2='values', fkA=1, fkB=2)
+    other.copy_values(prop1='new', other='extra')
+    assert other.model_dump() == {
+        'pkC': 12,
+        'pkD': 34,
+        'prop1': 'new',
+        'prop2': 'values',
+        'fkA': 1,
+        'fkB': 2
+    }
+
+
+def test_copy_values__ignore_pk():
+    other = ComplicatedModel(pkC=12, pkD=34, prop1='different', prop2='values', fkA=1, fkB=2)
+    other.copy_values(pkC=0, prop1='new')
+    assert other.model_dump() == {
+        'pkC': 12,
+        'pkD': 34,
+        'prop1': 'new',
+        'prop2': 'values',
+        'fkA': 1,
+        'fkB': 2
+    }
+
+
+def test_copy_values__pk():
+    other = ComplicatedModel(pkC=12, pkD=34, prop1='different', prop2='values', fkA=1, fkB=2)
+    other.copy_values(copy_pk=True, pkC=0)
+    assert other.model_dump() == {
+        'pkC': 0,
+        'pkD': 34,
+        'prop1': 'different',
         'prop2': 'values',
         'fkA': 1,
         'fkB': 2

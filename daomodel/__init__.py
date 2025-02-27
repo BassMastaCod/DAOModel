@@ -200,26 +200,32 @@ class DAOModel(SQLModel):
         """
         return dict(zip(cls.get_pk_names(), *pk_values))
 
-    def copy_model(self, source: Self) -> None:
-        """
-        Copies all values, except the primary key, from another instance of this Model.
+    def copy_model(self, source: Self, *fields: str) -> None:
+        """Copies all values from another instance of this Model.
+
+        Unless the fields are specified, all but PK are copied.
 
         :param source: The model instance from which to copy values
+        :param fields: The names of fields to copy
         """
-        primary_key = set(source.get_pk_names())
-        values = source.model_dump(exclude=primary_key)
-        self.copy_values(**values)
+        if fields:
+            values = source.model_dump(include=set(fields))
+        else:
+            values = source.model_dump(exclude=set(source.get_pk_names()))
+        self.copy_values(copy_pk=True, **values)
 
-    def copy_values(self, **values) -> None:
-        """
-        Copies all non-pk property values to this Model.
+    def copy_values(self, copy_pk: Optional[bool] = False, **values) -> None:
+        """Copies property values to this Model.
 
+        By default, Primary Key values are ignored.
+
+        :param copy_pk: True if you also wish to copy Primary Key values
         :param values: The dict including values to copy
         """
-        pk = self.get_pk_names()
+        skip = [] if copy_pk else self.get_pk_names()
         properties = names_of(self.get_properties())
         for k, v in values.items():
-            if k in properties and k not in pk:
+            if k in properties and k not in skip:
                 setattr(self, k, v)
 
     def __eq__(self, other: Self):
