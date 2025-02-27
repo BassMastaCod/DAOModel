@@ -9,4 +9,7 @@ from tests.conftest import Person, Book, Hall, Locker, Staff, Student
 def test_all_models():
     engine = create_engine()
     init_db(engine)
-    assert all_models(engine) == {Person, Book, Hall, Locker, Staff, Student}
+    expected = {Person, Book, Hall, Locker, Staff, Student}
+    assert all_models(engine) == expected
+    connection = engine.connect()
+    assert all_models(connection) == expected

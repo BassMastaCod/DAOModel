@@ -2,7 +2,7 @@ from typing import Any, Self, Iterable, Union, Optional
 
 import sqlalchemy
 from sqlmodel import SQLModel, Field
-from sqlalchemy import Column, Engine, inspect
+from sqlalchemy import Column, Engine, MetaData, Connection
 from str_case_util import Case
 from sqlalchemy.ext.declarative import declared_attr
 
@@ -247,11 +247,11 @@ class Unsearchable(Exception):
         self.detail = f"Cannot search for {prop} of {model.doc_name()}"
 
 
-def all_models(engine: Engine) -> set[DAOModel]:
+def all_models(bind: Union[Engine, Connection]) -> set[type[DAOModel]]:
     """
     Discovers all DAOModel types that have been created for the database.
 
-    :param engine: The engine used to create the DB
+    :param bind: The Engine or Connection for the DB
     :return: A set of applicable DAOModels
     """
     def daomodel_subclasses(cls):
@@ -261,7 +261,9 @@ def all_models(engine: Engine) -> set[DAOModel]:
             subclasses.update(daomodel_subclasses(subclass))
         return subclasses
 
-    db_tables = set(inspect(engine).get_table_names())
+    metadata = MetaData()
+    metadata.reflect(bind=bind)
+    db_tables = metadata.tables.keys()
     return {model for model in daomodel_subclasses(DAOModel) if model.__tablename__ in db_tables}
 
 
