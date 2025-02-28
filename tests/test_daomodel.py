@@ -1,4 +1,4 @@
-from typing import Iterable, Union
+from typing import Iterable, Union, Any
 
 import pytest
 from sqlalchemy import Column
@@ -232,6 +232,80 @@ def test_get_references_of(model: type[DAOModel], reference: type[DAOModel], exp
 })
 def test_get_properties(model: type[DAOModel], expected: list[str]):
     assert names_of(model.get_properties()) == expected
+
+
+@labeled_tests({
+    'no diff': [
+        (complicated_instance, complicated_instance, {}),
+        (complicated_instance, ComplicatedModel(pkC=17, pkD=76, prop1='prop', prop2='erty', fkA=23, fkB=32), {}),
+        (complicated_instance, ComplicatedModel(pkC=18, pkD=77, prop1='prop', prop2='erty', fkA=23, fkB=32), {})
+    ],
+    'single column': [
+        (
+                complicated_instance,
+                ComplicatedModel(pkC=17, pkD=76, prop1='new', prop2='erty', fkA=23, fkB=32),
+                {'prop1': ('prop', 'new')}
+        ), (
+                complicated_instance,
+                ComplicatedModel(pkC=17, pkD=76, prop1='prop', prop2='new', fkA=23, fkB=32),
+                {'prop2': ('erty', 'new')}
+        ), (
+                complicated_instance,
+                ComplicatedModel(pkC=17, pkD=76, prop1='prop', prop2='erty', fkA=24, fkB=32),
+                {'fkA': (23, 24)}
+        ), (
+                complicated_instance,
+                ComplicatedModel(pkC=17, pkD=76, prop1='prop', prop2='erty', fkA=23, fkB=33),
+                {'fkB': (32, 33)}
+        )
+    ],
+    'multiple columns': [
+        (
+                complicated_instance,
+                ComplicatedModel(pkC=17, pkD=76, prop1='new', prop2='prop', fkA=23, fkB=32),
+                {'prop1': ('prop', 'new'), 'prop2': ('erty', 'prop')}
+        ), (
+                complicated_instance,
+                ComplicatedModel(pkC=17, pkD=76, prop1='prop', prop2='erty', fkA=0, fkB=0),
+                {'fkA': (23, 0), 'fkB': (32, 0)}
+        )
+    ]
+})
+def test_compare(model: DAOModel, other: DAOModel, expected: dict[str, tuple[Any, Any]]):
+    assert model.compare(other) == expected
+
+
+@labeled_tests({
+    'no diff': [
+        (simple_instance, simple_instance, {}),
+        (complicated_instance, complicated_instance, {}),
+        (complicated_instance, ComplicatedModel(pkC=17, pkD=76, prop1='prop', prop2='erty', fkA=23, fkB=32), {})
+    ],
+    'single column': [
+        (
+                simple_instance,
+                SimpleModel(pkA=24),
+                {'pkA': (23, 24)}
+        ), (
+                complicated_instance,
+                ComplicatedModel(pkC=18, pkD=76, prop1='prop', prop2='erty', fkA=23, fkB=32),
+                {'pkC': (17, 18)}
+        ), (
+                complicated_instance,
+                ComplicatedModel(pkC=17, pkD=77, prop1='prop', prop2='erty', fkA=23, fkB=32),
+                {'pkD': (76, 77)}
+        )
+    ],
+    'multiple columns': [
+        (
+                complicated_instance,
+                ComplicatedModel(pkC=18, pkD=86, prop1='prop', prop2='erty', fkA=23, fkB=32),
+                {'pkC': (17, 18), 'pkD': (76, 86)}
+        )
+    ]
+})
+def test_compare__include_pk(model: DAOModel, other: DAOModel, expected: dict[str, tuple[Any, Any]]):
+    assert model.compare(other, include_pk=True) == expected
 
 
 @labeled_tests({

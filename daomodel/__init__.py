@@ -162,6 +162,24 @@ class DAOModel(SQLModel):
             result = result.union(props) if value else result.difference(props)
         return in_order(result, property_order)
 
+    def compare(self, other, include_pk: Optional[bool] = False) -> dict[str, tuple[Any, Any]]:
+        """Compares this model to another, producing a diff.
+
+        By default, primary keys are excluded in the diff.
+        While designed to compare like models, it should work between different model types. Though that is untested.
+
+        :param other: The model to compare to this one
+        :param include_pk: True if you want to include the primary key in the diff
+        :return: A dictionary of property names with a tuple of this instances value and the other value respectively
+        """
+        source_values = self.model_dump(exclude=set([] if include_pk else self.get_pk_names()))
+        other_values = other.model_dump(exclude=set([] if include_pk else other.get_pk_names()))
+        diff = {}
+        for k, v in source_values.items():
+            if other_values[k] != v:
+                diff[k] = (v, other_values[k])
+        return diff
+
     @classmethod
     def get_searchable_properties(cls) -> Iterable[Column|tuple[type[Self], ..., Column]]:
         """
