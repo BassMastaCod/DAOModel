@@ -235,6 +235,25 @@ def test_get_properties(model: type[DAOModel], expected: list[str]):
 
 
 @labeled_tests({
+    'primary key': [
+        (simple_instance, SimpleModel.pkA, 23),
+        (complicated_instance, ComplicatedModel.pkC, 17),
+        (complicated_instance, ComplicatedModel.pkD, 76)
+    ],
+    'foreign key': [
+        (complicated_instance, ComplicatedModel.fkA, 23),
+        (complicated_instance, ComplicatedModel.fkB, 32)
+    ],
+    'inherited column':
+        (complicated_instance, ComplicatedModel.prop1, 'prop'),
+    'standard column':
+        (complicated_instance, ComplicatedModel.prop2, 'erty'),
+})
+def test_get_value_of(model: DAOModel, column: Column, expected: Any):
+    assert model.get_value_of(column) == expected
+
+
+@labeled_tests({
     'no diff': [
         (complicated_instance, complicated_instance, {}),
         (complicated_instance, ComplicatedModel(pkC=17, pkD=76, prop1='prop', prop2='erty', fkA=23, fkB=32), {}),

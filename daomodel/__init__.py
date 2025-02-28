@@ -162,6 +162,10 @@ class DAOModel(SQLModel):
             result = result.union(props) if value else result.difference(props)
         return in_order(result, property_order)
 
+    def get_value_of(self, column: Column):
+        """Shortcut function to return the value for the specified Column"""
+        return getattr(self, column.name)
+
     def compare(self, other, include_pk: Optional[bool] = False) -> dict[str, tuple[Any, Any]]:
         """Compares this model to another, producing a diff.
 
