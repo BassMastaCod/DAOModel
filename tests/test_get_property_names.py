@@ -86,6 +86,11 @@ standard_properties = [
     'set_none',
     'set_default_none'
 ]
+assigned_properties = [
+    'set_pk',
+    'set_fk',
+    'set',
+]
 unset_properties = [
     'unset_pk',
     'default_pk',
@@ -185,6 +190,10 @@ primary_key_and_unset_foreign_key_properties = [
     'standard properties': [
         ({'standard': True}, standard_properties),
         ({'all': True, 'pk': False, 'fk': False}, standard_properties)
+    ],
+    'assigned properties': [
+        ({'assigned': True}, assigned_properties),
+        ({'all': True, 'unset': False, 'defaults': False, 'none': False}, assigned_properties)
     ],
     'unset properties':
         ({'unset': True}, unset_properties),
