@@ -93,7 +93,6 @@ def test_find__is_set_foreign_property(student_dao: DAO):
     assert student_dao.find(is_set_=Book.name) == SearchResults(having_book)
 
 
-@pytest.mark.skip(reason='Not yet implemented')
 def test_find__is_set_unsearchable(student_dao: DAO):
     with pytest.raises(Unsearchable):
         student_dao.find(is_set_=Hall.floor)
