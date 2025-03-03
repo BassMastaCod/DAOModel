@@ -1,6 +1,8 @@
 from decimal import Decimal
 from enum import Enum, auto
-from typing import Optional, Any
+from typing import Optional, Any, Literal
+
+import pytest
 
 from daomodel import DAOModel, PrimaryKey, OptionalPrimaryKey
 from daomodel.model_diff import ModelDiff
@@ -8,9 +10,9 @@ from tests.labeled_tests import labeled_tests
 
 
 class LaundryStatus(Enum):
-    Private = auto()
-    Shared = auto()
     Public = auto()
+    Shared = auto()
+    Private = auto()
 
 
 class Rental(DAOModel, table=True):
@@ -92,6 +94,41 @@ single_family = Rental(
     laundry=LaundryStatus.Private,
     cost=3000
 )
+
+
+class RentalDiff(ModelDiff):
+    def get_preferred(self, field: str) -> Literal['left', 'right', 'neither', 'both', 'n/a']:
+        match field:
+            case 'address'|'apt':
+                return 'n/a'
+            case 'sqft'|'bedrooms'|'bathrooms'|'garage_parking':
+                return 'left' if self.get_left(field) > self.get_right(field) else 'right'
+            case 'cost':
+                return 'left' if self.get_left(field) < self.get_right(field) else 'right'
+            case 'dwelling_type':
+                bad = ['Apartment', 'Multi-family House']
+                good = ['Town home', 'House']
+                def get_value(dwelling_type: str):
+                    if dwelling_type in bad:
+                        return -1
+                    elif dwelling_type in good:
+                        return 1
+                    else:
+                        return 0
+                left_value = get_value(self.get_left(field))
+                right_value = get_value(self.get_right(field))
+                return(
+                    'left' if left_value > right_value else
+                    'right' if right_value > left_value else
+                    'both' if left_value > 0 else
+                    'neither'
+                )
+            case 'laundry':
+                left_value = 0 if self.get_left(field) is None else self.get_left(field).value
+                right_value = 0 if self.get_right(field) is None else self.get_right(field).value
+                return 'left' if left_value > right_value else 'right'
+            case _:
+                raise NotImplementedError(f'The field {field} is not supported')
 
 
 @labeled_tests({
@@ -193,7 +230,7 @@ single_family = Rental(
     'empty diff':
         (apartment, apartment_two, {})
 })
-def test_get_property_names(left: Rental, right: Rental, expected: dict[str, tuple[Any, Any]]):
+def test_model_diff(left: Rental, right: Rental, expected: dict[str, tuple[Any, Any]]):
     assert ModelDiff(left, right, include_pk=False) == expected
 
 
@@ -217,7 +254,7 @@ def test_get_property_names(left: Rental, right: Rental, expected: dict[str, tup
             'address': ('321 Maple Dr', '987 Country Rd')
         })
 })
-def test_get_property_names__pk(left: Rental, right: Rental, expected: dict[str, tuple[Any, Any]]):
+def test_model_diff__pk(left: Rental, right: Rental, expected: dict[str, tuple[Any, Any]]):
     diff = ModelDiff(left, right)
     pk_diff = {key: diff[key] for key in ['address', 'apt'] if key in diff}
     assert pk_diff == expected
@@ -264,3 +301,131 @@ def test_fields__exclude_pk():
     assert ModelDiff(single_family, dorm, include_pk=False).fields == {
         'dwelling_type', 'sqft', 'bedrooms', 'bathrooms', 'garage_parking', 'laundry', 'cost'
     }
+
+
+def test_get_left_get_right():
+    diff = ModelDiff(apartment, apartment_two)
+    assert diff.get_left('apt') == '101'
+    assert diff.get_right('apt') == '102'
+
+
+def test_get_left_get_right__missing():
+    diff = ModelDiff(apartment, apartment_two)
+    with pytest.raises(KeyError):
+        diff.get_left('address')
+    with pytest.raises(KeyError):
+        diff.get_right('cost')
+
+
+def test_get_left_get_right__invalid():
+    diff = ModelDiff(apartment, apartment_two)
+    with pytest.raises(KeyError):
+        diff.get_left('APT')
+    with pytest.raises(KeyError):
+        diff.get_right('invalid')
+
+
+@labeled_tests({
+    'dorm vs apartment': [
+        (dorm, apartment, 'dwelling_type', 'left'),
+        (dorm, apartment, 'sqft', 'right'),
+        (dorm, apartment, 'bedrooms', 'right'),
+        (dorm, apartment, 'garage_parking', 'right'),
+        (dorm, apartment, 'laundry', 'right'),
+        (dorm, apartment, 'cost', 'left')
+    ],
+    'dorm vs multi family': [
+        (dorm, multi_family, 'dwelling_type', 'left'),
+        (dorm, multi_family, 'sqft', 'right'),
+        (dorm, multi_family, 'bathrooms', 'right'),
+        (dorm, multi_family, 'laundry', 'left'),
+        (dorm, multi_family, 'cost', 'left')
+    ],
+    'dorm vs town home': [
+        (dorm, town_home, 'dwelling_type', 'right'),
+        (dorm, town_home, 'sqft', 'right'),
+        (dorm, town_home, 'bedrooms', 'right'),
+        (dorm, town_home, 'bathrooms', 'right'),
+        (dorm, town_home, 'garage_parking', 'right'),
+        (dorm, town_home, 'laundry', 'right'),
+        (dorm, town_home, 'cost', 'left')
+    ],
+    'dorm vs single family': [
+        (dorm, single_family, 'dwelling_type', 'right'),
+        (dorm, single_family, 'sqft', 'right'),
+        (dorm, single_family, 'bedrooms', 'right'),
+        (dorm, single_family, 'bathrooms', 'right'),
+        (dorm, single_family, 'garage_parking', 'right'),
+        (dorm, single_family, 'laundry', 'right'),
+        (dorm, single_family, 'cost', 'left')
+    ],
+    'apartment vs multi family': [
+        (apartment, multi_family, 'dwelling_type', 'neither'),
+        (apartment, multi_family, 'sqft', 'right'),
+        (apartment, multi_family, 'bedrooms', 'left'),
+        (apartment, multi_family, 'bathrooms', 'right'),
+        (apartment, multi_family, 'garage_parking', 'left'),
+        (apartment, multi_family, 'laundry', 'left'),
+        (apartment, multi_family, 'cost', 'left')
+    ],
+    'apartment vs town home': [
+        (apartment, town_home, 'dwelling_type', 'right'),
+        (apartment, town_home, 'sqft', 'right'),
+        (apartment, town_home, 'bedrooms', 'right'),
+        (apartment, town_home, 'bathrooms', 'right'),
+        (apartment, town_home, 'laundry', 'right'),
+        (apartment, town_home, 'cost', 'left')
+    ],
+    'apartment vs single family': [
+        (apartment, single_family, 'dwelling_type', 'right'),
+        (apartment, single_family, 'sqft', 'right'),
+        (apartment, single_family, 'bedrooms', 'right'),
+        (apartment, single_family, 'bathrooms', 'right'),
+        (apartment, single_family, 'garage_parking', 'right'),
+        (apartment, single_family, 'laundry', 'right'),
+        (apartment, single_family, 'cost', 'left')
+    ],
+    'multi family vs town home': [
+        (multi_family, town_home, 'dwelling_type', 'right'),
+        (multi_family, town_home, 'sqft', 'right'),
+        (multi_family, town_home, 'bedrooms', 'right'),
+        (multi_family, town_home, 'bathrooms', 'right'),
+        (multi_family, town_home, 'garage_parking', 'right'),
+        (multi_family, town_home, 'laundry', 'right'),
+        (multi_family, town_home, 'cost', 'left')
+    ],
+    'multi family vs single family': [
+        (multi_family, single_family, 'dwelling_type', 'right'),
+        (multi_family, single_family, 'sqft', 'right'),
+        (multi_family, single_family, 'bedrooms', 'right'),
+        (multi_family, single_family, 'bathrooms', 'right'),
+        (multi_family, single_family, 'garage_parking', 'right'),
+        (multi_family, single_family, 'laundry', 'right'),
+        (multi_family, single_family, 'cost', 'left')
+    ],
+    'town home vs single family': [
+        (town_home, single_family, 'dwelling_type', 'both'),
+        (town_home, single_family, 'sqft', 'right'),
+        (town_home, single_family, 'bedrooms', 'right'),
+        (town_home, single_family, 'bathrooms', 'right'),
+        (town_home, single_family, 'garage_parking', 'right'),
+        (town_home, single_family, 'cost', 'left')
+    ],
+    'n/a': [
+        (multi_family, single_family, 'address', 'n/a'),
+        (multi_family, single_family, 'apt', 'n/a'),
+    ],
+})
+def test_get_preferred(left: Rental, right: Rental, field: str,
+                       expected: Literal['left', 'right', 'neither', 'both', 'n/a']):
+    assert RentalDiff(left, right).get_preferred(field) == expected
+
+
+def test_get_preferred__not_implemented():
+    with pytest.raises(NotImplementedError):
+        ModelDiff(apartment, multi_family).get_preferred('cost')
+
+
+def test_get_preferred__missing():
+    with pytest.raises(KeyError):
+        RentalDiff(single_family, town_home).get_preferred('laundry')
