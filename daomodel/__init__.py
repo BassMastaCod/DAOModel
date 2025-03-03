@@ -301,6 +301,7 @@ def all_models(bind: Union[Engine, Connection]) -> set[type[DAOModel]]:
 
 
 PrimaryKey = Field(primary_key=True)
+OptionalPrimaryKey = Field(primary_key=True, default=None)
 
 
 def PrimaryForeignKey(foreign_property: str) -> Field:
