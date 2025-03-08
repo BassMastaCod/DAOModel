@@ -1,4 +1,4 @@
-from typing import Iterable, Union, Any
+from typing import Iterable, Union, Any, Optional
 
 import pytest
 from sqlalchemy import Column
@@ -30,7 +30,7 @@ class BaseModel(DAOModel):
 class ComplicatedModel(BaseModel, table=True):
     pkC: int = PrimaryKey
     pkD: int = PrimaryKey
-    prop2: str
+    prop2: Optional[str]
     fkA: int = ForeignKey('simple_model.pkA')
     fkB: int = ForeignKey('foreign_key_model.pkB')
 
@@ -287,6 +287,28 @@ def test_get_value_of(model: DAOModel, column: Column, expected: Any):
                 complicated_instance,
                 ComplicatedModel(pkC=17, pkD=76, prop1='prop', prop2='erty', fkA=0, fkB=0),
                 {'fkA': (23, 0), 'fkB': (32, 0)}
+        )
+    ],
+    'none values': [
+        (
+                complicated_instance,
+                ComplicatedModel(pkC=17, pkD=76, prop1='new', prop2=None, fkA=23, fkB=32),
+                {'prop1': ('prop', 'new'), 'prop2': ('erty', None)}
+        ), (
+                ComplicatedModel(pkC=17, pkD=76, prop1='new', prop2=None, fkA=23, fkB=32),
+                complicated_instance,
+                {'prop1': ('new', 'prop'), 'prop2': (None, 'erty')}
+        )
+    ],
+    'unset values': [
+        (
+                complicated_instance,
+                ComplicatedModel(pkC=17, pkD=76, prop1='new', fkA=23, fkB=32),
+                {'prop1': ('prop', 'new'), 'prop2': ('erty', None)}
+        ), (
+                ComplicatedModel(pkC=17, pkD=76, prop1='new', fkA=23, fkB=32),
+                complicated_instance,
+                {'prop1': ('new', 'prop'), 'prop2': (None, 'erty')}
         )
     ]
 })
