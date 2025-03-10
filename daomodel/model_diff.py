@@ -2,9 +2,11 @@ from abc import abstractmethod
 from typing import Any, Optional, Iterable, Literal
 
 from daomodel import DAOModel
+from daomodel.dao import Conflict
 
+#todo double check docs
 
-class ModelDiff(dict[str, tuple[Any, Any]]):
+class ModelDiff(dict[str, tuple[Any, Any]|tuple[Any, Any, Any]]):
     """A dictionary wrapper to provided extended functionality for model comparisons."""
     def __init__(self, left: DAOModel, right: DAOModel, include_pk: Optional[bool] = True):
         super().__init__()
@@ -51,3 +53,71 @@ class ModelDiff(dict[str, tuple[Any, Any]]):
         """
         raise NotImplementedError(f'Cannot determine which value is preferred for {field}: '
                                   f'{self.get_left(field)} -> {self.get_right(field)}')
+
+
+class ChangeSet(ModelDiff):
+    """A directional model diff with the left being the baseline and the right being the target.
+
+    Unlike the standard ModelDiff, PK is excluded by default.
+    """
+    def __init__(self, baseline: DAOModel, target: DAOModel, include_pk: Optional[bool] = False):
+        super().__init__(baseline, target, include_pk)
+        self.baseline = self.left
+        self.target = self.right
+        self.assigned_in_baseline = self.baseline.get_property_names(assigned=True)
+        self.assigned_in_target = self.target.get_property_names(assigned=True)
+
+    def get_baseline(self, field: str) -> Any:
+        """Returns the baseline value for the specified field."""
+        return self.get(field)[0]
+
+    def get_target(self, field: str) -> Any:
+        """Returns the new value for the specified field if the change set were to be applied."""
+        return self.get(field)[1]
+
+    def get_resolution(self, field: str) -> Any:
+        """Returns the resolved value for the specified field.
+
+        If resolve_preferences() was not called, this will return the target value.
+        """
+        return self.get(field)[1]
+
+    def get_preferred(self, field: str) -> Literal['left', 'right', 'neither', 'both', 'n/a']:
+        return (
+            'left' if self.get_target(field) is None else
+            'both' if field in self.assigned_in_baseline and field in self.assigned_in_target else
+            'left' if field in self.assigned_in_baseline else
+            'right' if field in self.assigned_in_target else
+            'neither'
+        )
+
+    def resolve_conflict(self, field: str) -> Any:
+        """Designed to be overridden, this function defines how to handle conflicts.
+
+        A conflict occurs when both the baseline and target have unique meaningful values for a field.
+
+        :param field: The field having a conflict
+        :raises: Conflict if a resolution cannot be determined
+        """
+        raise Conflict(msg=f'Unable to determine preferred result for {field}: '
+                           f'{self.get_baseline(field)} -> {self.get_target(field)}')
+
+    def resolve_preferences(self) -> None:
+        """Removes unwanted changes, preserving the meaningful values, regardless of them being from baseline or target
+
+        :raises: Conflict if both baseline and target have meaningful values (unless resolve_conflict is overridden)
+        """
+        for field in list(self.fields):
+            match self.get_preferred(field):
+                case 'left' | 'neither':
+                    del self[field]
+                case 'both':
+                    resolution = self.resolve_conflict(field)
+                    if resolution == self.get_baseline(field):
+                        del self[field]
+                    elif resolution == self.get_target(field):
+                        pass
+                    else:
+                        self[field] = (self.get_baseline(field), self.get_target(field), resolution)
+                case 'right':
+                    pass
