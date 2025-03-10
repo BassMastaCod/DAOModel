@@ -162,9 +162,27 @@ class DAOModel(SQLModel):
             result = result.union(props) if value else result.difference(props)
         return in_order(result, property_order)
 
-    def get_value_of(self, column: Column):
+    def get_property_values(self, **kwargs: bool) -> dict[str, Any]:
+        """Reads values of the specified properties of this Model.
+
+        :param kwargs: see get_property_names()
+        :return: a dict of property names and their values
+        """
+        return self.get_values_of(self.get_property_names(**kwargs))
+
+    def get_value_of(self, column: Column|str) -> Any:
         """Shortcut function to return the value for the specified Column"""
-        return getattr(self, column.name)
+        if not isinstance(column, str):
+            column = column.name
+        return getattr(self, column)
+
+    def get_values_of(self, columns = Iterable[Column|str]) -> dict[str, Any]:
+        """Reads the values of multiple columns.
+
+        :param columns: The Columns, or their names, to read
+        :return: A dict of the column names and their values
+        """
+        return {column: self.get_value_of(column) for column in columns}
 
     def compare(self, other, include_pk: Optional[bool] = False) -> dict[str, tuple[Any, Any]]:
         """Compares this model to another, producing a diff.
@@ -176,8 +194,11 @@ class DAOModel(SQLModel):
         :param include_pk: True if you want to include the primary key in the diff
         :return: A dictionary of property names with a tuple of this instances value and the other value respectively
         """
-        source_values = self.model_dump(exclude=set([] if include_pk else self.get_pk_names()))
-        other_values = other.model_dump(exclude=set([] if include_pk else other.get_pk_names()))
+        args = {'all': True}
+        if not include_pk:
+            args['pk'] = False
+        source_values = self.get_property_values(**args)
+        other_values = other.get_property_values(**args)
         diff = {}
         for k, v in source_values.items():
             if other_values[k] != v:

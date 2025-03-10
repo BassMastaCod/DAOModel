@@ -248,9 +248,39 @@ def test_get_properties(model: type[DAOModel], expected: list[str]):
         (complicated_instance, ComplicatedModel.prop1, 'prop'),
     'standard column':
         (complicated_instance, ComplicatedModel.prop2, 'erty'),
+    'by str':
+        (complicated_instance, 'prop2', 'erty')
 })
 def test_get_value_of(model: DAOModel, column: Column, expected: Any):
     assert model.get_value_of(column) == expected
+
+
+@labeled_tests({
+    'no columns': [
+        (simple_instance, [], {}),
+        (complicated_instance, [], {})
+    ],
+    'single column': [
+        (simple_instance, ['pkA'], {'pkA': 23}),
+        (complicated_instance, ['pkC'], {'pkC': 17}),
+        (complicated_instance, ['pkD'], {'pkD': 76}),
+        (complicated_instance, ['prop1'], {'prop1': 'prop'}),
+        (complicated_instance, ['prop2'], {'prop2': 'erty'}),
+        (complicated_instance, ['fkA'], {'fkA': 23}),
+        (complicated_instance, ['fkB'], {'fkB': 32}),
+    ],
+    'multiple columns':
+        (complicated_instance, ['pkC', 'pkD', 'prop1', 'prop2', 'fkA', 'fkB'], {
+            'pkC': 17,
+            'pkD': 76,
+            'prop1': 'prop',
+            'prop2': 'erty',
+            'fkA': 23,
+            'fkB': 32
+        })
+})
+def test_get_values_of(model: DAOModel, columns: list[Column], expected: Any):
+    assert model.get_values_of(columns) == expected
 
 
 @labeled_tests({
