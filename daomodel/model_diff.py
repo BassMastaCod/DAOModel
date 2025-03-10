@@ -4,10 +4,9 @@ from typing import Any, Optional, Iterable, Literal
 from daomodel import DAOModel
 from daomodel.dao import Conflict
 
-#todo double check docs
 
 class ModelDiff(dict[str, tuple[Any, Any]|tuple[Any, Any, Any]]):
-    """A dictionary wrapper to provided extended functionality for model comparisons."""
+    """A dictionary wrapper to provide extended functionality for model comparisons."""
     def __init__(self, left: DAOModel, right: DAOModel, include_pk: Optional[bool] = True):
         super().__init__()
         self.left = left
@@ -20,9 +19,10 @@ class ModelDiff(dict[str, tuple[Any, Any]|tuple[Any, Any, Any]]):
         return self.keys()
 
     def get_left(self, field: str) -> Any:
-        """Returns the left value for the specified field.
+        """Fetches the value of the left model.
 
         :param field: The name of the field to fetch
+        :return: The left value for the specified field
         :raises: KeyError if the field is invalid or otherwise not included in this diff
         """
         if field not in self:
@@ -30,9 +30,10 @@ class ModelDiff(dict[str, tuple[Any, Any]|tuple[Any, Any, Any]]):
         return self.get(field)[0]
 
     def get_right(self, field: str) -> Any:
-        """Returns the right value for the specified field.
+        """Fetches the value of the right model.
 
         :param field: The name of the field to fetch
+        :return: The right value for the specified field
         :raises: KeyError if the field is invalid or otherwise not included in this diff
         """
         if field not in self:
@@ -41,7 +42,7 @@ class ModelDiff(dict[str, tuple[Any, Any]|tuple[Any, Any, Any]]):
 
     @abstractmethod
     def get_preferred(self, field: str) -> Literal['left', 'right', 'neither', 'both', 'n/a']:
-        """Defines which of the different values is preferred.
+        """Defines which of the varying values is preferred.
 
         'neither' and 'both' may be redundant depending on the application.
         They are differentiated in the case of specifying "these are both bad" and "these are both acceptable".
@@ -68,17 +69,30 @@ class ChangeSet(ModelDiff):
         self.assigned_in_target = self.target.get_property_names(assigned=True)
 
     def get_baseline(self, field: str) -> Any:
-        """Returns the baseline value for the specified field."""
+        """Fetches the value of the baseline model.
+
+        :param field: The name of the field to fetch
+        :return: The baseline value for the specified field
+        :raises: KeyError if the field is invalid or otherwise not included in this diff
+        """
         return self.get(field)[0]
 
     def get_target(self, field: str) -> Any:
-        """Returns the new value for the specified field if the change set were to be applied."""
+        """Fetches the value of the target model.
+
+        :param field: The name of the field to fetch
+        :return: The target value for the specified field
+        :raises: KeyError if the field is invalid or otherwise not included in this diff
+        """
         return self.get(field)[1]
 
     def get_resolution(self, field: str) -> Any:
         """Returns the resolved value for the specified field.
 
-        If resolve_preferences() was not called, this will return the target value.
+        This will be the new value for the specified field if the change set were to be applied.
+
+        :param field: The name of the field to fetch
+        :return: The resolved value, which is the target value unless resolve_preferences() was called
         """
         return self.get(field)[1]
 
@@ -97,6 +111,7 @@ class ChangeSet(ModelDiff):
         A conflict occurs when both the baseline and target have unique meaningful values for a field.
 
         :param field: The field having a conflict
+        :return: The result of the resolution which may be the baseline value, target value, or something new entirely
         :raises: Conflict if a resolution cannot be determined
         """
         raise Conflict(msg=f'Unable to determine preferred result for {field}: '
