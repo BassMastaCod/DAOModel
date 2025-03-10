@@ -92,7 +92,7 @@ class DAO:
         :raises: Conflict if an entry already exists for the primary key
         """
         model = self.model_class(**filter_dict(*self.model_class.get_pk_names(), **values))
-        model.copy_values(**values)
+        model.set_values(**values)
         if commit:
             self.insert(model)
         return model
@@ -184,7 +184,7 @@ class DAO:
         model = self.query.get(pk)
         if model is None:
             raise NotFound(self.model_class(**values))
-        model.copy_values(**values)
+        model.set_values(**values)
         return model
 
     def find(self,

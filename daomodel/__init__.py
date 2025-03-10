@@ -249,7 +249,7 @@ class DAOModel(SQLModel):
         return dict(zip(cls.get_pk_names(), *pk_values))
 
     def copy_model(self, source: Self, *fields: str) -> None:
-        """Copies all values from another instance of this Model.
+        """Copies values from another instance of this Model.
 
         Unless the fields are specified, all but PK are copied.
 
@@ -260,17 +260,17 @@ class DAOModel(SQLModel):
             values = source.model_dump(include=set(fields))
         else:
             values = source.model_dump(exclude=set(source.get_pk_names()))
-        self.copy_values(copy_pk=True, **values)
+        self.set_values(set_pk=True, **values)
 
-    def copy_values(self, copy_pk: Optional[bool] = False, **values) -> None:
+    def set_values(self, set_pk: Optional[bool] = False, **values) -> None:
         """Copies property values to this Model.
 
         By default, Primary Key values are ignored.
 
-        :param copy_pk: True if you also wish to copy Primary Key values
-        :param values: The dict including values to copy
+        :param set_pk: True if you also wish to set Primary Key values
+        :param values: The dict including values to set
         """
-        skip = [] if copy_pk else self.get_pk_names()
+        skip = [] if set_pk else self.get_pk_names()
         properties = names_of(self.get_properties())
         for k, v in values.items():
             if k in properties and k not in skip:

@@ -190,7 +190,7 @@ This is most useful when conducting batch actions, or when you may wish to abort
 
 ### Copying values
 Values (other than the primary key) can be copied from one model instance to another.
-This is done through `model.copy_model(other_model)` or `model.copy_values(**dictionary)`.
+This is done through `model.copy_model(other_model)` or `model.set_values(**dictionary)`.
 Both the `create` and `get` functionality have copying built-in in the form of `create_with` and `get_with`.
 ```python
 # create a new row but also populate the name column in the same line

@@ -480,9 +480,9 @@ def test_copy_model__pk():
     assert other.fkB == 2
 
 
-def test_copy_values():
+def test_set_values():
     other = ComplicatedModel(pkC=12, pkD=34, prop1='different', prop2='values', fkA=1, fkB=2)
-    other.copy_values(prop1='new', fkB=3)
+    other.set_values(prop1='new', fkB=3)
     assert other.model_dump() == {
         'pkC': 12,
         'pkD': 34,
@@ -493,9 +493,9 @@ def test_copy_values():
     }
 
 
-def test_copy_values__extra_values():
+def test_set_values__extra_values():
     other = ComplicatedModel(pkC=12, pkD=34, prop1='different', prop2='values', fkA=1, fkB=2)
-    other.copy_values(prop1='new', other='extra')
+    other.set_values(prop1='new', other='extra')
     assert other.model_dump() == {
         'pkC': 12,
         'pkD': 34,
@@ -506,9 +506,9 @@ def test_copy_values__extra_values():
     }
 
 
-def test_copy_values__ignore_pk():
+def test_set_values__ignore_pk():
     other = ComplicatedModel(pkC=12, pkD=34, prop1='different', prop2='values', fkA=1, fkB=2)
-    other.copy_values(pkC=0, prop1='new')
+    other.set_values(pkC=0, prop1='new')
     assert other.model_dump() == {
         'pkC': 12,
         'pkD': 34,
@@ -519,9 +519,9 @@ def test_copy_values__ignore_pk():
     }
 
 
-def test_copy_values__pk():
+def test_set_values__pk():
     other = ComplicatedModel(pkC=12, pkD=34, prop1='different', prop2='values', fkA=1, fkB=2)
-    other.copy_values(copy_pk=True, pkC=0)
+    other.set_values(set_pk=True, pkC=0)
     assert other.model_dump() == {
         'pkC': 0,
         'pkD': 34,
