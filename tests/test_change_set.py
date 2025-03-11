@@ -61,7 +61,7 @@ class EventChangeSet(ChangeSet):
             case 'location':
                 return self.get_target(field)
             case 'description':
-                return '\n\n'.join([self.get_target(field), self.get_baseline(field)])
+                return '\n\n'.join([self.get_baseline(field), self.get_target(field)])
             case _:
                 raise NotImplementedError(f'The field {field} is not supported')
 
@@ -81,6 +81,17 @@ def test_get_baseline_get_target():
 
 
 def test_get_resolution():
+    change_set = EventChangeSet(dads_entry, moms_entry)
+    change_set.resolve_preferences()
+    assert (change_set.get_resolution('description') ==
+            'Annual family picnic with games and BBQ.\n\nPicnic with family and friends, do not forget the salads!')
+    change_set = EventChangeSet(moms_entry, dads_entry)
+    change_set.resolve_preferences()
+    assert (change_set.get_resolution('description') ==
+            'Picnic with family and friends, do not forget the salads!\n\nAnnual family picnic with games and BBQ.')
+
+
+def test_get_resolution__unresolved():
     assert ChangeSet(dads_entry, moms_entry).get_resolution('time') == '12:00 PM'
     assert ChangeSet(moms_entry, dads_entry).get_resolution('time') == '11:00 AM'
 
@@ -113,12 +124,12 @@ def test_get_preferred(baseline: CalendarEvent, target: CalendarEvent, field: st
     'dad => mom':
         (dads_entry, moms_entry, {
             'description': ('Annual family picnic with games and BBQ.', 'Picnic with family and friends, do not forget the salads!',
-                            'Picnic with family and friends, do not forget the salads!\n\nAnnual family picnic with games and BBQ.')
+                            'Annual family picnic with games and BBQ.\n\nPicnic with family and friends, do not forget the salads!')
         }),
     'dad => son':
         (dads_entry, sons_entry, {
             'description': ('Annual family picnic with games and BBQ.', 'Bring your football and frisbee!',
-                            'Bring your football and frisbee!\n\nAnnual family picnic with games and BBQ.')
+                            'Annual family picnic with games and BBQ.\n\nBring your football and frisbee!')
         }),
     'dad => daughter':
         (dads_entry, daughters_entry, {}),
@@ -126,12 +137,12 @@ def test_get_preferred(baseline: CalendarEvent, target: CalendarEvent, field: st
         (moms_entry, dads_entry, {
             'time': ('12:00 PM', '11:00 AM'),
             'description': ('Picnic with family and friends, do not forget the salads!', 'Annual family picnic with games and BBQ.',
-                            'Annual family picnic with games and BBQ.\n\nPicnic with family and friends, do not forget the salads!')
+                            'Picnic with family and friends, do not forget the salads!\n\nAnnual family picnic with games and BBQ.')
         }),
     'mom => son':
         (moms_entry, sons_entry, {
             'description': ('Picnic with family and friends, do not forget the salads!', 'Bring your football and frisbee!',
-                            'Bring your football and frisbee!\n\nPicnic with family and friends, do not forget the salads!')
+                            'Picnic with family and friends, do not forget the salads!\n\nBring your football and frisbee!')
         }),
     'mom => daughter':
         (moms_entry, daughters_entry, {}),
@@ -141,14 +152,14 @@ def test_get_preferred(baseline: CalendarEvent, target: CalendarEvent, field: st
             'time': ('12:00 PM', '11:00 AM'),
             'location': (None, 'Central Park'),
             'description': ('Bring your football and frisbee!', 'Annual family picnic with games and BBQ.',
-                            'Annual family picnic with games and BBQ.\n\nBring your football and frisbee!')
+                            'Bring your football and frisbee!\n\nAnnual family picnic with games and BBQ.')
         }),
     'son => mom':
         (sons_entry, moms_entry, {
             'day': (date(2025, 6, 19), date(2025, 6, 20)),
             'location': (None, 'Central Park'),
             'description': ('Bring your football and frisbee!', 'Picnic with family and friends, do not forget the salads!',
-                            'Picnic with family and friends, do not forget the salads!\n\nBring your football and frisbee!')
+                            'Bring your football and frisbee!\n\nPicnic with family and friends, do not forget the salads!')
         }),
     'son => daughter':
         (sons_entry, daughters_entry, {

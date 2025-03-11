@@ -94,7 +94,7 @@ class ChangeSet(ModelDiff):
         :param field: The name of the field to fetch
         :return: The resolved value, which is the target value unless resolve_preferences() was called
         """
-        return self.get(field)[1]
+        return self.get(field)[-1]
 
     def get_preferred(self, field: str) -> Literal['left', 'right', 'neither', 'both', 'n/a']:
         return (
