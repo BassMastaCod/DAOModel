@@ -13,11 +13,6 @@ class ModelDiff(dict[str, tuple[Any, Any]|tuple[Any, Any, Any]]):
         self.right = right
         self.update(left.compare(right, include_pk=include_pk))
 
-    @property
-    def fields(self) -> Iterable[str]:
-        """The fields that have different values between the two models."""
-        return self.keys()
-
     def get_left(self, field: str) -> Any:
         """Fetches the value of the left model.
 

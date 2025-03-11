@@ -260,49 +260,6 @@ def test_model_diff__pk(left: Rental, right: Rental, expected: dict[str, tuple[A
     assert pk_diff == expected
 
 
-@labeled_tests({
-    'all fields':
-        (multi_family, single_family, {
-            'address',
-            'apt',
-            'dwelling_type',
-            'sqft',
-            'bedrooms',
-            'bathrooms',
-            'garage_parking',
-            'laundry',
-            'cost'
-        }),
-    'partial fields':
-        (dorm, multi_family, {
-            'address',
-            'apt',
-            'dwelling_type',
-            'sqft',
-            'bathrooms',
-            'laundry',
-            'cost'
-        }),
-    'single field':
-        (apartment, apartment_two, {'apt'}),
-    'no fields': [
-        (dorm, dorm, set()),
-        (apartment, apartment, set()),
-        (multi_family, multi_family, set()),
-        (town_home, town_home, set()),
-        (single_family, single_family, set())
-    ]
-})
-def test_fields(left: Rental, right: Rental, expected: set[str]):
-    assert ModelDiff(left, right).fields == expected
-
-
-def test_fields__exclude_pk():
-    assert ModelDiff(single_family, dorm, include_pk=False).fields == {
-        'dwelling_type', 'sqft', 'bedrooms', 'bathrooms', 'garage_parking', 'laundry', 'cost'
-    }
-
-
 def test_get_left_get_right():
     diff = ModelDiff(apartment, apartment_two)
     assert diff.get_left('apt') == '101'
