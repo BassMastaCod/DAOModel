@@ -6,7 +6,7 @@ from sqlalchemy import Column, Engine, MetaData, Connection
 from str_case_util import Case
 from sqlalchemy.ext.declarative import declared_attr
 
-from daomodel.util import reference_of, names_of, in_order
+from daomodel.util import reference_of, names_of, in_order, retain_in_dict, remove_from_dict
 
 
 property_categories = ['all', 'pk', 'fk', 'standard', 'assigned', 'unset', 'defaults', 'none']
@@ -260,21 +260,21 @@ class DAOModel(SQLModel):
             values = source.model_dump(include=set(fields))
         else:
             values = source.model_dump(exclude=set(source.get_pk_names()))
-        self.set_values(set_pk=True, **values)
+        self.set_values(**values)
 
-    def set_values(self, set_pk: Optional[bool] = False, **values) -> None:
+    def set_values(self, ignore_pk: Optional[bool] = False, **values) -> None:
         """Copies property values to this Model.
 
-        By default, Primary Key values are ignored.
+        By default, Primary Key values are set if present within the values.
 
-        :param set_pk: True if you also wish to set Primary Key values
+        :param ignore_pk: True if you also wish to not set Primary Key values
         :param values: The dict including values to set
         """
-        skip = [] if set_pk else self.get_pk_names()
-        properties = names_of(self.get_properties())
+        values = retain_in_dict(values, *names_of(self.get_properties()))
+        if ignore_pk:
+            values = remove_from_dict(values, *self.get_pk_names())
         for k, v in values.items():
-            if k in properties and k not in skip:
-                setattr(self, k, v)
+            setattr(self, k, v)
 
     def __eq__(self, other: Self):
         """Instances are determined to be equal based on only their primary key."""

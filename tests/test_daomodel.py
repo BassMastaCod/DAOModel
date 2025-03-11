@@ -508,7 +508,7 @@ def test_set_values__extra_values():
 
 def test_set_values__ignore_pk():
     other = ComplicatedModel(pkC=12, pkD=34, prop1='different', prop2='values', fkA=1, fkB=2)
-    other.set_values(pkC=0, prop1='new')
+    other.set_values(ignore_pk=True, pkC=0, prop1='new')
     assert other.model_dump() == {
         'pkC': 12,
         'pkD': 34,
@@ -521,7 +521,7 @@ def test_set_values__ignore_pk():
 
 def test_set_values__pk():
     other = ComplicatedModel(pkC=12, pkD=34, prop1='different', prop2='values', fkA=1, fkB=2)
-    other.set_values(set_pk=True, pkC=0)
+    other.set_values(pkC=0)
     assert other.model_dump() == {
         'pkC': 0,
         'pkD': 34,
