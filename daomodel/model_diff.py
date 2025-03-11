@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Optional, Iterable, Literal
+from typing import Any, Optional, Iterable, Literal, Self
 
 from daomodel import DAOModel
 from daomodel.dao import Conflict
@@ -117,9 +117,10 @@ class ChangeSet(ModelDiff):
         raise Conflict(msg=f'Unable to determine preferred result for {field}: '
                            f'{self.get_baseline(field)} -> {self.get_target(field)}')
 
-    def resolve_preferences(self) -> None:
+    def resolve_preferences(self) -> Self:
         """Removes unwanted changes, preserving the meaningful values, regardless of them being from baseline or target
 
+        :return: This ChangeSet to allow for chaining function calls
         :raises: Conflict if both baseline and target have meaningful values (unless resolve_conflict is overridden)
         """
         for field in list(self.fields):
@@ -136,6 +137,7 @@ class ChangeSet(ModelDiff):
                         self[field] = (self.get_baseline(field), self.get_target(field), resolution)
                 case 'right':
                     pass
+        return self
 
     def apply(self) -> DAOModel:
         """Enacts these changes upon the baseline.

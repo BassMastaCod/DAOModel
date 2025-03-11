@@ -177,6 +177,10 @@ def test_resolve_preferences(baseline: CalendarEvent, target: CalendarEvent, exp
     assert change_set == expected
 
 
+def test_resolve_preferences__chained():
+    assert EventChangeSet(moms_entry, dads_entry).resolve_preferences().get_baseline('time') == '12:00 PM'
+
+
 def test_resolve_preferences__conflict():
     with pytest.raises(Conflict):
         assert ChangeSet(dads_entry, moms_entry).resolve_preferences()
