@@ -180,3 +180,107 @@ def test_resolve_preferences(baseline: CalendarEvent, target: CalendarEvent, exp
 def test_resolve_preferences__conflict():
     with pytest.raises(Conflict):
         assert ChangeSet(dads_entry, moms_entry).resolve_preferences()
+
+
+@labeled_tests({
+    'dad => mom':
+        (dads_entry, moms_entry, CalendarEvent(
+            title='Family Picnic',
+            day=date(2025, 6, 20),
+            time='11:00 AM',
+            location='Central Park',
+            description='Annual family picnic with games and BBQ.\n\nPicnic with family and friends, do not forget the salads!'
+        )),
+    'dad => son':
+        (dads_entry, sons_entry, CalendarEvent(
+            title='Family Picnic',
+            day=date(2025, 6, 20),
+            time='11:00 AM',
+            location='Central Park',
+            description='Bring your football and frisbee!\n\nAnnual family picnic with games and BBQ.'
+        )),
+    'dad => daughter':
+        (dads_entry, daughters_entry, CalendarEvent(
+            title='Family Picnic',
+            day=date(2025, 6, 20),
+            time='11:00 AM',
+            location='Central Park',
+            description='Annual family picnic with games and BBQ.'
+        )),
+    'mom => dad':
+        (moms_entry, dads_entry, CalendarEvent(
+            title='Family Picnic',
+            day=date(2025, 6, 20),
+            time='12:00 PM',
+            location='Central Park',
+            description='Annual family picnic with games and BBQ.\n\nPicnic with family and friends, do not forget the salads!'
+        )),
+    'mom => son':
+        (moms_entry, sons_entry, CalendarEvent(
+            title='Family Picnic',
+            day=date(2025, 6, 20),
+            time='12:00 PM',
+            location='Central Park',
+            description='Bring your football and frisbee!\n\nPicnic with family and friends, do not forget the salads!'
+        )),
+    'mom => daughter':
+        (moms_entry, daughters_entry, CalendarEvent(
+            title='Family Picnic',
+            day=date(2025, 6, 20),
+            time='12:00 PM',
+            location='Central Park',
+            description='Picnic with family and friends, do not forget the salads!'
+        )),
+    'son => dad':
+        (sons_entry, dads_entry, CalendarEvent(
+            title='Family Picnic',
+            day=date(2025, 6, 20),
+            time='11:00 AM',
+            location='Central Park',
+            description='Annual family picnic with games and BBQ.\n\nBring your football and frisbee!'
+        )),
+    'son => mom':
+        (sons_entry, moms_entry, CalendarEvent(
+            title='Family Picnic',
+            day=date(2025, 6, 20),
+            time='12:00 PM',
+            location='Central Park',
+            description='Picnic with family and friends, do not forget the salads!\n\nBring your football and frisbee!'
+        )),
+    'son => daughter':
+        (sons_entry, daughters_entry, CalendarEvent(
+            title='Family Picnic',
+            day=date(2025, 6, 20),
+            time='12:00 PM',
+            location='Central Park',
+            description='Bring your football and frisbee!'
+        )),
+    'daughter => dad':
+        (daughters_entry, dads_entry, CalendarEvent(
+            title='Family Picnic',
+            day=date(2025, 6, 20),
+            time='11:00 AM',
+            location='Central Park',
+            description='Annual family picnic with games and BBQ.'
+        )),
+    'daughter => mom':
+        (daughters_entry, moms_entry, CalendarEvent(
+            title='Family Picnic',
+            day=date(2025, 6, 20),
+            time='12:00 PM',
+            location='Central Park',
+            description='Picnic with family and friends, do not forget the salads!'
+        )),
+    'daughter => son':
+        (daughters_entry, sons_entry, CalendarEvent(
+            title='Family Picnic',
+            day=date(2025, 6, 20),
+            time='12:00 PM',
+            location='Central Park',
+            description='Bring your football and frisbee!'
+        )),
+})
+def test_apply(baseline: CalendarEvent, target: CalendarEvent, expected: CalendarEvent):
+    change_set = EventChangeSet(baseline, target)
+    change_set.resolve_preferences()
+    assert change_set.apply() == expected

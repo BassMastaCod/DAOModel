@@ -136,3 +136,11 @@ class ChangeSet(ModelDiff):
                         self[field] = (self.get_baseline(field), self.get_target(field), resolution)
                 case 'right':
                     pass
+
+    def apply(self) -> DAOModel:
+        """Enacts these changes upon the baseline.
+
+        You will typically want to call resolve_preferences prior to this.
+        """
+        self.baseline.set_values(**{field: self.get_resolution(field) for field in self.fields})
+        return self.baseline
