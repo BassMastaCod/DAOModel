@@ -55,11 +55,11 @@ class EventChangeSet(ChangeSet):
             case 'title':
                 raise Conflict(msg='Unexpected conflict for title field')
             case 'day':
-                return max(self.get_baseline(field), self.get_target(field))
+                return Preference.LEFT if self.get_baseline(field) > self.get_target(field) else Preference.RIGHT
             case 'time':
-                return min(self.get_baseline(field), self.get_target(field))
+                return Preference.LEFT if self.get_baseline(field) < self.get_target(field) else Preference.RIGHT
             case 'location':
-                return self.get_target(field)
+                return Preference.LEFT
             case 'description':
                 return '\n\n'.join([self.get_baseline(field), self.get_target(field)])
             case _:

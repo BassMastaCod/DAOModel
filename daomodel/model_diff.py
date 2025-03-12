@@ -133,19 +133,20 @@ class ChangeSet(ModelDiff):
         :raises: Conflict if both baseline and target have meaningful values (unless resolve_conflict is overridden)
         """
         for field in list(self.keys()):
-            match self.get_preferred(field):
-                case Preference.LEFT | Preference.NEITHER:
+            preferred = self.get_preferred(field)
+            if preferred == Preference.BOTH:
+                preferred = self.resolve_conflict(field)
+            match preferred:
+                case Preference.NOT_APPLICABLE:
+                    pass  # TODO
+                case Preference.NEITHER:
+                    pass  # TODO
+                case Preference.LEFT:
                     del self[field]
-                case Preference.BOTH:
-                    resolution = self.resolve_conflict(field)
-                    if resolution == self.get_baseline(field):
-                        del self[field]
-                    elif resolution == self.get_target(field):
-                        pass
-                    else:
-                        self[field] = (self.get_baseline(field), self.get_target(field), resolution)
                 case Preference.RIGHT:
                     pass
+                case _:
+                    self[field] = (self.get_baseline(field), self.get_target(field), preferred)
         return self
 
     def apply(self) -> DAOModel:
