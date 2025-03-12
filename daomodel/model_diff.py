@@ -1,8 +1,26 @@
 from abc import abstractmethod
-from typing import Any, Optional, Iterable, Literal, Self
+from enum import Enum
+from typing import Any, Optional, Self
 
 from daomodel import DAOModel
 from daomodel.dao import Conflict
+
+
+class Preference(Enum):
+    """Represents the preference of values in a model comparison.
+
+    The available options are:
+    - LEFT: Indicates preference for the 'left' side value.
+    - RIGHT: Indicates preference for the 'right' side value.
+    - NEITHER: Indicates that neither value is preferred.
+    - BOTH: Indicates that both values are equally preferable.
+    - NOT_APPLICABLE: Indicates that a preference does not apply in the given context i.e. the name field of two customers.
+    """
+    NOT_APPLICABLE = -1
+    NEITHER = 0
+    LEFT = 1
+    RIGHT = 2
+    BOTH = 3
 
 
 class ModelDiff(dict[str, tuple[Any, Any]|tuple[Any, Any, Any]]):
@@ -36,15 +54,11 @@ class ModelDiff(dict[str, tuple[Any, Any]|tuple[Any, Any, Any]]):
         return self.get(field)[1]
 
     @abstractmethod
-    def get_preferred(self, field: str) -> Literal['left', 'right', 'neither', 'both', 'n/a']:
+    def get_preferred(self, field: str) -> Preference:
         """Defines which of the varying values is preferred.
 
-        'neither' and 'both' may be redundant depending on the application.
-        They are differentiated in the case of specifying "these are both bad" and "these are both acceptable".
-        'n/a' is used when it does not make sense to have a preference i.e. the name field of two customers.
-
         :param field: The name of the field
-        :return: 'left', 'right', 'neither', 'both', or 'n/a'
+        :return: The Preference between the possible values
         :raises: KeyError if the field is invalid or otherwise not included in this diff
         """
         raise NotImplementedError(f'Cannot determine which value is preferred for {field}: '
@@ -70,7 +84,7 @@ class ChangeSet(ModelDiff):
         :return: The baseline value for the specified field
         :raises: KeyError if the field is invalid or otherwise not included in this diff
         """
-        return self.get(field)[0]
+        return self.get_left(field)
 
     def get_target(self, field: str) -> Any:
         """Fetches the value of the target model.
@@ -79,7 +93,7 @@ class ChangeSet(ModelDiff):
         :return: The target value for the specified field
         :raises: KeyError if the field is invalid or otherwise not included in this diff
         """
-        return self.get(field)[1]
+        return self.get_right(field)
 
     def get_resolution(self, field: str) -> Any:
         """Returns the resolved value for the specified field.
@@ -91,13 +105,13 @@ class ChangeSet(ModelDiff):
         """
         return self.get(field)[-1]
 
-    def get_preferred(self, field: str) -> Literal['left', 'right', 'neither', 'both', 'n/a']:
+    def get_preferred(self, field: str) -> Preference:
         return (
-            'left' if self.get_target(field) is None else
-            'both' if field in self.assigned_in_baseline and field in self.assigned_in_target else
-            'left' if field in self.assigned_in_baseline else
-            'right' if field in self.assigned_in_target else
-            'neither'
+            Preference.LEFT if self.get_target(field) is None else
+            Preference.BOTH if field in self.assigned_in_baseline and field in self.assigned_in_target else
+            Preference.LEFT if field in self.assigned_in_baseline else
+            Preference.RIGHT if field in self.assigned_in_target else
+            Preference.NEITHER
         )
 
     def resolve_conflict(self, field: str) -> Any:
@@ -118,11 +132,11 @@ class ChangeSet(ModelDiff):
         :return: This ChangeSet to allow for chaining function calls
         :raises: Conflict if both baseline and target have meaningful values (unless resolve_conflict is overridden)
         """
-        for field in list(self.fields):
+        for field in list(self.keys()):
             match self.get_preferred(field):
-                case 'left' | 'neither':
+                case Preference.LEFT | Preference.NEITHER:
                     del self[field]
-                case 'both':
+                case Preference.BOTH:
                     resolution = self.resolve_conflict(field)
                     if resolution == self.get_baseline(field):
                         del self[field]
@@ -130,7 +144,7 @@ class ChangeSet(ModelDiff):
                         pass
                     else:
                         self[field] = (self.get_baseline(field), self.get_target(field), resolution)
-                case 'right':
+                case Preference.RIGHT:
                     pass
         return self
 
@@ -139,5 +153,5 @@ class ChangeSet(ModelDiff):
 
         You will typically want to call resolve_preferences prior to this.
         """
-        self.baseline.set_values(**{field: self.get_resolution(field) for field in self.fields})
+        self.baseline.set_values(**{field: self.get_resolution(field) for field in self.keys()})
         return self.baseline

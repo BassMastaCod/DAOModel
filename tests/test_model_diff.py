@@ -5,7 +5,7 @@ from typing import Optional, Any, Literal
 import pytest
 
 from daomodel import DAOModel, PrimaryKey, OptionalPrimaryKey
-from daomodel.model_diff import ModelDiff
+from daomodel.model_diff import ModelDiff, Preference
 from tests.labeled_tests import labeled_tests
 
 
@@ -97,14 +97,14 @@ single_family = Rental(
 
 
 class RentalDiff(ModelDiff):
-    def get_preferred(self, field: str) -> Literal['left', 'right', 'neither', 'both', 'n/a']:
+    def get_preferred(self, field: str) -> Preference:
         match field:
             case 'address'|'apt':
-                return 'n/a'
+                return Preference.NOT_APPLICABLE
             case 'sqft'|'bedrooms'|'bathrooms'|'garage_parking':
-                return 'left' if self.get_left(field) > self.get_right(field) else 'right'
+                return Preference.LEFT if self.get_left(field) > self.get_right(field) else Preference.RIGHT
             case 'cost':
-                return 'left' if self.get_left(field) < self.get_right(field) else 'right'
+                return Preference.LEFT if self.get_left(field) < self.get_right(field) else Preference.RIGHT
             case 'dwelling_type':
                 bad = ['Apartment', 'Multi-family House']
                 good = ['Town home', 'House']
@@ -118,15 +118,15 @@ class RentalDiff(ModelDiff):
                 left_value = get_value(self.get_left(field))
                 right_value = get_value(self.get_right(field))
                 return(
-                    'left' if left_value > right_value else
-                    'right' if right_value > left_value else
-                    'both' if left_value > 0 else
-                    'neither'
+                    Preference.LEFT if left_value > right_value else
+                    Preference.RIGHT if right_value > left_value else
+                    Preference.BOTH if left_value > 0 else
+                    Preference.NEITHER
                 )
             case 'laundry':
                 left_value = 0 if self.get_left(field) is None else self.get_left(field).value
                 right_value = 0 if self.get_right(field) is None else self.get_right(field).value
-                return 'left' if left_value > right_value else 'right'
+                return Preference.LEFT if left_value > right_value else Preference.RIGHT
             case _:
                 raise NotImplementedError(f'The field {field} is not supported')
 
@@ -284,97 +284,96 @@ def test_get_left_get_right__invalid():
 
 @labeled_tests({
     'dorm vs apartment': [
-        (dorm, apartment, 'dwelling_type', 'left'),
-        (dorm, apartment, 'sqft', 'right'),
-        (dorm, apartment, 'bedrooms', 'right'),
-        (dorm, apartment, 'garage_parking', 'right'),
-        (dorm, apartment, 'laundry', 'right'),
-        (dorm, apartment, 'cost', 'left')
+        (dorm, apartment, 'dwelling_type', Preference.LEFT),
+        (dorm, apartment, 'sqft', Preference.RIGHT),
+        (dorm, apartment, 'bedrooms', Preference.RIGHT),
+        (dorm, apartment, 'garage_parking', Preference.RIGHT),
+        (dorm, apartment, 'laundry', Preference.RIGHT),
+        (dorm, apartment, 'cost', Preference.LEFT)
     ],
     'dorm vs multi family': [
-        (dorm, multi_family, 'dwelling_type', 'left'),
-        (dorm, multi_family, 'sqft', 'right'),
-        (dorm, multi_family, 'bathrooms', 'right'),
-        (dorm, multi_family, 'laundry', 'left'),
-        (dorm, multi_family, 'cost', 'left')
+        (dorm, multi_family, 'dwelling_type', Preference.LEFT),
+        (dorm, multi_family, 'sqft', Preference.RIGHT),
+        (dorm, multi_family, 'bathrooms', Preference.RIGHT),
+        (dorm, multi_family, 'laundry', Preference.LEFT),
+        (dorm, multi_family, 'cost', Preference.LEFT)
     ],
     'dorm vs town home': [
-        (dorm, town_home, 'dwelling_type', 'right'),
-        (dorm, town_home, 'sqft', 'right'),
-        (dorm, town_home, 'bedrooms', 'right'),
-        (dorm, town_home, 'bathrooms', 'right'),
-        (dorm, town_home, 'garage_parking', 'right'),
-        (dorm, town_home, 'laundry', 'right'),
-        (dorm, town_home, 'cost', 'left')
+        (dorm, town_home, 'dwelling_type', Preference.RIGHT),
+        (dorm, town_home, 'sqft', Preference.RIGHT),
+        (dorm, town_home, 'bedrooms', Preference.RIGHT),
+        (dorm, town_home, 'bathrooms', Preference.RIGHT),
+        (dorm, town_home, 'garage_parking', Preference.RIGHT),
+        (dorm, town_home, 'laundry', Preference.RIGHT),
+        (dorm, town_home, 'cost', Preference.LEFT)
     ],
     'dorm vs single family': [
-        (dorm, single_family, 'dwelling_type', 'right'),
-        (dorm, single_family, 'sqft', 'right'),
-        (dorm, single_family, 'bedrooms', 'right'),
-        (dorm, single_family, 'bathrooms', 'right'),
-        (dorm, single_family, 'garage_parking', 'right'),
-        (dorm, single_family, 'laundry', 'right'),
-        (dorm, single_family, 'cost', 'left')
+        (dorm, single_family, 'dwelling_type', Preference.RIGHT),
+        (dorm, single_family, 'sqft', Preference.RIGHT),
+        (dorm, single_family, 'bedrooms', Preference.RIGHT),
+        (dorm, single_family, 'bathrooms', Preference.RIGHT),
+        (dorm, single_family, 'garage_parking', Preference.RIGHT),
+        (dorm, single_family, 'laundry', Preference.RIGHT),
+        (dorm, single_family, 'cost', Preference.LEFT)
     ],
     'apartment vs multi family': [
-        (apartment, multi_family, 'dwelling_type', 'neither'),
-        (apartment, multi_family, 'sqft', 'right'),
-        (apartment, multi_family, 'bedrooms', 'left'),
-        (apartment, multi_family, 'bathrooms', 'right'),
-        (apartment, multi_family, 'garage_parking', 'left'),
-        (apartment, multi_family, 'laundry', 'left'),
-        (apartment, multi_family, 'cost', 'left')
+        (apartment, multi_family, 'dwelling_type', Preference.NEITHER),
+        (apartment, multi_family, 'sqft', Preference.RIGHT),
+        (apartment, multi_family, 'bedrooms', Preference.LEFT),
+        (apartment, multi_family, 'bathrooms', Preference.RIGHT),
+        (apartment, multi_family, 'garage_parking', Preference.LEFT),
+        (apartment, multi_family, 'laundry', Preference.LEFT),
+        (apartment, multi_family, 'cost', Preference.LEFT)
     ],
     'apartment vs town home': [
-        (apartment, town_home, 'dwelling_type', 'right'),
-        (apartment, town_home, 'sqft', 'right'),
-        (apartment, town_home, 'bedrooms', 'right'),
-        (apartment, town_home, 'bathrooms', 'right'),
-        (apartment, town_home, 'laundry', 'right'),
-        (apartment, town_home, 'cost', 'left')
+        (apartment, town_home, 'dwelling_type', Preference.RIGHT),
+        (apartment, town_home, 'sqft', Preference.RIGHT),
+        (apartment, town_home, 'bedrooms', Preference.RIGHT),
+        (apartment, town_home, 'bathrooms', Preference.RIGHT),
+        (apartment, town_home, 'laundry', Preference.RIGHT),
+        (apartment, town_home, 'cost', Preference.LEFT)
     ],
     'apartment vs single family': [
-        (apartment, single_family, 'dwelling_type', 'right'),
-        (apartment, single_family, 'sqft', 'right'),
-        (apartment, single_family, 'bedrooms', 'right'),
-        (apartment, single_family, 'bathrooms', 'right'),
-        (apartment, single_family, 'garage_parking', 'right'),
-        (apartment, single_family, 'laundry', 'right'),
-        (apartment, single_family, 'cost', 'left')
+        (apartment, single_family, 'dwelling_type', Preference.RIGHT),
+        (apartment, single_family, 'sqft', Preference.RIGHT),
+        (apartment, single_family, 'bedrooms', Preference.RIGHT),
+        (apartment, single_family, 'bathrooms', Preference.RIGHT),
+        (apartment, single_family, 'garage_parking', Preference.RIGHT),
+        (apartment, single_family, 'laundry', Preference.RIGHT),
+        (apartment, single_family, 'cost', Preference.LEFT)
     ],
     'multi family vs town home': [
-        (multi_family, town_home, 'dwelling_type', 'right'),
-        (multi_family, town_home, 'sqft', 'right'),
-        (multi_family, town_home, 'bedrooms', 'right'),
-        (multi_family, town_home, 'bathrooms', 'right'),
-        (multi_family, town_home, 'garage_parking', 'right'),
-        (multi_family, town_home, 'laundry', 'right'),
-        (multi_family, town_home, 'cost', 'left')
+        (multi_family, town_home, 'dwelling_type', Preference.RIGHT),
+        (multi_family, town_home, 'sqft', Preference.RIGHT),
+        (multi_family, town_home, 'bedrooms', Preference.RIGHT),
+        (multi_family, town_home, 'bathrooms', Preference.RIGHT),
+        (multi_family, town_home, 'garage_parking', Preference.RIGHT),
+        (multi_family, town_home, 'laundry', Preference.RIGHT),
+        (multi_family, town_home, 'cost', Preference.LEFT)
     ],
     'multi family vs single family': [
-        (multi_family, single_family, 'dwelling_type', 'right'),
-        (multi_family, single_family, 'sqft', 'right'),
-        (multi_family, single_family, 'bedrooms', 'right'),
-        (multi_family, single_family, 'bathrooms', 'right'),
-        (multi_family, single_family, 'garage_parking', 'right'),
-        (multi_family, single_family, 'laundry', 'right'),
-        (multi_family, single_family, 'cost', 'left')
+        (multi_family, single_family, 'dwelling_type', Preference.RIGHT),
+        (multi_family, single_family, 'sqft', Preference.RIGHT),
+        (multi_family, single_family, 'bedrooms', Preference.RIGHT),
+        (multi_family, single_family, 'bathrooms', Preference.RIGHT),
+        (multi_family, single_family, 'garage_parking', Preference.RIGHT),
+        (multi_family, single_family, 'laundry', Preference.RIGHT),
+        (multi_family, single_family, 'cost', Preference.LEFT)
     ],
     'town home vs single family': [
-        (town_home, single_family, 'dwelling_type', 'both'),
-        (town_home, single_family, 'sqft', 'right'),
-        (town_home, single_family, 'bedrooms', 'right'),
-        (town_home, single_family, 'bathrooms', 'right'),
-        (town_home, single_family, 'garage_parking', 'right'),
-        (town_home, single_family, 'cost', 'left')
+        (town_home, single_family, 'dwelling_type', Preference.BOTH),
+        (town_home, single_family, 'sqft', Preference.RIGHT),
+        (town_home, single_family, 'bedrooms', Preference.RIGHT),
+        (town_home, single_family, 'bathrooms', Preference.RIGHT),
+        (town_home, single_family, 'garage_parking', Preference.RIGHT),
+        (town_home, single_family, 'cost', Preference.LEFT)
     ],
     'n/a': [
-        (multi_family, single_family, 'address', 'n/a'),
-        (multi_family, single_family, 'apt', 'n/a'),
+        (multi_family, single_family, 'address', Preference.NOT_APPLICABLE),
+        (multi_family, single_family, 'apt', Preference.NOT_APPLICABLE),
     ],
 })
-def test_get_preferred(left: Rental, right: Rental, field: str,
-                       expected: Literal['left', 'right', 'neither', 'both', 'n/a']):
+def test_get_preferred(left: Rental, right: Rental, field: str,expected: Preference):
     assert RentalDiff(left, right).get_preferred(field) == expected
 
 

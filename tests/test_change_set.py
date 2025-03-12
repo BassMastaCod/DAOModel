@@ -5,7 +5,7 @@ import pytest
 
 from daomodel import DAOModel, PrimaryKey
 from daomodel.dao import Conflict
-from daomodel.model_diff import ChangeSet
+from daomodel.model_diff import ChangeSet, Preference
 from tests.labeled_tests import labeled_tests
 
 
@@ -98,25 +98,26 @@ def test_get_resolution__unresolved():
 
 @labeled_tests({
     'left': [
-        (dads_entry, sons_entry, 'location', 'left'),
-        (dads_entry, daughters_entry, 'time', 'left'),
-        (dads_entry, daughters_entry, 'description', 'left'),
-        (sons_entry, daughters_entry, 'time', 'left'),
-        (sons_entry, daughters_entry, 'description', 'left')
+        (dads_entry, sons_entry, 'location', Preference.LEFT),
+        (dads_entry, sons_entry, 'location', Preference.LEFT),
+        (dads_entry, daughters_entry, 'time', Preference.LEFT),
+        (dads_entry, daughters_entry, 'description', Preference.LEFT),
+        (sons_entry, daughters_entry, 'time', Preference.LEFT),
+        (sons_entry, daughters_entry, 'description', Preference.LEFT)
     ],
     'right': [
-        (sons_entry, moms_entry, 'location', 'right'),
-        (daughters_entry, moms_entry, 'time', 'right'),
-        (daughters_entry, moms_entry, 'description', 'right'),
-        (sons_entry, daughters_entry, 'location', 'right')
+        (sons_entry, moms_entry, 'location', Preference.RIGHT),
+        (daughters_entry, moms_entry, 'time', Preference.RIGHT),
+        (daughters_entry, moms_entry, 'description', Preference.RIGHT),
+        (sons_entry, daughters_entry, 'location', Preference.RIGHT)
     ],
     'both': [
-        (dads_entry, moms_entry, 'time', 'both'),
-        (dads_entry, moms_entry, 'description', 'both'),
-        (moms_entry, sons_entry, 'day', 'both')
+        (dads_entry, moms_entry, 'time', Preference.BOTH),
+        (dads_entry, moms_entry, 'description', Preference.BOTH),
+        (moms_entry, sons_entry, 'day', Preference.BOTH)
     ]
 })
-def test_get_preferred(baseline: CalendarEvent, target: CalendarEvent, field: str, expected: str):
+def test_get_preferred(baseline: CalendarEvent, target: CalendarEvent, field: str, expected: Preference):
     assert ChangeSet(baseline, target).get_preferred(field) == expected
 
 
