@@ -5,7 +5,7 @@ import pytest
 
 from daomodel import DAOModel, PrimaryKey
 from daomodel.dao import Conflict
-from daomodel.model_diff import ChangeSet, Preference
+from daomodel.model_diff import ChangeSet, Preference, Resolved
 from tests.labeled_tests import labeled_tests
 
 
@@ -124,26 +124,38 @@ def test_get_preferred(baseline: CalendarEvent, target: CalendarEvent, field: st
 @labeled_tests({
     'dad => mom':
         (dads_entry, moms_entry, {
-            'description': ('Annual family picnic with games and BBQ.', 'Picnic with family and friends, do not forget the salads!',
-                            'Annual family picnic with games and BBQ.\n\nPicnic with family and friends, do not forget the salads!')
+            'description': (
+                    'Annual family picnic with games and BBQ.',
+                    Resolved('Picnic with family and friends, do not forget the salads!',
+                             'Annual family picnic with games and BBQ.\n\nPicnic with family and friends, do not forget the salads!')
+            )
         }),
     'dad => son':
         (dads_entry, sons_entry, {
-            'description': ('Annual family picnic with games and BBQ.', 'Bring your football and frisbee!',
-                            'Annual family picnic with games and BBQ.\n\nBring your football and frisbee!')
+            'description': (
+                    'Annual family picnic with games and BBQ.',
+                    Resolved('Bring your football and frisbee!',
+                             'Annual family picnic with games and BBQ.\n\nBring your football and frisbee!')
+            )
         }),
     'dad => daughter':
         (dads_entry, daughters_entry, {}),
     'mom => dad':
         (moms_entry, dads_entry, {
             'time': ('12:00 PM', '11:00 AM'),
-            'description': ('Picnic with family and friends, do not forget the salads!', 'Annual family picnic with games and BBQ.',
-                            'Picnic with family and friends, do not forget the salads!\n\nAnnual family picnic with games and BBQ.')
+            'description': (
+                    'Picnic with family and friends, do not forget the salads!',
+                    Resolved('Annual family picnic with games and BBQ.',
+                             'Picnic with family and friends, do not forget the salads!\n\nAnnual family picnic with games and BBQ.')
+            )
         }),
     'mom => son':
         (moms_entry, sons_entry, {
-            'description': ('Picnic with family and friends, do not forget the salads!', 'Bring your football and frisbee!',
-                            'Picnic with family and friends, do not forget the salads!\n\nBring your football and frisbee!')
+            'description': (
+                    'Picnic with family and friends, do not forget the salads!',
+                    Resolved('Bring your football and frisbee!',
+                             'Picnic with family and friends, do not forget the salads!\n\nBring your football and frisbee!')
+            )
         }),
     'mom => daughter':
         (moms_entry, daughters_entry, {}),
@@ -152,15 +164,21 @@ def test_get_preferred(baseline: CalendarEvent, target: CalendarEvent, field: st
             'day': (date(2025, 6, 19), date(2025, 6, 20)),
             'time': ('12:00 PM', '11:00 AM'),
             'location': (None, 'Central Park'),
-            'description': ('Bring your football and frisbee!', 'Annual family picnic with games and BBQ.',
-                            'Bring your football and frisbee!\n\nAnnual family picnic with games and BBQ.')
+            'description': (
+                    'Bring your football and frisbee!',
+                    Resolved('Annual family picnic with games and BBQ.',
+                             'Bring your football and frisbee!\n\nAnnual family picnic with games and BBQ.')
+            )
         }),
     'son => mom':
         (sons_entry, moms_entry, {
             'day': (date(2025, 6, 19), date(2025, 6, 20)),
             'location': (None, 'Central Park'),
-            'description': ('Bring your football and frisbee!', 'Picnic with family and friends, do not forget the salads!',
-                            'Bring your football and frisbee!\n\nPicnic with family and friends, do not forget the salads!')
+            'description': (
+                    'Bring your football and frisbee!',
+                    Resolved('Picnic with family and friends, do not forget the salads!',
+                             'Bring your football and frisbee!\n\nPicnic with family and friends, do not forget the salads!')
+            )
         }),
     'son => daughter':
         (sons_entry, daughters_entry, {
@@ -183,7 +201,7 @@ def test_get_preferred(baseline: CalendarEvent, target: CalendarEvent, field: st
             'description': (None, 'Bring your football and frisbee!')
         }),
 })
-def test_resolve_preferences(baseline: CalendarEvent, target: CalendarEvent, expected: dict[str, tuple[Any, Any]|tuple[Any, Any, Any]]):
+def test_resolve_preferences(baseline: CalendarEvent, target: CalendarEvent, expected: dict[str, tuple[Any, Any|Resolved]]):
     change_set = EventChangeSet(baseline, target)
     change_set.resolve_preferences()
     assert change_set == expected

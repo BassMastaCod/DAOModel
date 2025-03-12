@@ -23,7 +23,7 @@ class Preference(Enum):
     BOTH = 3
 
 
-class ModelDiff(dict[str, tuple[Any, Any]|tuple[Any, Any, Any]]):
+class ModelDiff(dict[str, tuple[Any, Any]]):
     """A dictionary wrapper to provide extended functionality for model comparisons."""
     def __init__(self, left: DAOModel, right: DAOModel, include_pk: Optional[bool] = True):
         super().__init__()
@@ -65,6 +65,24 @@ class ModelDiff(dict[str, tuple[Any, Any]|tuple[Any, Any, Any]]):
                                   f'{self.get_left(field)} -> {self.get_right(field)}')
 
 
+class Resolved:
+    """Represents a resolved value for a specific conflict.
+
+    Stores the original target as well as the resolution of a conflict in the context of a ChangeSet.
+    """
+    def __init__(self, target: Any, resolution: Any):
+        self.target = target
+        self.resolution = resolution
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Resolved):
+            return NotImplemented
+        return self.target == other.target and self.resolution == other.resolution
+
+    def __hash__(self) -> int:
+        return hash((self.target, self.resolution))
+
+
 class ChangeSet(ModelDiff):
     """A directional model diff with the left being the baseline and the right being the target.
 
@@ -103,7 +121,8 @@ class ChangeSet(ModelDiff):
         :param field: The name of the field to fetch
         :return: The resolved value, which is the target value unless resolve_preferences() was called
         """
-        return self.get(field)[-1]
+        target = self.get_target(field)
+        return target.resolution if isinstance(target, Resolved) else target
 
     def get_preferred(self, field: str) -> Preference:
         return (
@@ -146,7 +165,7 @@ class ChangeSet(ModelDiff):
                 case Preference.RIGHT:
                     pass
                 case _:
-                    self[field] = (self.get_baseline(field), self.get_target(field), preferred)
+                    self[field] = (self.get_baseline(field), Resolved(self.get_target(field), preferred))
         return self
 
     def apply(self) -> DAOModel:
