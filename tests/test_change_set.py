@@ -5,7 +5,7 @@ import pytest
 
 from daomodel import DAOModel, PrimaryKey
 from daomodel.dao import Conflict
-from daomodel.model_diff import ChangeSet, Preference, Resolved
+from daomodel.model_diff import ChangeSet, Preference, Resolved, Unresolved
 from tests.labeled_tests import labeled_tests
 
 
@@ -53,7 +53,7 @@ class EventChangeSet(ChangeSet):
     def resolve_conflict(self, field: str) -> Any:
         match field:
             case 'title':
-                raise Conflict(msg='Unexpected conflict for title field')
+                return Preference.NOT_APPLICABLE
             case 'day':
                 return Preference.LEFT if self.get_baseline(field) > self.get_target(field) else Preference.RIGHT
             case 'time':
@@ -199,12 +199,18 @@ def test_get_preferred(baseline: CalendarEvent, target: CalendarEvent, field: st
         (daughters_entry, sons_entry, {
             'time': ('All Day', '12:00 PM'),
             'description': (None, 'Bring your football and frisbee!')
-        }),
+        })
 })
 def test_resolve_preferences(baseline: CalendarEvent, target: CalendarEvent, expected: dict[str, tuple[Any, Any|Resolved]]):
     change_set = EventChangeSet(baseline, target)
     change_set.resolve_preferences()
     assert change_set == expected
+
+
+def test_resolve_preferences__unresolved():
+    change_set = EventChangeSet(dads_entry, unrelated_entry, include_pk=True)
+    change_set.resolve_preferences()
+    assert change_set['title'] == ('Family Picnic', Unresolved('Dentist Appointment'))
 
 
 def test_resolve_preferences__chained():

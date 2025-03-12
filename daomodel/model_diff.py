@@ -65,6 +65,25 @@ class ModelDiff(dict[str, tuple[Any, Any]]):
                                   f'{self.get_left(field)} -> {self.get_right(field)}')
 
 
+class Unresolved:
+    """Represents an unresolved conflict within a ChangeSet.
+
+    This is a simple wrapper for the target value to act as a label.
+    """
+    def __init__(self, target: Any):
+        self.target = target
+
+    def __eq__(self, other: Any) -> bool:
+        return self.target == other.target if isinstance(other, Unresolved) else False
+
+    def __hash__(self) -> int:
+        return hash(self.target)
+    
+    def __repr__(self) -> str:
+        """Provide a meaningful string representation of the Unresolved instance."""
+        return f'Unresolved(target={repr(self.target)})'
+
+
 class Resolved:
     """Represents a resolved value for a specific conflict.
 
@@ -75,12 +94,16 @@ class Resolved:
         self.resolution = resolution
 
     def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, Resolved):
-            return NotImplemented
-        return self.target == other.target and self.resolution == other.resolution
+        if isinstance(other, Resolved):
+            return self.target == other.target and self.resolution == other.resolution
+        return False
 
     def __hash__(self) -> int:
         return hash((self.target, self.resolution))
+
+    def __repr__(self) -> str:
+        """Provide a meaningful string representation of the Unresolved instance."""
+        return f'Resolved(target={repr(self.target)}, resolution={repr(self.resolution)})'
 
 
 class ChangeSet(ModelDiff):
@@ -156,10 +179,8 @@ class ChangeSet(ModelDiff):
             if preferred == Preference.BOTH:
                 preferred = self.resolve_conflict(field)
             match preferred:
-                case Preference.NOT_APPLICABLE:
-                    pass  # TODO
-                case Preference.NEITHER:
-                    pass  # TODO
+                case Preference.NOT_APPLICABLE | Preference.NEITHER:
+                    self[field] = (self.get_baseline(field), Unresolved(self.get_target(field)))
                 case Preference.LEFT:
                     del self[field]
                 case Preference.RIGHT:
