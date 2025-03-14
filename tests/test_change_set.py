@@ -321,6 +321,6 @@ def test_resolve_preferences__conflict():
         )),
 })
 def test_apply(baseline: CalendarEvent, target: CalendarEvent, expected: CalendarEvent):
-    change_set = EventChangeSet(baseline, target)
+    change_set = EventChangeSet(baseline.model_copy(), target)
     change_set.resolve_preferences()
     assert change_set.apply() == expected
