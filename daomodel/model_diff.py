@@ -113,10 +113,8 @@ class ChangeSet(ModelDiff):
     """
     def __init__(self, baseline: DAOModel, target: DAOModel, include_pk: Optional[bool] = False):
         super().__init__(baseline, target, include_pk)
-        self.baseline = self.left
-        self.target = self.right
-        self.assigned_in_baseline = self.baseline.get_property_names(assigned=True)
-        self.assigned_in_target = self.target.get_property_names(assigned=True)
+        self.assigned_in_baseline = self.left.get_property_names(assigned=True)
+        self.assigned_in_target = self.right.get_property_names(assigned=True)
 
     def get_baseline(self, field: str) -> Any:
         """Fetches the value of the baseline model.
@@ -194,5 +192,5 @@ class ChangeSet(ModelDiff):
 
         You will typically want to call resolve_preferences prior to this.
         """
-        self.baseline.set_values(**{field: self.get_resolution(field) for field in self.keys()})
-        return self.baseline
+        self.left.set_values(**{field: self.get_resolution(field) for field in self.keys()})
+        return self.right
