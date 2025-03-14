@@ -5,7 +5,7 @@ import pytest
 
 from daomodel import DAOModel, PrimaryKey
 from daomodel.dao import Conflict
-from daomodel.model_diff import ChangeSet, Preference, Resolved, Unresolved
+from daomodel.model_diff import ChangeSet, Preference, Resolved, Unresolved, MergeSet
 from tests.labeled_tests import labeled_tests
 
 
@@ -41,7 +41,7 @@ daughters_entry = CalendarEvent(
     title='Family Picnic',
     day=date(2025, 6, 20),
     time='All Day',
-    location='Central Park'
+    location='The Park'
 )
 unrelated_entry = CalendarEvent(
     title='Dentist Appointment',
@@ -183,7 +183,7 @@ def test_get_preferred(baseline: CalendarEvent, target: CalendarEvent, field: st
     'son => daughter':
         (sons_entry, daughters_entry, {
             'day': (date(2025, 6, 19), date(2025, 6, 20)),
-            'location': (None, 'Central Park')
+            'location': (None, 'The Park')
         }),
     'daughter => dad':
         (daughters_entry, dads_entry, {
@@ -324,3 +324,160 @@ def test_apply(baseline: CalendarEvent, target: CalendarEvent, expected: Calenda
     change_set = EventChangeSet(baseline.model_copy(), target)
     change_set.resolve_preferences()
     assert change_set.apply() == expected
+
+
+@labeled_tests({
+    '1 other model':
+        (dads_entry, [moms_entry], {
+            'time': ('11:00 AM', [
+                '12:00 PM'
+            ]),
+            'description': ('Annual family picnic with games and BBQ.', [
+                'Picnic with family and friends, do not forget the salads!'
+            ])
+        }),
+    'multiple other models': [
+        (dads_entry, [moms_entry, sons_entry], {
+            'day': (date(2025, 6, 20), [
+                date(2025, 6, 20),
+                date(2025, 6, 19)
+            ]),
+            'time': ('11:00 AM', [
+                '12:00 PM',
+                '12:00 PM'
+            ]),
+            'location': ('Central Park', [
+                'Central Park',
+                None
+            ]),
+            'description': ('Annual family picnic with games and BBQ.', [
+                'Picnic with family and friends, do not forget the salads!',
+                'Bring your football and frisbee!'
+            ])
+        }),
+        (dads_entry, [moms_entry, daughters_entry], {
+            'time': ('11:00 AM', [
+                '12:00 PM',
+                'All Day'
+            ]),
+            'location': ('Central Park', [
+                'Central Park',
+                'The Park'
+            ]),
+            'description': ('Annual family picnic with games and BBQ.', [
+                'Picnic with family and friends, do not forget the salads!',
+                None
+            ])
+        }),
+        (dads_entry, [sons_entry, daughters_entry], {
+            'day': (date(2025, 6, 20), [
+                date(2025, 6, 19),
+                date(2025, 6, 20)
+            ]),
+            'time': ('11:00 AM', [
+                '12:00 PM',
+                'All Day',
+            ]),
+            'location': ('Central Park', [
+                None,
+                'The Park'
+            ]),
+            'description': ('Annual family picnic with games and BBQ.', [
+                'Bring your football and frisbee!',
+                None
+            ])
+        }),
+    ],
+    'model order': [
+        (dads_entry, [moms_entry, sons_entry, daughters_entry], {
+            'day': (date(2025, 6, 20), [
+                date(2025, 6, 20),
+                date(2025, 6, 19),
+                date(2025, 6, 20)
+            ]),
+            'time': ('11:00 AM', [
+                '12:00 PM',
+                '12:00 PM',
+                'All Day'
+            ]),
+            'location': ('Central Park', [
+                'Central Park',
+                None,
+                'The Park'
+            ]),
+            'description': ('Annual family picnic with games and BBQ.', [
+                'Picnic with family and friends, do not forget the salads!',
+                'Bring your football and frisbee!',
+                None
+            ])
+        }),
+        (sons_entry, [daughters_entry, moms_entry, dads_entry], {
+            'day': (date(2025, 6, 19), [
+                date(2025, 6, 20),
+                date(2025, 6, 20),
+                date(2025, 6, 20)
+            ]),
+            'time': ('12:00 PM', [
+                'All Day',
+                '12:00 PM',
+                '11:00 AM'
+            ]),
+            'location': (None, [
+                'The Park',
+                'Central Park',
+                'Central Park'
+            ]),
+            'description': ('Bring your football and frisbee!', [
+                None,
+                'Picnic with family and friends, do not forget the salads!',
+                'Annual family picnic with games and BBQ.'
+            ])
+        }),
+        (moms_entry, [dads_entry, daughters_entry, sons_entry], {
+            'day': (date(2025, 6, 20), [
+                date(2025, 6, 20),
+                date(2025, 6, 20),
+                date(2025, 6, 19)
+            ]),
+            'time': ('12:00 PM', [
+                '11:00 AM',
+                'All Day',
+                '12:00 PM'
+            ]),
+            'location': ('Central Park', [
+                'Central Park',
+                'The Park',
+                None,
+            ]),
+            'description': ('Picnic with family and friends, do not forget the salads!', [
+                'Annual family picnic with games and BBQ.',
+                None,
+                'Bring your football and frisbee!',
+            ])
+        }),
+        (daughters_entry, [moms_entry, dads_entry, sons_entry], {
+            'day': (date(2025, 6, 20), [
+                date(2025, 6, 20),
+                date(2025, 6, 20),
+                date(2025, 6, 19)
+            ]),
+            'time': ('All Day', [
+                '12:00 PM',
+                '11:00 AM',
+                '12:00 PM'
+            ]),
+            'location': ('The Park', [
+                'Central Park',
+                'Central Park',
+                None
+            ]),
+            'description': (None, [
+                'Picnic with family and friends, do not forget the salads!',
+                'Annual family picnic with games and BBQ.',
+                'Bring your football and frisbee!'
+            ])
+        })
+    ]
+})
+def test_merge_set(baseline: CalendarEvent, others: list[CalendarEvent, ...], expected: dict[str, tuple[Any, list[Any, ...]]]):
+    assert MergeSet(baseline, *others) == expected

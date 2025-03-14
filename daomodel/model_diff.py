@@ -194,3 +194,35 @@ class ChangeSet(ModelDiff):
         """
         self.left.set_values(**{field: self.get_resolution(field) for field in self.keys()})
         return self.right
+
+
+class MergeSet(ChangeSet):
+    def __init__(self, baseline: DAOModel, *targets: DAOModel):
+        super().__init__(baseline, targets[0])
+        self.left = baseline
+        self.right = targets
+        for model in targets:
+            self.assigned_in_target += model.get_property_names(assigned=True)
+
+        for model in targets:
+            for k, v in baseline.compare(model).items():
+                self[k] = (v[0], [None] * len(targets))
+
+        for index, model in enumerate(targets):
+            for k, v in self.items():
+                v[1][index] = model.get_value_of(k)
+
+    def get_preferred(self, field: str) -> Preference:
+        pass
+
+    def get_resolution(self, field: str) -> Any:
+        pass
+
+    def resolve_conflict(self, field: str) -> Any:
+        pass
+
+    def resolve_preferences(self) -> Self:
+        pass
+
+    def apply(self) -> DAOModel:
+        pass
