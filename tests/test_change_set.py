@@ -96,7 +96,7 @@ def test_get_resolution__unresolved():
     assert ChangeSet(moms_entry, dads_entry).get_resolution('time') == '11:00 AM'
 
 
-@labeled_tests({
+get_preferred_tests = {
     'left': [
         (dads_entry, sons_entry, 'location', Preference.LEFT),
         (dads_entry, sons_entry, 'location', Preference.LEFT),
@@ -116,7 +116,8 @@ def test_get_resolution__unresolved():
         (dads_entry, moms_entry, 'description', Preference.BOTH),
         (moms_entry, sons_entry, 'day', Preference.BOTH)
     ]
-})
+}
+@labeled_tests(get_preferred_tests)
 def test_get_preferred(baseline: CalendarEvent, target: CalendarEvent, field: str, expected: Preference):
     assert ChangeSet(baseline, target).get_preferred(field) == expected
 
@@ -481,3 +482,8 @@ def test_apply(baseline: CalendarEvent, target: CalendarEvent, expected: Calenda
 })
 def test_merge_set(baseline: CalendarEvent, others: list[CalendarEvent, ...], expected: dict[str, tuple[Any, list[Any, ...]]]):
     assert MergeSet(baseline, *others) == expected
+
+
+@labeled_tests(get_preferred_tests)
+def test_get_preferred(baseline: CalendarEvent, target: CalendarEvent, field: str, expected: Preference):
+    assert MergeSet(baseline, *[target] * 3).get_preferred(field) == expected

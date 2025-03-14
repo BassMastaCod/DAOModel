@@ -134,6 +134,10 @@ class ChangeSet(ModelDiff):
         """
         return self.get_right(field)
 
+    def has_target_value(self, field: str) -> bool:
+        """Returns True if the target value for the specified field exists"""
+        return self.get_target(field) is not None
+
     def get_resolution(self, field: str) -> Any:
         """Returns the resolved value for the specified field.
 
@@ -147,7 +151,7 @@ class ChangeSet(ModelDiff):
 
     def get_preferred(self, field: str) -> Preference:
         return (
-            Preference.LEFT if self.get_target(field) is None else
+            Preference.LEFT if not self.has_target_value(field) else
             Preference.BOTH if field in self.assigned_in_baseline and field in self.assigned_in_target else
             Preference.LEFT if field in self.assigned_in_baseline else
             Preference.RIGHT if field in self.assigned_in_target else
@@ -211,6 +215,9 @@ class MergeSet(ChangeSet):
         for index, model in enumerate(targets):
             for k, v in self.items():
                 v[1][index] = model.get_value_of(k)
+
+    def has_target_value(self, field: str) -> bool:
+        return any(target is not None for target in self.get_target(field))
 
     def get_preferred(self, field: str) -> Preference:
         pass
