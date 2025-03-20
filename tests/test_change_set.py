@@ -49,21 +49,13 @@ unrelated_entry = CalendarEvent(
 )
 
 
-class EventChangeSet(ChangeSet):
-    def resolve_conflict(self, field: str) -> Any:
-        match field:
-            case 'title':
-                return Preference.NOT_APPLICABLE
-            case 'day':
-                return Preference.LEFT if self.get_baseline(field) > self.get_target(field) else Preference.RIGHT
-            case 'time':
-                return Preference.LEFT if self.get_baseline(field) < self.get_target(field) else Preference.RIGHT
-            case 'location':
-                return Preference.LEFT
-            case 'description':
-                return '\n\n'.join([self.get_baseline(field), self.get_target(field)])
-            case _:
-                raise NotImplementedError(f'The field {field} is not supported')
+conflict_resolution = {
+    'title': Preference.NOT_APPLICABLE,
+    'day': max,
+    'time': min,
+    'location': Preference.LEFT,
+    'description': '\n\n'.join
+}
 
 
 def test_change_set():
@@ -145,11 +137,11 @@ def test_all_values(change_set: ChangeSet, field: str, expected: list[Any]):
 
 
 def test_get_resolution():
-    change_set = EventChangeSet(dads_entry, moms_entry)
+    change_set = ChangeSet(dads_entry, moms_entry, **conflict_resolution)
     change_set.resolve_preferences()
     assert (change_set.get_resolution('description') ==
             'Annual family picnic with games and BBQ.\n\nPicnic with family and friends, do not forget the salads!')
-    change_set = EventChangeSet(moms_entry, dads_entry)
+    change_set = ChangeSet(moms_entry, dads_entry, **conflict_resolution)
     change_set.resolve_preferences()
     assert (change_set.get_resolution('description') ==
             'Picnic with family and friends, do not forget the salads!\n\nAnnual family picnic with games and BBQ.')
@@ -267,19 +259,19 @@ def test_get_preferred(baseline: CalendarEvent, target: CalendarEvent, field: st
         })
 })
 def test_resolve_preferences(baseline: CalendarEvent, target: CalendarEvent, expected: dict[str, tuple[Any, Any|Resolved]]):
-    change_set = EventChangeSet(baseline, target)
+    change_set = ChangeSet(baseline, target, **conflict_resolution)
     change_set.resolve_preferences()
     assert change_set == expected
 
 
 def test_resolve_preferences__unresolved():
-    change_set = EventChangeSet(dads_entry, unrelated_entry, include_pk=True)
+    change_set = ChangeSet(dads_entry, unrelated_entry, include_pk=True, **conflict_resolution)
     change_set.resolve_preferences()
     assert change_set['title'] == ('Family Picnic', Unresolved('Dentist Appointment'))
 
 
 def test_resolve_preferences__chained():
-    assert EventChangeSet(moms_entry, dads_entry).resolve_preferences().get_baseline('time') == '12:00 PM'
+    assert ChangeSet(moms_entry, dads_entry, **conflict_resolution).resolve_preferences().get_baseline('time') == '12:00 PM'
 
 
 def test_resolve_preferences__conflict():
@@ -386,7 +378,7 @@ def test_resolve_preferences__conflict():
         )),
 })
 def test_apply(baseline: CalendarEvent, target: CalendarEvent, expected: CalendarEvent):
-    change_set = EventChangeSet(baseline.model_copy(), target)
+    change_set = ChangeSet(baseline.model_copy(), target, **conflict_resolution)
     change_set.resolve_preferences()
     assert change_set.apply() == expected
 

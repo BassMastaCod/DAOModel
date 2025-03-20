@@ -111,10 +111,15 @@ class ChangeSet(ModelDiff):
 
     Unlike the standard ModelDiff, PK is excluded by default.
     """
-    def __init__(self, baseline: DAOModel, target: DAOModel, include_pk: Optional[bool] = False):
+    def __init__(self,
+                 baseline: DAOModel,
+                 target: DAOModel,
+                 include_pk: Optional[bool] = False,
+                 **conflict_resolution: callable):
         super().__init__(baseline, target, include_pk)
         self.assigned_in_baseline = self.left.get_property_names(assigned=True)
         self.assigned_in_target = self.right.get_property_names(assigned=True)
+        self.conflict_resolution = conflict_resolution
 
     def get_baseline(self, field: str) -> Any:
         """Fetches the value of the baseline model.
@@ -171,8 +176,18 @@ class ChangeSet(ModelDiff):
         :return: The result of the resolution which may be the baseline value, target value, or something new entirely
         :raises: Conflict if a resolution cannot be determined
         """
-        raise Conflict(msg=f'Unable to determine preferred result for {field}: '
-                           f'{self.get_baseline(field)} -> {self.get_target(field)}')
+        def raise_conflict(*values: Any) -> Any:
+            raise Conflict(msg=f'Unable to determine preferred result for {field}: {values}')
+
+        default = self.conflict_resolution.get('default', raise_conflict)
+        resolution_method = self.conflict_resolution.get(field, default)
+        resolution = resolution_method(self.all_values(field)) if callable(resolution_method) else resolution_method
+
+        if resolution == self.get_baseline(field):
+            return Preference.LEFT
+        if resolution == self.get_target(field):
+            return Preference.RIGHT
+        return resolution
 
     def resolve_preferences(self) -> Self:
         """Removes unwanted changes, preserving the meaningful values, regardless of them being from baseline or target
@@ -205,8 +220,8 @@ class ChangeSet(ModelDiff):
 
 
 class MergeSet(ChangeSet):
-    def __init__(self, baseline: DAOModel, *targets: DAOModel):
-        super().__init__(baseline, targets[0])
+    def __init__(self, baseline: DAOModel, *targets: DAOModel, **conflict_resolution):
+        super().__init__(baseline, targets[0], *conflict_resolution)
         self.left = baseline
         self.right = targets
         for model in targets:
