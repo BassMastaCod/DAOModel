@@ -219,7 +219,7 @@ class ChangeSet(ModelDiff):
         You will typically want to call resolve_preferences prior to this.
         """
         self.left.set_values(**{field: self.get_resolution(field) for field in self.keys()})
-        return self.right
+        return self.left
 
 
 class MergeSet(ChangeSet):

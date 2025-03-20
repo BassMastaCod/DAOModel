@@ -57,6 +57,7 @@ conflict_resolution = {
     'location': Preference.LEFT,
     'description': '\n\n'.join
 }
+merge_conflict_resolution = {**conflict_resolution, 'location': mode, 'description': Preference.LEFT}
 
 
 def test_change_set():
@@ -443,6 +444,46 @@ def test_resolve_preferences__conflict():
 })
 def test_apply(baseline: CalendarEvent, target: CalendarEvent, expected: CalendarEvent):
     change_set = ChangeSet(baseline.model_copy(), target, **conflict_resolution)
+    change_set.resolve_preferences()
+    assert change_set.apply() == expected
+
+
+@labeled_tests({
+    'dad <= mom, son, daughter':
+        (dads_entry, [moms_entry, sons_entry, daughters_entry], CalendarEvent(
+            title='Family Picnic',
+            day=date(2025, 6, 20),
+            time='11:00 AM',
+            location='Central Park',
+            description='Annual family picnic with games and BBQ.'
+        )),
+    'mom <= son, daughter, dad':
+        (moms_entry, [sons_entry, daughters_entry, dads_entry], CalendarEvent(
+            title='Family Picnic',
+            day=date(2025, 6, 20),
+            time='11:00 AM',
+            location='Central Park',
+            description='Picnic with family and friends, do not forget the salads!'
+        )),
+    'son <= daughter, dad, mom':
+        (sons_entry, [daughters_entry, dads_entry, moms_entry], CalendarEvent(
+            title='Family Picnic',
+            day=date(2025, 6, 20),
+            time='11:00 AM',
+            location='Central Park',
+            description='Bring your football and frisbee!'
+        )),
+    'daughter <= dad, mom, son':
+        (sons_entry, [daughters_entry, dads_entry, moms_entry], CalendarEvent(
+            title='Family Picnic',
+            day=date(2025, 6, 20),
+            time='11:00 AM',
+            location='Central Park',
+            description='Annual family picnic with games and BBQ.'
+        )),
+})
+def test_apply__merge_set(baseline: CalendarEvent, target: list[CalendarEvent], expected: CalendarEvent):
+    change_set = MergeSet(baseline.model_copy(), *target, **merge_conflict_resolution)
     change_set.resolve_preferences()
     assert change_set.apply() == expected
 
