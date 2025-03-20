@@ -373,7 +373,7 @@ def test_get_left_get_right__invalid():
         (multi_family, single_family, 'apt', Preference.NOT_APPLICABLE),
     ],
 })
-def test_get_preferred(left: Rental, right: Rental, field: str,expected: Preference):
+def test_get_preferred(left: Rental, right: Rental, field: str, expected: Preference):
     assert RentalDiff(left, right).get_preferred(field) == expected
 
 

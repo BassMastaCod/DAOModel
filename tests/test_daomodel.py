@@ -114,7 +114,7 @@ def test_tablename():
     ]
 })
 def test_has_column(model: DAOModel, column: Column, expected: bool):
-    assert model.has_column(column) == expected
+    assert model.has_column(column) is expected
 
 
 @labeled_tests({

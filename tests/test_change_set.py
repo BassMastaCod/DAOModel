@@ -80,6 +80,70 @@ def test_get_baseline_get_target():
     assert change_set.get_target('time') == change_set.get_right('time') == '12:00 PM'
 
 
+@labeled_tests({
+    'ChangeSet has target value':
+        (ChangeSet(dads_entry, moms_entry), 'time', True),
+    'ChangeSet does not have target value':
+        (ChangeSet(dads_entry, sons_entry), 'location', False),
+    'Single Target MergeSet has target value':
+        (MergeSet(dads_entry, moms_entry), 'time', True),
+    'Single Target MergeSet does not have target value':
+        (MergeSet(dads_entry, sons_entry), 'location', False),
+    'Multiple Target MergeSet has all target value':
+        (MergeSet(dads_entry, moms_entry, sons_entry, daughters_entry), 'time', True),
+    'Multiple Target MergeSet has some target value':
+        (MergeSet(dads_entry, moms_entry, sons_entry, daughters_entry), 'description', True),
+    'Multiple Target MergeSet has no target value':
+        (MergeSet(dads_entry, sons_entry, unrelated_entry), 'location', False),
+})
+def test_has_target_value(change_set: ChangeSet, field: str, expected: bool):
+    assert change_set.has_target_value(field) is expected
+
+
+@labeled_tests({
+    'ChangeSet':
+        (ChangeSet(dads_entry, moms_entry), 'time', ['11:00 AM', '12:00 PM']),
+    'ChangeSet None Baseline':
+        (ChangeSet(daughters_entry, sons_entry), 'description', [None, 'Bring your football and frisbee!']),
+    'Single Target MergeSet':
+        (MergeSet(dads_entry, sons_entry), 'day', [date(2025, 6, 20), date(2025, 6, 19)]),
+    'Multiple Target MergeSet':
+        (MergeSet(dads_entry, moms_entry, daughters_entry), 'time', [
+            '11:00 AM',
+            '12:00 PM',
+            'All Day'
+        ]),
+    'Multiple Target MergeSet with some unchanged values':
+        (MergeSet(dads_entry, moms_entry, daughters_entry), 'location', [
+            'Central Park',
+            'Central Park',
+            'The Park'
+        ]),
+    'Multiple Target MergeSet with None value':
+        (MergeSet(dads_entry, moms_entry, sons_entry, daughters_entry), 'description', [
+            'Annual family picnic with games and BBQ.',
+            'Picnic with family and friends, do not forget the salads!',
+            'Bring your football and frisbee!',
+            None
+        ]),
+    'Multiple Target MergeSet with None Baseline':
+        (MergeSet(sons_entry, dads_entry, daughters_entry), 'location', [
+            None,
+            'Central Park',
+            'The Park'
+        ]),
+    'Multiple Target MergeSet with all target matching':
+        (MergeSet(sons_entry, dads_entry, moms_entry, daughters_entry), 'day', [
+            date(2025, 6, 19),
+            date(2025, 6, 20),
+            date(2025, 6, 20),
+            date(2025, 6, 20)
+        ]),
+})
+def test_all_values(change_set: ChangeSet, field: str, expected: list[Any]):
+    assert change_set.all_values(field) == expected
+
+
 def test_get_resolution():
     change_set = EventChangeSet(dads_entry, moms_entry)
     change_set.resolve_preferences()

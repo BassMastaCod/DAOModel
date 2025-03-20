@@ -138,6 +138,10 @@ class ChangeSet(ModelDiff):
         """Returns True if the target value for the specified field exists"""
         return self.get_target(field) is not None
 
+    def all_values(self, field: str) -> list[Any]:
+        """Returns a list containing the baseline value followed by the target value for the specified field."""
+        return [self.get_left(field), self.get_right(field)]
+
     def get_resolution(self, field: str) -> Any:
         """Returns the resolved value for the specified field.
 
@@ -219,17 +223,6 @@ class MergeSet(ChangeSet):
     def has_target_value(self, field: str) -> bool:
         return any(target is not None for target in self.get_target(field))
 
-    def get_preferred(self, field: str) -> Preference:
-        pass
-
-    def get_resolution(self, field: str) -> Any:
-        pass
-
-    def resolve_conflict(self, field: str) -> Any:
-        pass
-
-    def resolve_preferences(self) -> Self:
-        pass
-
-    def apply(self) -> DAOModel:
-        pass
+    def all_values(self, field: str) -> list[Any]:
+        """Returns a list containing the baseline value followed by all target values for the specified field."""
+        return [self.get_baseline(field)] + self.get_target(field)
