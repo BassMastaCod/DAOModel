@@ -31,6 +31,20 @@ def names_of(properties: Iterable[Column]) -> list[str]:
     return [p.name for p in properties]
 
 
+def mode(values: Iterable[Any]) -> Any:
+    """
+    Determines the most frequently occurring value within the provided iterable.
+
+    In the case of a tie (multiple values with the same highest frequency),
+    the function returns the first value encountered with that frequency.
+
+    :param values: An iterable containing values to evaluate
+    :return: The most common value from the provided iterable
+    """
+    values = list(values)
+    return max(values, key=values.count)
+
+
 def values_from_dict(*keys, **values) -> tuple[Any, ...]:
     """
     Pulls specific values from a dictionary.

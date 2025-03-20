@@ -5,7 +5,7 @@ from sqlalchemy.testing.schema import Column
 
 from daomodel import reference_of
 from daomodel.util import names_of, values_from_dict, filter_dict, ensure_iter, dedupe, in_order, retain_in_dict, \
-    remove_from_dict
+    remove_from_dict, mode
 from tests.conftest import Person, Book
 from tests.labeled_tests import labeled_tests
 
@@ -26,6 +26,17 @@ def test_reference_of(column: Column, expected:  str):
 ])
 def test_names_of(columns: list[Column], expected:  list[str]):
     assert names_of(columns) == expected
+
+
+@pytest.mark.parametrize('elements, expected', [
+    ([1, 2, 2, 3], 2),
+    ([1, 1, 2, 2, 3], 1),
+    (['a', 'b', 'b', 'c', 'c', 'c'], 'c'),
+    ([True, True, False, True], True),
+    ([1], 1)
+])
+def test_mode(elements: list, expected: Any):
+    assert mode(elements) == expected
 
 
 @pytest.mark.parametrize('keys, expected', [
