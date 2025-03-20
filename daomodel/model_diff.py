@@ -167,10 +167,12 @@ class ChangeSet(ModelDiff):
             Preference.NEITHER
         )
 
-    def resolve_conflict(self, field: str) -> Any:
-        """Designed to be overridden, this function defines how to handle conflicts.
+    def resolve_conflict(self, field: str) -> Preference|Any:
+        """Defines how to handle conflicts between preferred values.
 
         A conflict occurs when both the baseline and target have unique meaningful values for a field.
+        Conflict resolution guidelines are to be provided during construction if needed.
+        Alternatively, the implementer may completely override this function in order to have full control.
 
         :param field: The field having a conflict
         :return: The result of the resolution which may be the baseline value, target value, or something new entirely
@@ -183,11 +185,12 @@ class ChangeSet(ModelDiff):
         resolution_method = self.conflict_resolution.get(field, default)
         resolution = resolution_method(self.all_values(field)) if callable(resolution_method) else resolution_method
 
-        if resolution == self.get_baseline(field):
-            return Preference.LEFT
-        if resolution == self.get_target(field):
-            return Preference.RIGHT
-        return resolution
+        return (
+            Preference.LEFT if resolution == self.get_baseline(field) else
+            Preference.RIGHT if resolution == self.get_target(field) else
+            Preference.NEITHER if resolution is None else
+            resolution
+        )
 
     def resolve_preferences(self) -> Self:
         """Removes unwanted changes, preserving the meaningful values, regardless of them being from baseline or target
@@ -221,7 +224,7 @@ class ChangeSet(ModelDiff):
 
 class MergeSet(ChangeSet):
     def __init__(self, baseline: DAOModel, *targets: DAOModel, **conflict_resolution):
-        super().__init__(baseline, targets[0], *conflict_resolution)
+        super().__init__(baseline, targets[0], **conflict_resolution)
         self.left = baseline
         self.right = targets
         for model in targets:
@@ -241,3 +244,19 @@ class MergeSet(ChangeSet):
     def all_values(self, field: str) -> list[Any]:
         """Returns a list containing the baseline value followed by all target values for the specified field."""
         return [self.get_baseline(field)] + self.get_target(field)
+
+    def resolve_conflict(self, field: str) -> tuple[Preference.RIGHT, int]|Any:
+        resolution = super().resolve_conflict(field)
+        if resolution is Preference.NEITHER:
+            resolution = None
+
+        target_values = self.get_target(field)
+        if resolution in target_values:
+            if len(target_values) == 1:
+                return Preference.RIGHT
+            else:
+                return Preference.RIGHT, target_values.index(resolution)
+        elif resolution is None:
+            return Preference.NEITHER
+        else:
+            return resolution

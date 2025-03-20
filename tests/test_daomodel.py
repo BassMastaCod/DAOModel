@@ -428,7 +428,7 @@ def test_find_searchable_column(prop: Union[str, Column], expected: list[str]):
 
 def test_find_searchable_column__foreign_without_table():
     with pytest.raises(Unsearchable):
-        assert ComplicatedModel.find_searchable_column('prop', [])
+        ComplicatedModel.find_searchable_column('prop', [])
 
 
 @labeled_tests({
