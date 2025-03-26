@@ -9,7 +9,7 @@ from sqlalchemy.ext.declarative import declared_attr
 from daomodel.util import reference_of, names_of, in_order, retain_in_dict, remove_from_dict
 
 
-property_categories = ['all', 'pk', 'fk', 'standard', 'assigned', 'unset', 'defaults', 'none']
+property_categories = ['all', 'pk', 'fk', 'standard', 'assigned', 'defaults', 'none']
 
 
 class DAOModel(SQLModel):
@@ -123,10 +123,9 @@ class DAOModel(SQLModel):
             pk: Primary Key properties
             fk: Foreign Key properties
             standard: All other properties (that aren't pk or fk)
-            assigned: Properties that don't match the following categories (can include pk/fk)
-            unset: Properties that have not been explicitly set (see Pydantic.model_dump for more info)
-            defaults: Properties that are equivalent to their default value (see Pydantic.model_dump for more info)
-            none: Properties that do not have a value (see Pydantic.model_dump for more info)
+            assigned: Properties that have a non-default value
+            defaults: Properties that are equivalent to their default value
+            none: Properties that do not have a value
         Property categories may be set to True (to include) or False (to exclude).
         If no arguments are provided, no properties will be returned.
         The categories are added/removed in the order that they are encountered as arguments.
@@ -151,7 +150,7 @@ class DAOModel(SQLModel):
             elif key is 'fk':
                 props = names_of(self.get_fk_properties())
             elif key is 'assigned':
-                props = self.model_dump(exclude_unset=True, exclude_defaults=True, exclude_none=True)
+                props = self.model_dump(exclude_defaults=True, exclude_none=True)
             else:
                 if key is 'standard':
                     exclude = self.get_pk_names() + names_of(self.get_fk_properties())
