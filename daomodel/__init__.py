@@ -133,16 +133,16 @@ class DAOModel(SQLModel):
         for key, value in kwargs.items():
             if key not in property_categories:
                 raise ValueError(f'Unexpected keyword argument {key} is not one of {property_categories}')
-            if key is 'all':
+            if key == 'all':
                 props = all_properties
-            elif key in 'pk':
+            elif key == 'pk':
                 props = self.get_pk_names()
-            elif key is 'fk':
+            elif key == 'fk':
                 props = names_of(self.get_fk_properties())
-            elif key is 'assigned':
+            elif key == 'assigned':
                 props = self.model_dump(exclude_defaults=True, exclude_none=True)
             else:
-                if key is 'standard':
+                if key == 'standard':
                     exclude = self.get_pk_names() + names_of(self.get_fk_properties())
                 else:
                     exclude = self.model_dump(**{f'exclude_{key}': True})
