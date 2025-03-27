@@ -1,3 +1,5 @@
+from typing import Any, Callable
+
 from daomodel import DAOModel, all_models
 from daomodel.db import DAOFactory
 from daomodel.model_diff import ChangeSet, Preference
@@ -12,11 +14,12 @@ class BaseService:
     def __init__(self, daos: DAOFactory):
         self.daos = daos
 
-    def merge(self, source: DAOModel, *destination_pk_values, **conflict_resolution) -> None:
+    def merge(self, source: DAOModel, *destination_pk_values, **conflict_resolution: Preference|Callable|Any) -> None:
         """Merges the given source model into the specified destination.
-
+        
         In some cases, specify conflict_resolution to successfully merge values.
-
+        See the `ChangeSet` documentation for more details on conflict resolution.
+        
         :param source: The source DAOModel to be merged into the destination
         :param destination_pk_values: The primary key values indicating where to merge the model
         :raises: NotFound: if the destination model does not exist in the database

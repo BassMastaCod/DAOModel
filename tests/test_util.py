@@ -45,7 +45,7 @@ def test_mode(elements: list, expected: Any):
     (('a', 'c'), (1, 3)),
     (('b', 'c', 'a'), (2, 3, 1))
 ])
-def test_values_from_dict(keys: tuple[str], expected: tuple[Any]):
+def test_values_from_dict(keys: tuple[str, ...], expected: tuple):
     assert values_from_dict(*keys, a=1, b=2, c=3) == expected
 
 
@@ -55,7 +55,7 @@ def test_values_from_dict(keys: tuple[str], expected: tuple[Any]):
     (('a', 'c'), {'a':1, 'c':3}),
     (('b', 'c', 'a'), {'a':1, 'b':2, 'c':3})
 ])
-def test_retain_in_dict(keys: tuple[str], expected: tuple[Any]):
+def test_retain_in_dict(keys: tuple[str, ...], expected: tuple):
     assert retain_in_dict({'a': 1, 'b': 2, 'c': 3}, *keys) == expected
 
 
@@ -65,7 +65,7 @@ def test_retain_in_dict(keys: tuple[str], expected: tuple[Any]):
     (('a', 'c'), {'b': 2}),
     (('b', 'c', 'a'), {})
 ])
-def test_remove_from_dict(keys: tuple[str], expected: tuple[Any]):
+def test_remove_from_dict(keys: tuple[str, ...], expected: tuple):
     assert remove_from_dict({'a': 1, 'b': 2, 'c': 3}, *keys) == expected
 
 
@@ -75,7 +75,7 @@ def test_remove_from_dict(keys: tuple[str], expected: tuple[Any]):
     (('a', 'c'), {'a':1, 'c':3}),
     (('b', 'c', 'a'), {'a':1, 'b':2, 'c':3})
 ])
-def test_filter_dict(keys: tuple[str], expected: tuple[Any]):
+def test_filter_dict(keys: tuple[str, ...], expected: tuple):
     assert filter_dict(*keys, a=1, b=2, c=3) == expected
 
 
@@ -84,7 +84,7 @@ def test_filter_dict(keys: tuple[str], expected: tuple[Any]):
     (('b', ), {'a':1, 'c':3}),
     (('b', 'c'), {'a':1, 'b':2})
 ])
-def test_filter_dict__missing(keys: tuple[str], dictionary: dict[str, Any]):
+def test_filter_dict__missing(keys: tuple[str, ...], dictionary: dict[str, Any]):
     with pytest.raises(KeyError):
         filter_dict('missing')
 

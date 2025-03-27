@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Any, TypeVar, Self, Iterable
+from typing import Optional, Any, TypeVar, Self, Iterable, Iterator
 
 from sqlalchemy import func, Column, text, UnaryExpression
 from sqlalchemy.orm import Session
@@ -33,26 +33,26 @@ class SearchResults(list[T]):
         self.page = page
         self.per_page = per_page
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[T]:
         return iter(self.results)
 
-    def __eq__(self, other: Self):
+    def __eq__(self, other: Self) -> bool:
         return (self.results == other.results
                 and self.total == other.total
                 and self.page == other.page
                 and self.per_page == other.per_page
                 ) if type(self) == type(other) else False
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((tuple(self.results), self.total, self.page, self.per_page))
 
-    def __str__(self):
+    def __str__(self) -> str:
         string = str(self.results)
         if self.page:
             string = f"Page {self.page}; {self.per_page} of {self.total} results {string}"
         return string
 
-    def first(self):
+    def first(self) -> Optional[T]:
         """Returns the first result or None if there are no results"""
         return next(iter(self), None)
 
@@ -65,16 +65,14 @@ class DAO:
 
     @property
     def query(self) -> Query[Any]:
-        """
-        Access the SQLAlchemy Query object for full SQLAlchemy functionality.
+        """Access the SQLAlchemy Query object for full SQLAlchemy functionality.
 
         :return: The Query for the current Session
         """
         return self.db.query(self.model_class)
 
-    def create(self, *pk_values) -> T:
-        """
-        Creates a new entry for the given primary key.
+    def create(self, *pk_values: Any) -> T:
+        """Creates a new entry for the given primary key.
 
         :param pk_values: The array of primary key values representing the Model
         :return: The DAOModel entry that was newly added to the database
@@ -82,9 +80,8 @@ class DAO:
         """
         return self.create_with(**self.model_class.pk_values_to_dict(pk_values))
 
-    def create_with(self, commit: bool = True, **values) -> T:
-        """
-        Creates a new entry for the given primary key and property values.
+    def create_with(self, commit: bool = True, **values: Any) -> T:
+        """Creates a new entry for the given primary key and property values.
 
         :param commit: False to avoid adding the model to the database at this time
         :param values: The values to assign to the model
@@ -98,8 +95,7 @@ class DAO:
         return model
 
     def insert(self, model: T) -> None:
-        """
-        Adds the given model to the database.
+        """Adds the given model to the database.
 
         :param model: The DAOModel entry to add
         :raises: Conflict if an entry already exists for the primary key
@@ -111,8 +107,7 @@ class DAO:
         self.db.refresh(model)
 
     def update(self, model: T) -> None:
-        """
-        Updates the database to align with the provided model.
+        """Updates the database to align with the provided model.
 
         :param model: The existing DAOModel entry to update in the database
         :raises NotFound: if the model does not exist in the database
@@ -123,8 +118,7 @@ class DAO:
         self.db.refresh(model)
 
     def upsert(self, model: T) -> None:
-        """
-        Updates the given model in the database or creates it if it does not exist.
+        """Updates the given model in the database or creates it if it does not exist.
 
         :param model: The DAOModel entry which may or may not exist
         """
@@ -134,9 +128,8 @@ class DAO:
             self.insert(model)
         return model
 
-    def rename(self, existing: T, *new_pk_values) -> None:
-        """
-        Updates the given model with new primary key values.
+    def rename(self, existing: T, *new_pk_values: Any) -> None:
+        """Updates the given model with new primary key values.
 
         :param existing: The model to rename
         :param new_pk_values: The new primary key values for the model
@@ -150,17 +143,15 @@ class DAO:
             self.update(existing)
 
     def exists(self, model: T) -> bool:
-        """
-        Determines if a model exists in the database.
+        """Determines if a model exists in the database.
 
         :param model: The DAOModel entry in question
         :return: True if the model exists in the database, False otherwise
         """
         return bool(self.query.filter_by(**model.get_pk_dict()).count())
 
-    def get(self, *pk_values) -> T:
-        """
-        Retrieves an entry from the database.
+    def get(self, *pk_values: Any) -> T:
+        """Retrieves an entry from the database.
 
         :param pk_values: A dictionary containing the primary key values of the model to get.
         :return: The DAOModel entry that was retrieved
@@ -172,9 +163,8 @@ class DAO:
             raise MissingInput(f"Expected {len(keys)} values, got {len(pk_values)}")
         return self.get_with(**{keys[i]: pk_values[i] for i in range(len(keys))})
 
-    def get_with(self, **values) -> T:
-        """
-        Retrieves an entry from the database and applies the given values to it.
+    def get_with(self, **values: Any) -> T:
+        """Retrieves an entry from the database and applies the given values to it.
 
         :param values: A dictionary containing the primary key values of the model to get and additional values to set
         :return: The DAOModel entry with the additional properties updated
@@ -190,9 +180,8 @@ class DAO:
     def find(self,
              page: Optional[int] = None,
              per_page: Optional[int] = None,
-             **filters) -> SearchResults[T]:
-        """
-        Searches all the DAOModel entries to return results.
+             **filters: Any) -> SearchResults[T]:
+        """Searches all the DAOModel entries to return results.
 
         :param page: The number of the page to fetch
         :param per_page: How many results are on each page
@@ -246,7 +235,7 @@ class DAO:
                 order.append(self.model_class.find_searchable_column(column, foreign_tables))
         return order
 
-    def _count(self, query: Query, prop: str, foreign_tables: list[DAOModel], alias: str):
+    def _count(self, query: Query, prop: str, foreign_tables: list[DAOModel], alias: str) -> Query:
         column = self.model_class.find_searchable_column(prop, foreign_tables)
         subquery = (self.db.query(column, func.count(column).label("count"))
                     .group_by(column)
@@ -254,13 +243,12 @@ class DAO:
                     .alias(alias))
         return query.join(subquery, column == text(f"{alias}.{column.name}"))
 
-    def _filter(self, query, key, value, foreign_tables):
+    def _filter(self, query: Query, key: [str|Column], value: Any, foreign_tables: list[type[Self]]) -> Query:
         column = self.model_class.find_searchable_column(key, foreign_tables)
         return query.filter(value.get_expression(column) if isinstance(value, ConditionOperator) else column == value)
 
-    def filter_find(self, query: Query, **filters) -> Query:
-        """
-        Overridable function to customize filtering.
+    def filter_find(self, query: Query, **filters: Any) -> Query:
+        """Overridable function to customize filtering.
 
         :param query: The session's SQLAlchemy Query
         :param filters: Any provided filter terms
@@ -269,8 +257,7 @@ class DAO:
         return query
 
     def remove(self, model: T, commit: bool = True) -> None:
-        """
-        Deletes the given model entry from the database.
+        """Deletes the given model entry from the database.
 
         :param model: The DAOModel object to be deleted
         :param commit: False to not yet commit
@@ -284,8 +271,8 @@ class DAO:
             self.commit()
 
     def commit(self) -> None:
-        """
-        Commits all pending changes to the database.
-        Following commit, DAOModels will need to be re-fetched.
+        """Commits all pending changes to the database.
+
+        Following commit, DAOModels will need to be refreshed.
         """
         self.db.commit()

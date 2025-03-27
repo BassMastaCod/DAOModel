@@ -32,8 +32,7 @@ def names_of(properties: Iterable[Column]) -> list[str]:
 
 
 def mode(values: Iterable[Any]) -> Any:
-    """
-    Determines the most frequently occurring value within the provided iterable.
+    """Determines the most frequently occurring value within the provided iterable.
 
     In the case of a tie (multiple values with the same highest frequency),
     the function returns the first value encountered with that frequency.
@@ -45,9 +44,8 @@ def mode(values: Iterable[Any]) -> Any:
     return max(values, key=values.count)
 
 
-def values_from_dict(*keys, **values) -> tuple[Any, ...]:
-    """
-    Pulls specific values from a dictionary.
+def values_from_dict(*keys: Any, **values: Any) -> tuple:
+    """Pulls specific values from a dictionary.
 
     :param keys: The keys to read from the dict
     :param values: The dictionary containing the values
@@ -86,9 +84,8 @@ def remove_from_dict(d: dict[Any, Any], *keys: Any) -> dict[Any, Any]:
     return {k: v for k, v in d.items() if k not in keys}
 
 
-def filter_dict(*keys, **values) -> dict[str, Any]:
-    """
-    Filters a dictionary to specified keys.
+def filter_dict(*keys: Any, **values: Any) -> dict[str, Any]:
+    """Filters a dictionary to specified keys.
 
     :param keys: The target keys for the new dict
     :param values: The dictionary to filter down
@@ -98,9 +95,9 @@ def filter_dict(*keys, **values) -> dict[str, Any]:
     return {key: values[key] for key in keys}
 
 
-def ensure_iter(elements):
-    """
-    Ensures that the provided argument is iterable.
+def ensure_iter(elements: Any):
+    """Ensures that the provided argument is iterable.
+
     Single, non-Iterable items are converted to a single-item list.
     In this context, a str is not considered to be Iterable.
 
@@ -113,8 +110,7 @@ def ensure_iter(elements):
 
 
 def dedupe(original: list) -> list:
-    """
-    Creates a filtered copy of a list that does not include duplicates.
+    """Creates a filtered copy of a list that does not include duplicates.
 
     :param original: The list to filter
     :return: a new list that maintains order but is guaranteed to have no duplicates

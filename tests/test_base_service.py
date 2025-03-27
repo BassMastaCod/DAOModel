@@ -1,11 +1,10 @@
 from datetime import date
-from typing import Iterable
 
 from daomodel.base_service import BaseService, SOURCE_VALUE, DESTINATION_VALUE
 from tests.conftest import Staff, TestDAOFactory
 
 
-def longest(values: Iterable[str]) -> str:
+def longest(values: list[str]) -> str:
     return max(values, key=len)
 
 

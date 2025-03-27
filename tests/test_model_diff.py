@@ -1,6 +1,6 @@
 from decimal import Decimal
 from enum import Enum, auto
-from typing import Optional, Any, Literal
+from typing import Optional, Any
 
 import pytest
 
