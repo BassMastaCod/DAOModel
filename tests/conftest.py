@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Optional
+from typing import Optional, Any
 
 import pytest
 from _pytest.outcomes import fail
@@ -89,7 +89,7 @@ class TestDAOFactory(DAOFactory):
         self.assert_session = self.session_factory()
         return self
 
-    def assert_in_db(self, model: type[DAOModel], *pk, **expected_values) -> None:
+    def assert_in_db(self, model: type[DAOModel], *pk, **expected_values: Any) -> None:
         """
         Assert that an object with specific attribute values is present in the DB.
 
@@ -105,7 +105,7 @@ class TestDAOFactory(DAOFactory):
         except NotFound as e:
             fail(e.detail)
 
-    def assert_not_in_db(self, model: type[DAOModel], *pk) -> None:
+    def assert_not_in_db(self, model: type[DAOModel], *pk: Any) -> None:
         """
         Assert that the specified object is not present in the DB.
 

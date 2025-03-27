@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from enum import Enum
-from typing import Any, Optional, Self
+from typing import Any, Optional, Self, Callable
 
 from daomodel import DAOModel
 from daomodel.dao import Conflict
@@ -21,6 +21,9 @@ class Preference(Enum):
     LEFT = 1
     RIGHT = 2
     BOTH = 3
+
+BASELINE_VALUE = Preference.LEFT
+TARGET_VALUE = Preference.RIGHT
 
 
 class ModelDiff(dict[str, tuple[Any, Any]]):
@@ -110,12 +113,61 @@ class ChangeSet(ModelDiff):
     """A directional model diff with the left being the baseline and the right being the target.
 
     Unlike the standard ModelDiff, PK is excluded by default.
+    
+    The `conflict_resolution` argument allows users to define specific conflict resolution rules
+    for handling differences between the baseline and target models. This parameter can 
+    accept field-specific resolution methods or a default resolution method for all fields.
+    If no resolution can be determined, a `Conflict` exception is raised. NOTE: This resolution
+    is only applicable for a Preference of `BOTH` as determined by `get_preferred()`.
+    
+    Examples:
+    1. Field-Specific Resolution:
+       ```
+       def prefer_longer_name(values: list[str]):
+           return max(values, key=len)
+    
+       ChangeSet(baseline, target, name=prefer_longer_name)
+       ```
+    
+    2. Default Resolution:
+       ```
+       def conflict_str(values: list[Any]):
+           return f'Unresolved conflict: {values}' 
+       
+       ChangeSet(baseline, target, default=conflict_str)
+       ```
+    
+    3. Mixed Resolution:
+       ```
+       ChangeSet(baseline, target, default=conflict_str, amount=sum)
+       ```
+    
+    4. Using a Preference for Conflict Resolution:
+       ```
+       from model_diff import Preference
+       
+       ChangeSet(baseline, target, default=Preference.LEFT, status=Preference.RIGHT)
+       ```
+       
+       or use the helper constants:
+       ```
+       from model_diff import BASELINE_VALUE, TARGET_VALUE
+       
+       ChangeSet(baseline, target, default=BASELINE_VALUE, status=TARGET_VALUE)
+       ```
+
+    5. Static Resolution:
+       ```
+       ChangeSet(baseline, target, name="Static Name", default="Default Value")
+       ```
+    
+    View the test code for more examples.
     """
     def __init__(self,
                  baseline: DAOModel,
                  target: DAOModel,
                  include_pk: Optional[bool] = False,
-                 **conflict_resolution: callable):
+                 **conflict_resolution: Preference|Callable|Any):
         super().__init__(baseline, target, include_pk)
         self.assigned_in_baseline = self.left.get_property_names(assigned=True)
         self.assigned_in_target = self.right.get_property_names(assigned=True)
@@ -223,7 +275,18 @@ class ChangeSet(ModelDiff):
 
 
 class MergeSet(ChangeSet):
-    def __init__(self, baseline: DAOModel, *targets: DAOModel, **conflict_resolution):
+    """Used for managing and resolving differences between a baseline and multiple target models.
+
+    This class extends functionality of `ChangeSet` to handle scenarios where
+    multiple target models are compared against a baseline. It initializes with
+    a baseline model and one or more target models, identifying differences and
+    allowing for conflict resolution between them. The class provides utilities
+    to access and resolve values for specific fields across the baseline and
+    targets.
+
+    For more details regarding initialization, see ChangeSet.
+    """
+    def __init__(self, baseline: DAOModel, *targets: DAOModel, **conflict_resolution: Preference|Callable|Any):
         super().__init__(baseline, targets[0], **conflict_resolution)
         self.left = baseline
         self.right = targets
@@ -239,6 +302,7 @@ class MergeSet(ChangeSet):
                 v[1][index] = model.get_value_of(k)
 
     def has_target_value(self, field: str) -> bool:
+        """Returns whether the target contains any non-None values."""
         return any(target is not None for target in self.get_target(field))
 
     def all_values(self, field: str) -> list[Any]:

@@ -1,4 +1,4 @@
-from typing import Iterable, Union, Any, Optional
+from typing import Iterable, Any, Optional
 
 import pytest
 from sqlalchemy import Column
@@ -165,7 +165,7 @@ def test_get_pk_names__single_column(model: type[DAOModel], expected: list[str])
     'multiple columns':
         (complicated_instance, (17, 76))
 })
-def test_get_pk_values(model: DAOModel, expected: tuple[int]):
+def test_get_pk_values(model: DAOModel, expected: tuple[int, ...]):
     assert model.get_pk_values() == expected
 
 
@@ -420,7 +420,7 @@ def test_get_searchable_properties__single_column(model: type[DAOModel], expecte
         ('simple_model.pkA', [ForeignKEYModel.normalized_name(), SimpleModel.normalized_name()])
     ]
 })
-def test_find_searchable_column(prop: Union[str, Column], expected: list[str]):
+def test_find_searchable_column(prop: str|Column, expected: list[str]):
     foreign_tables = []
     assert ComplicatedModel.find_searchable_column(prop, foreign_tables)
     assert [t.name for t in foreign_tables] == expected

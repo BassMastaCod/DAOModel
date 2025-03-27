@@ -1,10 +1,10 @@
 import inspect
-from typing import Callable, Union, Any
+from typing import Callable, Any
 
 import pytest
 
 
-def labeled_tests(test_case_data: dict[str, Union[tuple[Any, ...], list[Union[tuple[Any, ...], Any]]]]):
+def labeled_tests(test_case_data: dict[str, tuple|list[tuple|Any]]):
     def decorator(test_func: Callable):
         params = inspect.signature(test_func).parameters.keys()
         labels = []

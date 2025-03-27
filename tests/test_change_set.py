@@ -641,7 +641,7 @@ def test_apply__merge_set(baseline: CalendarEvent, target: list[CalendarEvent], 
         })
     ]
 })
-def test_merge_set(baseline: CalendarEvent, others: list[CalendarEvent, ...], expected: dict[str, tuple[Any, list[Any, ...]]]):
+def test_merge_set(baseline: CalendarEvent, others: list[CalendarEvent, ...], expected: dict[str, tuple[Any, list[Any]]]):
     assert MergeSet(baseline, *others) == expected
 
 

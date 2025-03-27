@@ -1,4 +1,4 @@
-from typing import Any, Self, Iterable, Union, Optional
+from typing import Any, Self, Iterable, Optional
 
 import sqlalchemy
 from sqlmodel import SQLModel, Field
@@ -26,8 +26,7 @@ class DAOModel(SQLModel):
 
     @classmethod
     def normalized_name(cls) -> str:
-        """
-        A normalized version of this Model name.
+        """A normalized version of this Model name.
 
         :return: The model name in snake_case form
         """
@@ -35,8 +34,7 @@ class DAOModel(SQLModel):
 
     @classmethod
     def doc_name(cls) -> str:
-        """
-        A reader friendly version of this Model name to be used within documentation.
+        """A reader friendly version of this Model name to be used within documentation.
 
         :return: The model name in Title Case
         """
@@ -44,8 +42,7 @@ class DAOModel(SQLModel):
 
     @classmethod
     def get_pk(cls) -> list[Column]:
-        """
-        Returns the Columns that comprise the Primary Key for this Model.
+        """Returns the Columns that comprise the Primary Key for this Model.
 
         :return: A list of primary key columns
         """
@@ -53,24 +50,21 @@ class DAOModel(SQLModel):
 
     @classmethod
     def get_pk_names(cls) -> list[str]:
-        """
-        Returns the names of Columns that comprise the Primary Key for this Model.
+        """Returns the names of Columns that comprise the Primary Key for this Model.
 
         :return: A list of str of the primary key
         """
         return names_of(cls.get_pk())
 
-    def get_pk_values(self) -> tuple[Any, ...]:
-        """
-        Returns the values that comprise the Primary Key for this instance of the Model.
+    def get_pk_values(self) -> tuple:
+        """Returns the values that comprise the Primary Key for this instance of the Model.
 
         :return: A tuple of primary key values
         """
         return tuple(list(getattr(self, key) for key in names_of(self.get_pk())))
 
     def get_pk_dict(self) -> dict[str, Any]:
-        """
-        Returns the dictionary Primary Keys for this instance of the Model.
+        """Returns the dictionary Primary Keys for this instance of the Model.
 
         :return: A dict of primary key names/values
         """
@@ -78,8 +72,7 @@ class DAOModel(SQLModel):
 
     @classmethod
     def get_fks(cls) -> set[Column]:
-        """
-        Returns the Columns of other objects that are represented by Foreign Keys for this Model.
+        """Returns the Columns of other objects that are represented by Foreign Keys for this Model.
 
         :return: An unordered set of columns
         """
@@ -87,8 +80,7 @@ class DAOModel(SQLModel):
 
     @classmethod
     def get_fk_properties(cls) -> set[Column]:
-        """
-        Returns the Columns of this Model that represent Foreign Keys.
+        """Returns the Columns of this Model that represent Foreign Keys.
 
         :return: An unordered set of foreign key columns
         """
@@ -96,8 +88,7 @@ class DAOModel(SQLModel):
 
     @classmethod
     def get_references_of(cls, model: type[Self]) -> set[Column]:
-        """
-        Returns the Columns of this Model that represent Foreign Keys of the specified Model.
+        """Returns the Columns of this Model that represent Foreign Keys of the specified Model.
 
         :return: An unordered set of foreign key columns
         """
@@ -105,8 +96,7 @@ class DAOModel(SQLModel):
 
     @classmethod
     def get_properties(cls) -> Iterable[Column]:
-        """
-        Returns all the Columns for this Model.
+        """Returns all the Columns for this Model.
 
         Column order will match order they are defined in code.
         Inherited properties will be listed first.
@@ -175,7 +165,7 @@ class DAOModel(SQLModel):
             column = column.name
         return getattr(self, column)
 
-    def get_values_of(self, columns = Iterable[Column|str]) -> dict[str, Any]:
+    def get_values_of(self, columns: Iterable[Column|str]) -> dict[str, Any]:
         """Reads the values of multiple columns.
 
         :param columns: The Columns, or their names, to read
@@ -183,7 +173,7 @@ class DAOModel(SQLModel):
         """
         return {column: self.get_value_of(column) for column in columns}
 
-    def compare(self, other, include_pk: Optional[bool] = False) -> dict[str, tuple[Any, Any]]:
+    def compare(self, other: Self, include_pk: Optional[bool] = False) -> dict[str, tuple[Any, Any]]:
         """Compares this model to another, producing a diff.
 
         By default, primary keys are excluded in the diff.
@@ -206,17 +196,15 @@ class DAOModel(SQLModel):
 
     @classmethod
     def get_searchable_properties(cls) -> Iterable[Column|tuple[type[Self], ..., Column]]:
-        """
-        Returns all the Columns for this Model that may be searched using the DAO find function.
+        """Returns all the Columns for this Model that may be searched using the DAO find function.
 
         :return: A list of searchable columns
         """
         return cls.get_properties()
 
     @classmethod
-    def find_searchable_column(cls, prop: Union[str, Column], foreign_tables: list[type[Self]]) -> Column:
-        """
-        Returns the specified searchable Column.
+    def find_searchable_column(cls, prop: [str|Column], foreign_tables: list[type[Self]]) -> Column:
+        """Returns the specified searchable Column.
 
         :param prop: str type reference of the Column or the Column itself
         :param foreign_tables: A list of foreign tables to populated with tables of properties deemed to be foreign
@@ -238,9 +226,8 @@ class DAOModel(SQLModel):
         raise Unsearchable(prop, cls)
 
     @classmethod
-    def pk_values_to_dict(cls, *pk_values) -> dict[str, Any]:
-        """
-        Converts the primary key values to a dictionary.
+    def pk_values_to_dict(cls, *pk_values: Any) -> dict[str, Any]:
+        """Converts the primary key values to a dictionary.
 
         :param pk_values: The primary key values, in order
         :return: A new dict containing the primary key values
@@ -261,7 +248,7 @@ class DAOModel(SQLModel):
             values = source.model_dump(exclude=set(source.get_pk_names()))
         self.set_values(**values)
 
-    def set_values(self, ignore_pk: Optional[bool] = False, **values) -> None:
+    def set_values(self, ignore_pk: Optional[bool] = False, **values: Any) -> None:
         """Copies property values to this Model.
 
         By default, Primary Key values are set if present within the values.
@@ -275,14 +262,14 @@ class DAOModel(SQLModel):
         for k, v in values.items():
             setattr(self, k, v)
 
-    def __eq__(self, other: Self):
+    def __eq__(self, other: Self) -> bool:
         """Instances are determined to be equal based on only their primary key."""
         return self.get_pk_values() == other.get_pk_values() if type(self) == type(other) else False
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.get_pk_values())
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         str representation of this is a str of the primary key.
         A single-column PK results in a simple str value of said column i.e. "1234"
@@ -300,14 +287,13 @@ class Unsearchable(Exception):
         self.detail = f"Cannot search for {prop} of {model.doc_name()}"
 
 
-def all_models(bind: Union[Engine, Connection]) -> set[type[DAOModel]]:
-    """
-    Discovers all DAOModel types that have been created for the database.
+def all_models(bind: [Engine|Connection]) -> set[type[DAOModel]]:
+    """Discovers all DAOModel types that have been created for the database.
 
     :param bind: The Engine or Connection for the DB
     :return: A set of applicable DAOModels
     """
-    def daomodel_subclasses(cls):
+    def daomodel_subclasses(cls: type[DAOModel]) -> set[type[DAOModel]]:
         """Returns all defined DAOModels"""
         subclasses = set(cls.__subclasses__())
         for subclass in subclasses.copy():
