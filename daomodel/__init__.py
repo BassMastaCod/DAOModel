@@ -61,7 +61,7 @@ class DAOModel(SQLModel):
 
         :return: A tuple of primary key values
         """
-        return tuple(list(getattr(self, key) for key in names_of(self.get_pk())))
+        return tuple(getattr(self, key) for key in names_of(self.get_pk()))
 
     def get_pk_dict(self) -> dict[str, Any]:
         """Returns the dictionary Primary Keys for this instance of the Model.
