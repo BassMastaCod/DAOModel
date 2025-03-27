@@ -1,3 +1,4 @@
+import warnings
 from typing import Iterable, Any, OrderedDict
 
 from sqlalchemy import Column, ColumnElement
@@ -30,6 +31,20 @@ def names_of(properties: Iterable[Column]) -> list[str]:
     return [p.name for p in properties]
 
 
+def mode(values: Iterable[Any]) -> Any:
+    """
+    Determines the most frequently occurring value within the provided iterable.
+
+    In the case of a tie (multiple values with the same highest frequency),
+    the function returns the first value encountered with that frequency.
+
+    :param values: An iterable containing values to evaluate
+    :return: The most common value from the provided iterable
+    """
+    values = list(values)
+    return max(values, key=values.count)
+
+
 def values_from_dict(*keys, **values) -> tuple[Any, ...]:
     """
     Pulls specific values from a dictionary.
@@ -47,6 +62,30 @@ def values_from_dict(*keys, **values) -> tuple[Any, ...]:
     return tuple(result)
 
 
+def retain_in_dict(d: dict[Any, Any], *keys: Any) -> dict[Any, Any]:
+    """Filters a dictionary to specified keys.
+
+    The source dict remains unmodified.
+
+    :param d: The dictionary to filter down
+    :param keys: The target keys for the new dict
+    :return: The reduced values as a new dict
+    """
+    return {key: d[key] for key in keys if key in d}
+
+
+def remove_from_dict(d: dict[Any, Any], *keys: Any) -> dict[Any, Any]:
+    """Removes specified key/value pairs from a dictionary.
+
+    The source dict remains unmodified.
+
+    :param d: The dictionary to adjust
+    :param keys: The keys to remove from the dict
+    :return: The modified values as a new dict
+    """
+    return {k: v for k, v in d.items() if k not in keys}
+
+
 def filter_dict(*keys, **values) -> dict[str, Any]:
     """
     Filters a dictionary to specified keys.
@@ -55,6 +94,7 @@ def filter_dict(*keys, **values) -> dict[str, Any]:
     :param values: The dictionary to filter down
     :return: The filter down values as a new dict
     """
+    warnings.warn('Use retain_in_dict instead', DeprecationWarning)
     return {key: values[key] for key in keys}
 
 

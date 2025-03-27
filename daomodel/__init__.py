@@ -2,14 +2,14 @@ from typing import Any, Self, Iterable, Union, Optional
 
 import sqlalchemy
 from sqlmodel import SQLModel, Field
-from sqlalchemy import Column, Engine, inspect
+from sqlalchemy import Column, Engine, MetaData, Connection
 from str_case_util import Case
 from sqlalchemy.ext.declarative import declared_attr
 
-from daomodel.util import reference_of, names_of, in_order
+from daomodel.util import reference_of, names_of, in_order, retain_in_dict, remove_from_dict
 
 
-property_categories = ['all', 'pk', 'fk', 'standard', 'unset', 'defaults', 'none']
+property_categories = ['all', 'pk', 'fk', 'standard', 'assigned', 'defaults', 'none']
 
 
 class DAOModel(SQLModel):
@@ -123,9 +123,9 @@ class DAOModel(SQLModel):
             pk: Primary Key properties
             fk: Foreign Key properties
             standard: All other properties (that aren't pk or fk)
-            unset: Properties that have not been explicitly set (see Pydantic.model_dump for more info)
-            defaults: Properties that are equivalent to their default value (see Pydantic.model_dump for more info)
-            none: Properties that do not have a value (see Pydantic.model_dump for more info)
+            assigned: Properties that have a non-default value
+            defaults: Properties that are equivalent to their default value
+            none: Properties that do not have a value
         Property categories may be set to True (to include) or False (to exclude).
         If no arguments are provided, no properties will be returned.
         The categories are added/removed in the order that they are encountered as arguments.
@@ -149,13 +149,60 @@ class DAOModel(SQLModel):
                 props = self.get_pk_names()
             elif key is 'fk':
                 props = names_of(self.get_fk_properties())
-            elif key is 'standard':
-                props = all_properties.difference(self.get_pk_names()).difference(names_of(self.get_fk_properties()))
+            elif key is 'assigned':
+                props = self.model_dump(exclude_defaults=True, exclude_none=True)
             else:
-                props = all_properties.difference(self.model_dump(**{f'exclude_{key}': True}))
+                if key is 'standard':
+                    exclude = self.get_pk_names() + names_of(self.get_fk_properties())
+                else:
+                    exclude = self.model_dump(**{f'exclude_{key}': True})
+                props = all_properties.difference(exclude)
 
             result = result.union(props) if value else result.difference(props)
         return in_order(result, property_order)
+
+    def get_property_values(self, **kwargs: bool) -> dict[str, Any]:
+        """Reads values of the specified properties of this Model.
+
+        :param kwargs: see get_property_names()
+        :return: a dict of property names and their values
+        """
+        return self.get_values_of(self.get_property_names(**kwargs))
+
+    def get_value_of(self, column: Column|str) -> Any:
+        """Shortcut function to return the value for the specified Column"""
+        if not isinstance(column, str):
+            column = column.name
+        return getattr(self, column)
+
+    def get_values_of(self, columns = Iterable[Column|str]) -> dict[str, Any]:
+        """Reads the values of multiple columns.
+
+        :param columns: The Columns, or their names, to read
+        :return: A dict of the column names and their values
+        """
+        return {column: self.get_value_of(column) for column in columns}
+
+    def compare(self, other, include_pk: Optional[bool] = False) -> dict[str, tuple[Any, Any]]:
+        """Compares this model to another, producing a diff.
+
+        By default, primary keys are excluded in the diff.
+        While designed to compare like models, it should work between different model types. Though that is untested.
+
+        :param other: The model to compare to this one
+        :param include_pk: True if you want to include the primary key in the diff
+        :return: A dictionary of property names with a tuple of this instances value and the other value respectively
+        """
+        args = {'all': True}
+        if not include_pk:
+            args['pk'] = False
+        source_values = self.get_property_values(**args)
+        other_values = other.get_property_values(**args)
+        diff = {}
+        for k, v in source_values.items():
+            if other_values[k] != v:
+                diff[k] = (v, other_values[k])
+        return diff
 
     @classmethod
     def get_searchable_properties(cls) -> Iterable[Column|tuple[type[Self], ..., Column]]:
@@ -200,27 +247,33 @@ class DAOModel(SQLModel):
         """
         return dict(zip(cls.get_pk_names(), *pk_values))
 
-    def copy_model(self, source: Self) -> None:
-        """
-        Copies all values, except the primary key, from another instance of this Model.
+    def copy_model(self, source: Self, *fields: str) -> None:
+        """Copies values from another instance of this Model.
+
+        Unless the fields are specified, all but PK are copied.
 
         :param source: The model instance from which to copy values
+        :param fields: The names of fields to copy
         """
-        primary_key = set(source.get_pk_names())
-        values = source.model_dump(exclude=primary_key)
-        self.copy_values(**values)
+        if fields:
+            values = source.model_dump(include=set(fields))
+        else:
+            values = source.model_dump(exclude=set(source.get_pk_names()))
+        self.set_values(**values)
 
-    def copy_values(self, **values) -> None:
-        """
-        Copies all non-pk property values to this Model.
+    def set_values(self, ignore_pk: Optional[bool] = False, **values) -> None:
+        """Copies property values to this Model.
 
-        :param values: The dict including values to copy
+        By default, Primary Key values are set if present within the values.
+
+        :param ignore_pk: True if you also wish to not set Primary Key values
+        :param values: The dict including values to set
         """
-        pk = self.get_pk_names()
-        properties = names_of(self.get_properties())
+        values = retain_in_dict(values, *names_of(self.get_properties()))
+        if ignore_pk:
+            values = remove_from_dict(values, *self.get_pk_names())
         for k, v in values.items():
-            if k in properties and k not in pk:
-                setattr(self, k, v)
+            setattr(self, k, v)
 
     def __eq__(self, other: Self):
         """Instances are determined to be equal based on only their primary key."""
@@ -247,11 +300,11 @@ class Unsearchable(Exception):
         self.detail = f"Cannot search for {prop} of {model.doc_name()}"
 
 
-def all_models(engine: Engine) -> set[DAOModel]:
+def all_models(bind: Union[Engine, Connection]) -> set[type[DAOModel]]:
     """
     Discovers all DAOModel types that have been created for the database.
 
-    :param engine: The engine used to create the DB
+    :param bind: The Engine or Connection for the DB
     :return: A set of applicable DAOModels
     """
     def daomodel_subclasses(cls):
@@ -261,11 +314,14 @@ def all_models(engine: Engine) -> set[DAOModel]:
             subclasses.update(daomodel_subclasses(subclass))
         return subclasses
 
-    db_tables = set(inspect(engine).get_table_names())
+    metadata = MetaData()
+    metadata.reflect(bind=bind)
+    db_tables = metadata.tables.keys()
     return {model for model in daomodel_subclasses(DAOModel) if model.__tablename__ in db_tables}
 
 
 PrimaryKey = Field(primary_key=True)
+OptionalPrimaryKey = Field(primary_key=True, default=None)
 
 
 def PrimaryForeignKey(foreign_property: str) -> Field:

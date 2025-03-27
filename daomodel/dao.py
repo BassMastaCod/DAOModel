@@ -19,8 +19,8 @@ class NotFound(Exception):
 
 class Conflict(Exception):
     """Indicates that the store could not be updated due to an existing conflict."""
-    def __init__(self, model: DAOModel):
-        self.detail = f"{model.__class__.doc_name()} {model} already exists"
+    def __init__(self, model: Optional[DAOModel] = None, msg: Optional[str] = None):
+        self.detail = msg if msg else f"{model.__class__.doc_name()} {model} already exists"
 
 
 T = TypeVar("T", bound=DAOModel)
@@ -92,7 +92,7 @@ class DAO:
         :raises: Conflict if an entry already exists for the primary key
         """
         model = self.model_class(**filter_dict(*self.model_class.get_pk_names(), **values))
-        model.copy_values(**values)
+        model.set_values(ignore_pk=True, **values)
         if commit:
             self.insert(model)
         return model
@@ -149,7 +149,6 @@ class DAO:
                 setattr(existing, k, v)
             self.update(existing)
 
-
     def exists(self, model: T) -> bool:
         """
         Determines if a model exists in the database.
@@ -185,7 +184,7 @@ class DAO:
         model = self.query.get(pk)
         if model is None:
             raise NotFound(self.model_class(**values))
-        model.copy_values(**values)
+        model.set_values(ignore_pk=True, **values)
         return model
 
     def find(self,

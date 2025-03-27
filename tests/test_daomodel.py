@@ -1,4 +1,4 @@
-from typing import Iterable, Union
+from typing import Iterable, Union, Any, Optional
 
 import pytest
 from sqlalchemy import Column
@@ -30,7 +30,7 @@ class BaseModel(DAOModel):
 class ComplicatedModel(BaseModel, table=True):
     pkC: int = PrimaryKey
     pkD: int = PrimaryKey
-    prop2: str
+    prop2: Optional[str]
     fkA: int = ForeignKey('simple_model.pkA')
     fkB: int = ForeignKey('foreign_key_model.pkB')
 
@@ -114,7 +114,7 @@ def test_tablename():
     ]
 })
 def test_has_column(model: DAOModel, column: Column, expected: bool):
-    assert model.has_column(column) == expected
+    assert model.has_column(column) is expected
 
 
 @labeled_tests({
@@ -235,6 +235,151 @@ def test_get_properties(model: type[DAOModel], expected: list[str]):
 
 
 @labeled_tests({
+    'primary key': [
+        (simple_instance, SimpleModel.pkA, 23),
+        (complicated_instance, ComplicatedModel.pkC, 17),
+        (complicated_instance, ComplicatedModel.pkD, 76)
+    ],
+    'foreign key': [
+        (complicated_instance, ComplicatedModel.fkA, 23),
+        (complicated_instance, ComplicatedModel.fkB, 32)
+    ],
+    'inherited column':
+        (complicated_instance, ComplicatedModel.prop1, 'prop'),
+    'standard column':
+        (complicated_instance, ComplicatedModel.prop2, 'erty'),
+    'by str':
+        (complicated_instance, 'prop2', 'erty')
+})
+def test_get_value_of(model: DAOModel, column: Column, expected: Any):
+    assert model.get_value_of(column) == expected
+
+
+@labeled_tests({
+    'no columns': [
+        (simple_instance, [], {}),
+        (complicated_instance, [], {})
+    ],
+    'single column': [
+        (simple_instance, ['pkA'], {'pkA': 23}),
+        (complicated_instance, ['pkC'], {'pkC': 17}),
+        (complicated_instance, ['pkD'], {'pkD': 76}),
+        (complicated_instance, ['prop1'], {'prop1': 'prop'}),
+        (complicated_instance, ['prop2'], {'prop2': 'erty'}),
+        (complicated_instance, ['fkA'], {'fkA': 23}),
+        (complicated_instance, ['fkB'], {'fkB': 32}),
+    ],
+    'multiple columns':
+        (complicated_instance, ['pkC', 'pkD', 'prop1', 'prop2', 'fkA', 'fkB'], {
+            'pkC': 17,
+            'pkD': 76,
+            'prop1': 'prop',
+            'prop2': 'erty',
+            'fkA': 23,
+            'fkB': 32
+        })
+})
+def test_get_values_of(model: DAOModel, columns: list[Column], expected: Any):
+    assert model.get_values_of(columns) == expected
+
+
+@labeled_tests({
+    'no diff': [
+        (complicated_instance, complicated_instance, {}),
+        (complicated_instance, ComplicatedModel(pkC=17, pkD=76, prop1='prop', prop2='erty', fkA=23, fkB=32), {}),
+        (complicated_instance, ComplicatedModel(pkC=18, pkD=77, prop1='prop', prop2='erty', fkA=23, fkB=32), {})
+    ],
+    'single column': [
+        (
+                complicated_instance,
+                ComplicatedModel(pkC=17, pkD=76, prop1='new', prop2='erty', fkA=23, fkB=32),
+                {'prop1': ('prop', 'new')}
+        ), (
+                complicated_instance,
+                ComplicatedModel(pkC=17, pkD=76, prop1='prop', prop2='new', fkA=23, fkB=32),
+                {'prop2': ('erty', 'new')}
+        ), (
+                complicated_instance,
+                ComplicatedModel(pkC=17, pkD=76, prop1='prop', prop2='erty', fkA=24, fkB=32),
+                {'fkA': (23, 24)}
+        ), (
+                complicated_instance,
+                ComplicatedModel(pkC=17, pkD=76, prop1='prop', prop2='erty', fkA=23, fkB=33),
+                {'fkB': (32, 33)}
+        )
+    ],
+    'multiple columns': [
+        (
+                complicated_instance,
+                ComplicatedModel(pkC=17, pkD=76, prop1='new', prop2='prop', fkA=23, fkB=32),
+                {'prop1': ('prop', 'new'), 'prop2': ('erty', 'prop')}
+        ), (
+                complicated_instance,
+                ComplicatedModel(pkC=17, pkD=76, prop1='prop', prop2='erty', fkA=0, fkB=0),
+                {'fkA': (23, 0), 'fkB': (32, 0)}
+        )
+    ],
+    'none values': [
+        (
+                complicated_instance,
+                ComplicatedModel(pkC=17, pkD=76, prop1='new', prop2=None, fkA=23, fkB=32),
+                {'prop1': ('prop', 'new'), 'prop2': ('erty', None)}
+        ), (
+                ComplicatedModel(pkC=17, pkD=76, prop1='new', prop2=None, fkA=23, fkB=32),
+                complicated_instance,
+                {'prop1': ('new', 'prop'), 'prop2': (None, 'erty')}
+        )
+    ],
+    'unset values': [
+        (
+                complicated_instance,
+                ComplicatedModel(pkC=17, pkD=76, prop1='new', fkA=23, fkB=32),
+                {'prop1': ('prop', 'new'), 'prop2': ('erty', None)}
+        ), (
+                ComplicatedModel(pkC=17, pkD=76, prop1='new', fkA=23, fkB=32),
+                complicated_instance,
+                {'prop1': ('new', 'prop'), 'prop2': (None, 'erty')}
+        )
+    ]
+})
+def test_compare(model: DAOModel, other: DAOModel, expected: dict[str, tuple[Any, Any]]):
+    assert model.compare(other) == expected
+
+
+@labeled_tests({
+    'no diff': [
+        (simple_instance, simple_instance, {}),
+        (complicated_instance, complicated_instance, {}),
+        (complicated_instance, ComplicatedModel(pkC=17, pkD=76, prop1='prop', prop2='erty', fkA=23, fkB=32), {})
+    ],
+    'single column': [
+        (
+                simple_instance,
+                SimpleModel(pkA=24),
+                {'pkA': (23, 24)}
+        ), (
+                complicated_instance,
+                ComplicatedModel(pkC=18, pkD=76, prop1='prop', prop2='erty', fkA=23, fkB=32),
+                {'pkC': (17, 18)}
+        ), (
+                complicated_instance,
+                ComplicatedModel(pkC=17, pkD=77, prop1='prop', prop2='erty', fkA=23, fkB=32),
+                {'pkD': (76, 77)}
+        )
+    ],
+    'multiple columns': [
+        (
+                complicated_instance,
+                ComplicatedModel(pkC=18, pkD=86, prop1='prop', prop2='erty', fkA=23, fkB=32),
+                {'pkC': (17, 18), 'pkD': (76, 86)}
+        )
+    ]
+})
+def test_compare__include_pk(model: DAOModel, other: DAOModel, expected: dict[str, tuple[Any, Any]]):
+    assert model.compare(other, include_pk=True) == expected
+
+
+@labeled_tests({
     'single column':
         (SimpleModel, ['pkA']),
     'multiple columns':
@@ -283,7 +428,7 @@ def test_find_searchable_column(prop: Union[str, Column], expected: list[str]):
 
 def test_find_searchable_column__foreign_without_table():
     with pytest.raises(Unsearchable):
-        assert ComplicatedModel.find_searchable_column('prop', [])
+        ComplicatedModel.find_searchable_column('prop', [])
 
 
 @labeled_tests({
@@ -313,13 +458,74 @@ def test_copy_model():
     assert complicated_instance.fkB == 32
 
 
-def test_copy_values():
+def test_copy_model__specific_fields():
     other = ComplicatedModel(pkC=12, pkD=34, prop1='different', prop2='values', fkA=1, fkB=2)
-    other.copy_values(pkC=0, prop1='new', other='extra')
+    other.copy_model(complicated_instance, 'prop1', 'fkA')
+    assert other.pkC == 12
+    assert other.pkD == 34
+    assert other.prop1 == 'prop'
+    assert other.prop2 == 'values'
+    assert other.fkA == 23
+    assert other.fkB == 2
+
+
+def test_copy_model__pk():
+    other = ComplicatedModel(pkC=12, pkD=34, prop1='different', prop2='values', fkA=1, fkB=2)
+    other.copy_model(complicated_instance, 'pkD')
+    assert other.pkC == 12
+    assert other.pkD == 76
+    assert other.prop1 == 'different'
+    assert other.prop2 == 'values'
+    assert other.fkA == 1
+    assert other.fkB == 2
+
+
+def test_set_values():
+    other = ComplicatedModel(pkC=12, pkD=34, prop1='different', prop2='values', fkA=1, fkB=2)
+    other.set_values(prop1='new', fkB=3)
     assert other.model_dump() == {
         'pkC': 12,
         'pkD': 34,
         'prop1': 'new',
+        'prop2': 'values',
+        'fkA': 1,
+        'fkB': 3
+    }
+
+
+def test_set_values__extra_values():
+    other = ComplicatedModel(pkC=12, pkD=34, prop1='different', prop2='values', fkA=1, fkB=2)
+    other.set_values(prop1='new', other='extra')
+    assert other.model_dump() == {
+        'pkC': 12,
+        'pkD': 34,
+        'prop1': 'new',
+        'prop2': 'values',
+        'fkA': 1,
+        'fkB': 2
+    }
+
+
+def test_set_values__ignore_pk():
+    other = ComplicatedModel(pkC=12, pkD=34, prop1='different', prop2='values', fkA=1, fkB=2)
+    other.set_values(ignore_pk=True, pkC=0, prop1='new')
+    assert other.model_dump() == {
+        'pkC': 12,
+        'pkD': 34,
+        'prop1': 'new',
+        'prop2': 'values',
+        'fkA': 1,
+        'fkB': 2
+    }
+
+
+def test_set_values__pk():
+    other = ComplicatedModel(pkC=12, pkD=34, prop1='different', prop2='values', fkA=1, fkB=2)
+    other.set_values(pkC=0)
+    assert other.model_dump() == {
+        'pkC': 0,
+        'pkD': 34,
+        'prop1': 'different',
         'prop2': 'values',
         'fkA': 1,
         'fkB': 2

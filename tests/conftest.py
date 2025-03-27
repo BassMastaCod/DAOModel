@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date
 from typing import Optional
 
 import pytest
@@ -60,7 +60,7 @@ class BasePerson(DAOModel):
 
 
 class Staff(BasePerson, table=True):
-    hire_date: datetime
+    hire_date: date
 
 
 class Student(BasePerson, table=True):

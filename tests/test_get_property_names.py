@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 
 from sqlmodel import Field
 
@@ -36,168 +36,169 @@ property_model = PropertyModel(set_pk=1, set_default_pk=0, set_none_pk=None, set
                        set_fk=1, set_default_fk=0, set_none_fk=None, set_default_none_fk=None,
                        set=1, set_default=0, set_none=None, set_default_none=None)
 
-all_properties = [
-    'set_pk',
-    'unset_pk',
-    'default_pk',
-    'set_default_pk',
-    'default_none_pk',
-    'set_none_pk',
-    'set_default_none_pk',
-    'set_fk',
-    'unset_fk',
-    'default_fk',
-    'set_default_fk',
-    'default_none_fk',
-    'set_none_fk',
-    'set_default_none_fk',
-    'set',
-    'unset',
-    'default',
-    'set_default',
-    'default_none',
-    'set_none',
-    'set_default_none'
-]
-pk_properties = [
-    'set_pk',
-    'unset_pk',
-    'default_pk',
-    'set_default_pk',
-    'default_none_pk',
-    'set_none_pk',
-    'set_default_none_pk'
-]
-fk_properties = [
-    'set_fk',
-    'unset_fk',
-    'default_fk',
-    'set_default_fk',
-    'default_none_fk',
-    'set_none_fk',
-    'set_default_none_fk'
-]
-standard_properties = [
-    'set',
-    'unset',
-    'default',
-    'set_default',
-    'default_none',
-    'set_none',
-    'set_default_none'
-]
-unset_properties = [
-    'unset_pk',
-    'default_pk',
-    'default_none_pk',
-    'unset_fk',
-    'default_fk',
-    'default_none_fk',
-    'unset',
-    'default',
-    'default_none'
-]
-default_value_properties = [
-    'unset_pk',
-    'default_pk',
-    'set_default_pk',
-    'default_none_pk',
-    'set_default_none_pk',
-    'unset_fk',
-    'default_fk',
-    'set_default_fk',
-    'default_none_fk',
-    'set_default_none_fk',
-    'unset',
-    'default',
-    'set_default',
-    'default_none',
-    'set_default_none'
-]
-none_value_properties = [
-    'unset_pk',
-    'default_none_pk',
-    'set_none_pk',
-    'set_default_none_pk',
-    'unset_fk',
-    'default_none_fk',
-    'set_none_fk',
-    'set_default_none_fk',
-    'unset',
-    'default_none',
-    'set_none',
-    'set_default_none'
-]
-set_none_value_properties = [
-    'set_none_pk',
-    'set_default_none_pk',
-    'set_none_fk',
-    'set_default_none_fk',
-    'set_none',
-    'set_default_none'
-]
-set_to_non_none_default_properties = [
-    'set_default_pk',
-    'set_default_fk',
-    'set_default'
-]
-standard_non_none_properties = [
-    'set',
-    'default',
-    'set_default'
-]
-primary_key_and_unset_foreign_key_properties = [
-    'set_pk',
-    'unset_pk',
-    'default_pk',
-    'set_default_pk',
-    'default_none_pk',
-    'set_none_pk',
-    'set_default_none_pk',
-    'unset_fk',
-    'default_fk',
-    'default_none_fk'
-]
+
+all_property_values = {
+    'set_pk': 1,
+    'unset_pk': None,
+    'default_pk': 0,
+    'set_default_pk': 0,
+    'default_none_pk': None,
+    'set_none_pk': None,
+    'set_default_none_pk': None,
+    'set_fk': 1,
+    'unset_fk': None,
+    'default_fk': 0,
+    'set_default_fk': 0,
+    'default_none_fk': None,
+    'set_none_fk': None,
+    'set_default_none_fk': None,
+    'set': 1,
+    'unset': None,
+    'default': 0,
+    'set_default': 0,
+    'default_none': None,
+    'set_none': None,
+    'set_default_none': None
+}
+pk_property_values = {
+    'set_pk': 1,
+    'unset_pk': None,
+    'default_pk': 0,
+    'set_default_pk': 0,
+    'default_none_pk': None,
+    'set_none_pk': None,
+    'set_default_none_pk': None
+}
+fk_property_values = {
+    'set_fk': 1,
+    'unset_fk': None,
+    'default_fk': 0,
+    'set_default_fk': 0,
+    'default_none_fk': None,
+    'set_none_fk': None,
+    'set_default_none_fk': None
+}
+standard_property_values = {
+    'set': 1,
+    'unset': None,
+    'default': 0,
+    'set_default': 0,
+    'default_none': None,
+    'set_none': None,
+    'set_default_none': None
+}
+assigned_property_values = {
+    'set_pk': 1,
+    'set_fk': 1,
+    'set': 1
+}
+default_value_property_values = {
+    'unset_pk': None,
+    'default_pk': 0,
+    'set_default_pk': 0,
+    'default_none_pk': None,
+    'set_default_none_pk': None,
+    'unset_fk': None,
+    'default_fk': 0,
+    'set_default_fk': 0,
+    'default_none_fk': None,
+    'set_default_none_fk': None,
+    'unset': None,
+    'default': 0,
+    'set_default': 0,
+    'default_none': None,
+    'set_default_none': None
+}
+none_value_property_values = {
+    'unset_pk': None,
+    'default_none_pk': None,
+    'set_none_pk': None,
+    'set_default_none_pk': None,
+    'unset_fk': None,
+    'default_none_fk': None,
+    'set_none_fk': None,
+    'set_default_none_fk': None,
+    'unset': None,
+    'default_none': None,
+    'set_none': None,
+    'set_default_none': None
+}
+non_none_default_property_values = {
+    'default_pk': 0,
+    'set_default_pk': 0,
+    'default_fk': 0,
+    'set_default_fk': 0,
+    'default': 0,
+    'set_default': 0
+}
+standard_non_none_property_values = {
+    'set': 1,
+    'default': 0,
+    'set_default': 0
+}
+assigned_foreign_key_property_values = {
+    'set_fk': 1,
+}
+primary_key_and_none_value_foreign_key_property_values = {
+    'set_pk': 1,
+    'unset_pk': None,
+    'default_pk': 0,
+    'set_default_pk': 0,
+    'default_none_pk': None,
+    'set_none_pk': None,
+    'set_default_none_pk': None,
+    'unset_fk': None,
+    'default_none_fk': None,
+    'set_none_fk': None,
+    'set_default_none_fk': None
+}
 
 
 @labeled_tests({
     'no properties': [
-        ({}, []),
-        ({'all': False}, []),
-        ({'pk': False}, []),
-        ({'unset': False}, []),
-        ({'defaults': False}, []),
-        ({'none': False}, []),
-        ({'pk': False, 'unset': False, 'defaults': False, 'none': False}, [])
+        ({}, {}),
+        ({'all': False}, {}),
+        ({'pk': False}, {}),
+        ({'assigned': False}, {}),
+        ({'defaults': False}, {}),
+        ({'none': False}, {}),
+        ({'pk': False, 'assigned': False, 'defaults': False, 'none': False}, {})
     ],
     'all properties': [
-        ({'all': True}, all_properties),
-        ({'pk': True, 'fk': True, 'standard': True}, all_properties)
+        ({'all': True}, all_property_values),
+        ({'pk': True, 'fk': True, 'standard': True}, all_property_values)
     ],
     'primary key properties': [
-        ({'pk': True}, pk_properties),
-        ({'all': True, 'fk': False, 'standard': False}, pk_properties)
+        ({'pk': True}, pk_property_values),
+        ({'all': True, 'fk': False, 'standard': False}, pk_property_values)
     ],
     'foreign key properties': [
-        ({'fk': True}, fk_properties),
-        ({'all': True, 'pk': False, 'standard': False}, fk_properties)
+        ({'fk': True}, fk_property_values),
+        ({'all': True, 'pk': False, 'standard': False}, fk_property_values)
     ],
     'standard properties': [
-        ({'standard': True}, standard_properties),
-        ({'all': True, 'pk': False, 'fk': False}, standard_properties)
+        ({'standard': True}, standard_property_values),
+        ({'all': True, 'pk': False, 'fk': False}, standard_property_values)
     ],
-    'unset properties':
-        ({'unset': True}, unset_properties),
-    'default value properties':
-        ({'defaults': True}, default_value_properties),
-    'none value properties':
-        ({'none': True}, none_value_properties),
+    'assigned properties': [
+        ({'assigned': True}, assigned_property_values),
+        ({'all': True, 'defaults': False, 'none': False}, assigned_property_values)
+    ],
+    'default value properties': [
+        ({'defaults': True}, default_value_property_values)
+    ],
+    'none value properties': [
+        ({'none': True}, none_value_property_values)
+    ],
     'mixed property categories': [
-        ({'none': True, 'unset': False}, set_none_value_properties),
-        ({'defaults': True, 'unset': False, 'none': False}, set_to_non_none_default_properties),
-        ({'standard': True, 'none': False}, standard_non_none_properties),
-        ({'unset': True, 'standard': False, 'pk': True}, primary_key_and_unset_foreign_key_properties),
+        ({'defaults': True, 'none': False}, non_none_default_property_values),
+        ({'standard': True, 'none': False}, standard_non_none_property_values),
+        ({'assigned': True, 'pk': False, 'standard': False}, assigned_foreign_key_property_values),
+        ({'none': True, 'standard': False, 'pk': True}, primary_key_and_none_value_foreign_key_property_values)
     ]
 })
-def test_get_property_names(property_modifications: dict[str, bool], expected: list[str]):
-    assert property_model.get_property_names(**property_modifications) == expected
+def test_get_property_names_get_property_values(
+        property_modifications: dict[str, bool],
+        expected_property_values: dict[str, Any]):
+    assert property_model.get_property_names(**property_modifications) == list(expected_property_values.keys())
+    assert property_model.get_property_values(**property_modifications) == expected_property_values

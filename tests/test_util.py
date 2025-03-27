@@ -4,7 +4,8 @@ import pytest
 from sqlalchemy.testing.schema import Column
 
 from daomodel import reference_of
-from daomodel.util import names_of, values_from_dict, filter_dict, MissingInput, ensure_iter, dedupe, in_order
+from daomodel.util import names_of, values_from_dict, filter_dict, ensure_iter, dedupe, in_order, retain_in_dict, \
+    remove_from_dict, mode
 from tests.conftest import Person, Book
 from tests.labeled_tests import labeled_tests
 
@@ -27,6 +28,17 @@ def test_names_of(columns: list[Column], expected:  list[str]):
     assert names_of(columns) == expected
 
 
+@pytest.mark.parametrize('elements, expected', [
+    ([1, 2, 2, 3], 2),
+    ([1, 1, 2, 2, 3], 1),
+    (['a', 'b', 'b', 'c', 'c', 'c'], 'c'),
+    ([True, True, False, True], True),
+    ([1], 1)
+])
+def test_mode(elements: list, expected: Any):
+    assert mode(elements) == expected
+
+
 @pytest.mark.parametrize('keys, expected', [
     ((), ()),
     (('b',), (2,)),
@@ -37,14 +49,24 @@ def test_values_from_dict(keys: tuple[str], expected: tuple[Any]):
     assert values_from_dict(*keys, a=1, b=2, c=3) == expected
 
 
-@pytest.mark.parametrize('keys, dictionary', [
-    (('a',), {}),
-    (('b', ), {'a':1, 'c':3}),
-    (('b', 'c'), {'a':1, 'b':2})
+@pytest.mark.parametrize('keys, expected', [
+    ((), {}),
+    (('b',), {'b': 2}),
+    (('a', 'c'), {'a':1, 'c':3}),
+    (('b', 'c', 'a'), {'a':1, 'b':2, 'c':3})
 ])
-def test_values_from_dict__missing(keys: tuple[str], dictionary: dict[str, Any]):
-    with pytest.raises(MissingInput):
-        values_from_dict('missing')
+def test_retain_in_dict(keys: tuple[str], expected: tuple[Any]):
+    assert retain_in_dict({'a': 1, 'b': 2, 'c': 3}, *keys) == expected
+
+
+@pytest.mark.parametrize('keys, expected', [
+    ((), {'a':1, 'b':2, 'c':3}),
+    (('b',), {'a':1, 'c':3}),
+    (('a', 'c'), {'b': 2}),
+    (('b', 'c', 'a'), {})
+])
+def test_remove_from_dict(keys: tuple[str], expected: tuple[Any]):
+    assert remove_from_dict({'a': 1, 'b': 2, 'c': 3}, *keys) == expected
 
 
 @pytest.mark.parametrize('keys, expected', [
