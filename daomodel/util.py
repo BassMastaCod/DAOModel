@@ -1,5 +1,6 @@
 import warnings
-from typing import Iterable, Any, OrderedDict
+from functools import wraps
+from typing import Iterable, Any, OrderedDict, Callable
 
 from sqlalchemy import Column, ColumnElement
 from sqlmodel import or_, and_
@@ -130,6 +131,18 @@ def in_order(original: Iterable, order: list) -> list:
     :return: a new list of the items following the defined order
     """
     return [item for item in order if item in original]
+
+
+def kwargs_if_none_provided(**default_kwargs: Any) -> Callable:
+    """A decorator to provide default values into `**kwargs` only if `kwargs` is empty."""
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            if not kwargs:
+                kwargs = default_kwargs
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
 
 
 def next_id() -> None:
