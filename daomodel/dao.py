@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Any, TypeVar, Self, Iterable, Iterator
+from typing import Optional, Any, TypeVar, Iterable, Iterator
 
 from sqlalchemy import func, Column, text, UnaryExpression
 from sqlalchemy.orm import Session
@@ -36,7 +36,7 @@ class SearchResults(list[T]):
     def __iter__(self) -> Iterator[T]:
         return iter(self.results)
 
-    def __eq__(self, other: Self) -> bool:
+    def __eq__(self, other: 'SearchResults') -> bool:
         return (self.results == other.results
                 and self.total == other.total
                 and self.page == other.page
@@ -245,7 +245,7 @@ class DAO:
                     .alias(alias))
         return query.join(subquery, column == text(f"{alias}.{column.name}"))
 
-    def _filter(self, query: Query, key: [str|Column], value: Any, foreign_tables: list[type[Self]]) -> Query:
+    def _filter(self, query: Query, key: [str|Column], value: Any, foreign_tables: list[type[DAOModel]]) -> Query:
         column = self.model_class.find_searchable_column(key, foreign_tables)
         return query.filter(value.get_expression(column) if isinstance(value, ConditionOperator) else column == value)
 

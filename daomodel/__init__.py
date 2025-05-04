@@ -1,4 +1,4 @@
-from typing import Any, Self, Iterable, Optional
+from typing import Any, Iterable, Optional
 
 import sqlalchemy
 from sqlmodel import SQLModel, Field
@@ -86,7 +86,7 @@ class DAOModel(SQLModel):
         return {fk.parent for fk in cls.__table__.foreign_keys}
 
     @classmethod
-    def get_references_of(cls, model: type[Self]) -> set[Column]:
+    def get_references_of(cls, model: type['DAOModel']) -> set[Column]:
         """Returns the Columns of this Model that represent Foreign Keys of the specified Model.
 
         :return: An unordered set of foreign key columns
@@ -174,7 +174,7 @@ class DAOModel(SQLModel):
         """
         return {column: self.get_value_of(column) for column in columns}
 
-    def compare(self, other: Self, include_pk: Optional[bool] = False) -> dict[str, tuple[Any, Any]]:
+    def compare(self, other: 'DAOModel', include_pk: Optional[bool] = False) -> dict[str, tuple[Any, Any]]:
         """Compares this model to another, producing a diff.
 
         By default, primary keys are excluded in the diff.
@@ -182,7 +182,7 @@ class DAOModel(SQLModel):
 
         :param other: The model to compare to this one
         :param include_pk: True if you want to include the primary key in the diff
-        :return: A dictionary of property names with a tuple of this instances value and the other value respectively
+        :return: A dictionary of property names with a tuple of this instance's value and the other value respectively
         """
         args = {'all': True}
         if not include_pk:
@@ -196,7 +196,7 @@ class DAOModel(SQLModel):
         return diff
 
     @classmethod
-    def get_searchable_properties(cls) -> Iterable[Column|tuple[type[Self], ..., Column]]:
+    def get_searchable_properties(cls) -> Iterable[Column|tuple[type['DAOModel'], ..., Column]]:
         """Returns all the Columns for this Model that may be searched using the DAO find function.
 
         :return: A list of searchable columns
@@ -204,7 +204,7 @@ class DAOModel(SQLModel):
         return cls.get_properties()
 
     @classmethod
-    def find_searchable_column(cls, prop: [str|Column], foreign_tables: list[type[Self]]) -> Column:
+    def find_searchable_column(cls, prop: [str|Column], foreign_tables: list[type['DAOModel']]) -> Column:
         """Returns the specified searchable Column.
 
         :param prop: str type reference of the Column or the Column itself
@@ -235,7 +235,7 @@ class DAOModel(SQLModel):
         """
         return dict(zip(cls.get_pk_names(), *pk_values))
 
-    def copy_model(self, source: Self, *fields: str) -> None:
+    def copy_model(self, source: 'DAOModel', *fields: str) -> None:
         """Copies values from another instance of this Model.
 
         Unless the fields are specified, all but PK are copied.
@@ -263,7 +263,7 @@ class DAOModel(SQLModel):
         for k, v in values.items():
             setattr(self, k, v)
 
-    def __eq__(self, other: Self) -> bool:
+    def __eq__(self, other: 'DAOModel') -> bool:
         """Instances are determined to be equal based on only their primary key."""
         return self.get_pk_values() == other.get_pk_values() if type(self) == type(other) else False
 

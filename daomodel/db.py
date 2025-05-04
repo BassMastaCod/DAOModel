@@ -1,4 +1,4 @@
-from typing import Optional, Self
+from typing import Optional
 
 import sqlalchemy
 from sqlalchemy import Engine, event
@@ -51,7 +51,7 @@ class DAOFactory:
     def __init__(self, session_factory: sessionmaker):
         self.session_factory = session_factory
 
-    def __enter__(self) -> Self:
+    def __enter__(self) -> 'DAOFactory':
         self.db = self.session_factory()
         return self
 
