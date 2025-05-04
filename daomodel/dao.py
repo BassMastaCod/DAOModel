@@ -209,15 +209,13 @@ class DAO:
         query = query.order_by(*order)
         query = self.filter_find(query, **filters)
 
-        print(query)
-
         total = query.count()
-        if page or per_page:
-            if not page:
+        if per_page:
+            if not page or page < 1:
                 page = 1
-            elif not per_page:
-                raise MissingInput("Must specify how many results per page")
             query = query.offset((page - 1) * per_page).limit(per_page)
+        elif page:
+            raise MissingInput("Must specify how many results per page")
 
         return SearchResults(query.all(), total, page, per_page)
 
