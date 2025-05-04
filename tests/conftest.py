@@ -86,38 +86,40 @@ class TestDAOFactory(DAOFactory):
 
     def __enter__(self):
         super().__enter__()
-        self.assert_session = self.session_factory()
         return self
 
     def assert_in_db(self, model: type[DAOModel], *pk, **expected_values: Any) -> None:
         """
         Assert that an object with specific attribute values is present in the DB.
+        This checks the committed state of the database, not the session state.
 
         :param model: The DB table to check
         :param pk: The primary key values of the row
         :param expected_values: The column values to assert
         """
-        try:
-            persisted_copy = DAO(model, self.assert_session).get(*pk)
-            for key, expected in expected_values.items():
-                actual = getattr(persisted_copy, key)
-                assert actual == expected, f'expected {key} of {persisted_copy} to be {expected} but was {actual}'
-        except NotFound as e:
-            fail(e.detail)
+        with self.session_factory() as fresh_session:
+            try:
+                persisted_copy = DAO(model, fresh_session).get(*pk)
+                for key, expected in expected_values.items():
+                    actual = getattr(persisted_copy, key)
+                    assert actual == expected, f'expected {key} of {persisted_copy} to be {expected} but was {actual}'
+            except NotFound as e:
+                fail(e.detail)
 
     def assert_not_in_db(self, model: type[DAOModel], *pk: Any) -> None:
         """
         Assert that the specified object is not present in the DB.
+        This checks the committed state of the database, not the session state.
 
         :param model: The DB table to check
         :param pk: The primary key values of the row
         """
-        with pytest.raises(NotFound):
-            DAO(model, self.assert_session).get(*pk)
+        with self.session_factory() as fresh_session:
+            with pytest.raises(NotFound):
+                DAO(model, fresh_session).get(*pk)
 
     def __exit__(self, exc_type, exc_value, traceback):
         super().__exit__(exc_type, exc_value, traceback)
-        self.assert_session.close()
 
 
 @pytest.fixture(name='daos')

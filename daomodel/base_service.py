@@ -26,14 +26,15 @@ class BaseService:
         :raises: Conflict: if the source model fails to merge into the destination
         """
         model_dao = self.daos[type(source)]
+        model_dao.start_transaction()
         destination = model_dao.get(*destination_pk_values)
         if type(destination) is not type(source):
             raise TypeError(f'{destination} is not of type {type(source)}')
 
         ChangeSet(destination, source, **conflict_resolution).resolve_preferences().apply()
         self._redirect_fks(source, destination)
-        model_dao.update(destination)
         model_dao.remove(source)
+        model_dao.commit(destination)
 
     def _redirect_fks(self, source: DAOModel, destination: DAOModel) -> None:
         for model in all_models(self.daos.db.get_bind()):

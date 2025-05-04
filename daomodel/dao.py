@@ -62,6 +62,20 @@ class DAO:
     def __init__(self, model_class: type[T], db: Session):
         self.model_class = model_class
         self.db = db
+        self._auto_commit = True
+
+    def start_transaction(self) -> None:
+        """Starts a transaction by setting transaction_mode to True.
+
+        This disables auto_commit and autoflush until the transaction is
+        committed or rolled back.
+        """
+        self._auto_commit = False
+        self.db.autoflush = False
+
+    def _end_transaction(self) -> None:
+        self._auto_commit = True
+        self.db.autoflush = True
 
     @property
     def query(self) -> Query[Any]:
@@ -80,17 +94,17 @@ class DAO:
         """
         return self.create_with(**self.model_class.pk_values_to_dict(pk_values))
 
-    def create_with(self, commit: bool = True, **values: Any) -> T:
+    def create_with(self, insert: bool = True, **values: Any) -> T:
         """Creates a new entry for the given primary key and property values.
 
-        :param commit: False to avoid adding the model to the database at this time
+        :param insert: False to avoid adding the model to the database
         :param values: The values to assign to the model
         :return: The new DAOModel
-        :raises: Conflict if an entry already exists for the primary key
+        :raises: Conflict if an entry already exists for the primary key (does not apply if insert=False)
         """
         model = self.model_class(**filter_dict(*self.model_class.get_pk_names(), **values))
         model.set_values(ignore_pk=True, **values)
-        if commit:
+        if insert:
             self.insert(model)
         return model
 
@@ -103,19 +117,9 @@ class DAO:
         if self.exists(model):
             raise Conflict(model)
         self.db.add(model)
-        self.commit()
-        self.db.refresh(model)
-
-    def update(self, model: T) -> None:
-        """Updates the database to align with the provided model.
-
-        :param model: The existing DAOModel entry to update in the database
-        :raises NotFound: if the model does not exist in the database
-        """
-        if not self.exists(model):
-            raise NotFound(model)
-        self.commit()
-        self.db.refresh(model)
+        if self._auto_commit:
+            self.commit()
+            self.db.refresh(model)
 
     def upsert(self, model: T) -> None:
         """Updates the given model in the database or creates it if it does not exist.
@@ -123,9 +127,9 @@ class DAO:
         :param model: The DAOModel entry which may or may not exist
         """
         try:
-            self.update(model)
-        except NotFound:
             self.insert(model)
+        except Conflict:
+            self.commit()
         return model
 
     def rename(self, existing: T, *new_pk_values: Any) -> None:
@@ -140,7 +144,7 @@ class DAO:
         except NotFound:
             for k, v in zip(existing.get_pk_names(), new_pk_values):
                 setattr(existing, k, v)
-            self.update(existing)
+            self._commit_if_not_transaction()
 
     def exists(self, model: T) -> bool:
         """Determines if a model exists in the database.
@@ -254,23 +258,50 @@ class DAO:
         """
         return query
 
-    def remove(self, model: T, commit: bool = True) -> None:
+    def remove(self, model: T) -> None:
         """Deletes the given model entry from the database.
 
         :param model: The DAOModel object to be deleted
-        :param commit: False to not yet commit
         :raises NotFound: if the model does not exist in the database
         """
         if self.exists(model):
             self.db.delete(model)
         else:
             raise NotFound(model)
-        if commit:
+        self._commit_if_not_transaction()
+
+    def _commit_if_not_transaction(self):
+        if self._auto_commit:
             self.commit()
 
-    def commit(self) -> None:
+    def commit(self, *models_to_refresh: DAOModel) -> None:
         """Commits all pending changes to the database.
 
-        Following commit, DAOModels will need to be refreshed.
+        'Pending changes' includes data changes made to models that were fetched from the database.
+        Use dao.start_transaction() to avoid automatically calling this method following each insert, upsert, and remove.
+        This will commit all changes within the session and is not limited to this DAO.
+        Following the DB commit, DAOModels will be detached, needing to be refreshed.
+
+        If this DAO was in transaction mode, it will be reset to auto-commit mode after committing.
+
+        :param models_to_refresh: The DAOModels to refresh after committing
+        raises: NotFound if a model does not exist in the database
         """
         self.db.commit()
+        for model in models_to_refresh:
+            if not self.exists(model):
+                raise NotFound(model)
+            self.db.refresh(model)
+        self._end_transaction()
+
+    def rollback(self) -> None:
+        """Rolls back all pending database changes of a transaction.
+
+        This will discard all changes that have not yet been committed.
+
+        :raises RuntimeError: if not in transaction mode
+        """
+        if self._auto_commit:
+            raise RuntimeError("Cannot rollback while not in transaction mode")
+        self.db.rollback()
+        self._end_transaction()
