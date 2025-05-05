@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from enum import Enum
-from typing import Any, Optional, Self, Callable
+from typing import Any, Optional, Callable
 
 from daomodel import DAOModel
 from daomodel.dao import Conflict
@@ -244,7 +244,7 @@ class ChangeSet(ModelDiff):
             resolution
         )
 
-    def resolve_preferences(self) -> Self:
+    def resolve_preferences(self) -> 'ChangeSet':
         """Removes unwanted changes, preserving the meaningful values, regardless of them being from baseline or target
 
         :return: This ChangeSet to allow for chaining function calls

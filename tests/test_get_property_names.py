@@ -156,7 +156,6 @@ primary_key_and_none_value_foreign_key_property_values = {
 
 @labeled_tests({
     'no properties': [
-        ({}, {}),
         ({'all': False}, {}),
         ({'pk': False}, {}),
         ({'assigned': False}, {}),
@@ -165,6 +164,7 @@ primary_key_and_none_value_foreign_key_property_values = {
         ({'pk': False, 'assigned': False, 'defaults': False, 'none': False}, {})
     ],
     'all properties': [
+        ({}, all_property_values),
         ({'all': True}, all_property_values),
         ({'pk': True, 'fk': True, 'standard': True}, all_property_values)
     ],
