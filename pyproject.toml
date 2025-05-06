@@ -26,6 +26,7 @@ classifiers = [
 ]
 
 [project.urls]
+ReadTheDocs = "https://daomodel.readthedocs.io/"
 Repository = "https://github.com/BassMastaCod/DAOModel.git"
 Issues = "https://github.com/BassMastaCod/DAOModel/issues"
 
