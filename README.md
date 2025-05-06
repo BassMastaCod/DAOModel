@@ -36,7 +36,7 @@ pip install DAOModel
 ```
 or, given that this project is a development tool, you will likely add _DAOModel_ to `requirements.txt` or `pyproject.toml`.
 
-Next, move on to the [Getting Started](https://daomodel.readthedocs.io/docs/getting_started) page to begin developing your DAOModels.
+Next, move on to the [Getting Started](https://daomodel.readthedocs.io/en/latest/docs/getting_started/) page to begin developing your DAOModels.
 
 ## Caveats
 Most testing has been completed using SQLite, though since SQLModel/SQLAlchemy
