@@ -33,7 +33,7 @@ Otherwise, you may find some of the library's built-in functionality useful.
 ### Create your engine using DAOModel's helper function
 
 ```python
-engine = create_engine("database.db")
+engine = create_engine('database.db')
 ```
 
 This uses **SQLite** to store your data. If you don't need persistence,
@@ -90,11 +90,16 @@ So there you have it, You now have a usable DAO layer for your model!
 Let's look at the full code:
 
 ```python
+from sqlmodel import Field, Session
+from daomodel import DAOModel, DAO
+from daomodel.db import create_engine, init_db
+
+
 class Customer(DAOModel, table=True):
     id: int = Field(primary_key=True)
     name: str
 
-engine = create_engine("database.db")
+engine = create_engine('database.db')
 init_db(engine)
 db = Session(engine)
 dao = DAO(Customer, db)
@@ -106,4 +111,4 @@ Just a few lines is all you need to get started!
 ## Next Steps
 
 Now that you have set up your model and DAO, you can start using the DAO to interact with your database.
-Continue to the [Using the DAO](using_dao.md) section to learn more about the available operations.
+Continue to the [Using the DAO](usage/dao.md) section to learn more about the available operations.

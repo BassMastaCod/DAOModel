@@ -12,6 +12,14 @@ class MissingInput(Exception):
         self.detail = detail
 
 
+class InvalidArgumentCount(Exception):
+    """Indicates that an incorrect number of arguments was provided."""
+    def __init__(self, expected: int, got: int, context: str = None):
+        self.detail = f'Expected {expected} values, got {got}'
+        if context:
+            self.detail += f' for {context}'
+
+
 def reference_of(column: Column) -> str:
     """
     Prepares a str reference of a column.
@@ -146,7 +154,7 @@ def kwargs_if_none_provided(**default_kwargs: Any) -> Callable:
 
 
 def next_id() -> None:
-    """Indicates to the model that an id should be auto incremented"""
+    """Indicates to the model that an id should be auto-incremented"""
     return None
 
 

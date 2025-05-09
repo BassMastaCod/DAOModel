@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import Optional, Any, TypeVar, Iterable, Iterator
+from typing import Optional, Any, TypeVar, Iterable, Iterator, Callable
 
 from sqlalchemy import func, Column, text, UnaryExpression
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
-from daomodel.util import values_from_dict, filter_dict, MissingInput, ensure_iter, dedupe, ConditionOperator
+from daomodel.util import values_from_dict, filter_dict, MissingInput, InvalidArgumentCount, ensure_iter, dedupe, ConditionOperator
 
 from daomodel import DAOModel
 
@@ -14,7 +14,7 @@ from daomodel import DAOModel
 class NotFound(Exception):
     """Indicates that the requested object could not be found."""
     def __init__(self, model: DAOModel):
-        self.detail = f"{model.__class__.doc_name()} {model} not found"
+        self.detail = f'{model.__class__.doc_name()} {model} not found'
 
 
 class Conflict(Exception):
@@ -23,17 +23,17 @@ class Conflict(Exception):
         self.detail = msg if msg else f"{model.__class__.doc_name()} {model} already exists"
 
 
-T = TypeVar("T", bound=DAOModel)
-class SearchResults(list[T]):
+Model = TypeVar('Model', bound=DAOModel)
+class SearchResults(list[Model]):
     """The paginated results of a filtered search."""
-    def __init__(self, results: list[T], total: int = None, page: Optional[int] = None, per_page: Optional[int] = None):
+    def __init__(self, results: list[Model], total: int = None, page: Optional[int] = None, per_page: Optional[int] = None):
         super().__init__(results)
         self.results = results
         self.total = len(results) if total is None else total
         self.page = page
         self.per_page = per_page
 
-    def __iter__(self) -> Iterator[T]:
+    def __iter__(self) -> Iterator[Model]:
         return iter(self.results)
 
     def __eq__(self, other: 'SearchResults') -> bool:
@@ -52,14 +52,14 @@ class SearchResults(list[T]):
             string = f"Page {self.page}; {self.per_page} of {self.total} results {string}"
         return string
 
-    def first(self) -> Optional[T]:
+    def first(self) -> Optional[Model]:
         """Returns the first result or None if there are no results"""
         return next(iter(self), None)
 
 
 class DAO:
     """A DAO implementation for SQLAlchemy to make your code less SQLly."""
-    def __init__(self, model_class: type[T], db: Session):
+    def __init__(self, model_class: type[Model], db: Session):
         self.model_class = model_class
         self.db = db
         self._auto_commit = True
@@ -85,22 +85,35 @@ class DAO:
         """
         return self.db.query(self.model_class)
 
-    def create(self, *pk_values: Any) -> T:
+    def _check_pk_arguments(self, pk_values: tuple) -> dict[str, Any]:
+        """Validates that the number of primary key values matches the expected count.
+
+        :param pk_values: The primary key values to validate (matching the order they are defined in the model)
+        :return: A dictionary mapping primary key names to their values
+        :raises InvalidArgumentCount: if the provided values do not align with the model's primary key
+        """
+        keys = self.model_class.get_pk_names()
+        if len(pk_values) != len(keys):
+            raise InvalidArgumentCount(len(keys), len(pk_values), f"{self.model_class.doc_name()} primary key")
+        return {keys[i]: pk_values[i] for i in range(len(keys))}
+
+    def create(self, *pk_values: Any) -> Model:
         """Creates a new entry for the given primary key.
 
-        :param pk_values: The array of primary key values representing the Model
+        :param pk_values: Primary key values to represent the Model (in the order defined in the model)
         :return: The DAOModel entry that was newly added to the database
-        :raises: Conflict if an entry already exists for the primary key
+        :raises Conflict: if an entry already exists for the primary key
+        :raises InvalidArgumentCount: if the provided values do not align with the model's primary key
         """
-        return self.create_with(**self.model_class.pk_values_to_dict(pk_values))
+        return self.create_with(**self._check_pk_arguments(pk_values))
 
-    def create_with(self, insert: bool = True, **values: Any) -> T:
+    def create_with(self, insert: bool = True, **values: Any) -> Model:
         """Creates a new entry for the given primary key and property values.
 
         :param insert: False to avoid adding the model to the database
         :param values: The values to assign to the model
         :return: The new DAOModel
-        :raises: Conflict if an entry already exists for the primary key (does not apply if insert=False)
+        :raises Conflict: if an entry already exists for the primary key (does not apply if insert=False)
         """
         model = self.model_class(**filter_dict(*self.model_class.get_pk_names(), **values))
         model.set_values(ignore_pk=True, **values)
@@ -108,11 +121,11 @@ class DAO:
             self.insert(model)
         return model
 
-    def insert(self, model: T) -> None:
+    def insert(self, model: Model) -> None:
         """Adds the given model to the database.
 
         :param model: The DAOModel entry to add
-        :raises: Conflict if an entry already exists for the primary key
+        :raises Conflict: if an entry already exists for the primary key
         """
         if self.exists(model):
             raise Conflict(model)
@@ -121,7 +134,7 @@ class DAO:
             self.commit()
             self.db.refresh(model)
 
-    def upsert(self, model: T) -> None:
+    def upsert(self, model: Model) -> None:
         """Updates the given model in the database or creates it if it does not exist.
 
         :param model: The DAOModel entry which may or may not exist
@@ -132,12 +145,12 @@ class DAO:
             self.commit()
         return model
 
-    def rename(self, existing: T, *new_pk_values: Any) -> None:
+    def rename(self, existing: Model, *new_pk_values: Any) -> None:
         """Updates the given model with new primary key values.
 
         :param existing: The model to rename
         :param new_pk_values: The new primary key values for the model
-        :raises: Conflict if an entry already exists for the new primary key
+        :raises Conflict: if an entry already exists for the new primary key
         """
         try:
             raise Conflict(self.get(*new_pk_values))
@@ -146,7 +159,7 @@ class DAO:
                 setattr(existing, k, v)
             self._commit_if_not_transaction()
 
-    def exists(self, model: T) -> bool:
+    def exists(self, model: Model) -> bool:
         """Determines if a model exists in the database.
 
         :param model: The DAOModel entry in question
@@ -154,23 +167,22 @@ class DAO:
         """
         return bool(self.query.filter_by(**model.get_pk_dict()).count())
 
-    def get(self, *pk_values: Any) -> T:
-        """Retrieves an entry from the database.
+    def get(self, *pk_values: Any) -> Model:
+        """Retrieves an entry from the database by its primary key.
 
-        :param pk_values: A dictionary containing the primary key values of the model to get.
+        :param pk_values: The primary key values of the Model to fetch (in the order defined in the model)
         :return: The DAOModel entry that was retrieved
         :raises NotFound: if the model does not exist in the database
-        :raises MissingInput: if the provided values do not align with the model's primary key
+        :raises InvalidArgumentCount: if the provided values do not align with the model's primary key
         """
-        keys = self.model_class.get_pk_names()
-        if len(pk_values) != len(keys):
-            raise MissingInput(f"Expected {len(keys)} values, got {len(pk_values)}")
-        return self.get_with(**{keys[i]: pk_values[i] for i in range(len(keys))})
+        return self.get_with(**self._check_pk_arguments(pk_values))
 
-    def get_with(self, **values: Any) -> T:
+    def get_with(self, **values: Any) -> Model:
         """Retrieves an entry from the database and applies the given values to it.
 
-        :param values: A dictionary containing the primary key values of the model to get and additional values to set
+        These changes are not committed to the database. Call commit() to do so.
+
+        :param values: A dictionary containing the pk values of the requested model along with additional values to set
         :return: The DAOModel entry with the additional properties updated
         :raises NotFound: if the model does not exist in the database
         """
@@ -184,7 +196,7 @@ class DAO:
     def find(self,
              page: Optional[int] = None,
              per_page: Optional[int] = None,
-             **filters: Any) -> SearchResults[T]:
+             **filters: Any) -> SearchResults[Model]:
         """Searches all the DAOModel entries to return results.
 
         :param page: The number of the page to fetch
@@ -258,7 +270,7 @@ class DAO:
         """
         return query
 
-    def remove(self, model: T) -> None:
+    def remove(self, model: Model) -> None:
         """Deletes the given model entry from the database.
 
         :param model: The DAOModel object to be deleted
@@ -285,7 +297,7 @@ class DAO:
         If this DAO was in transaction mode, it will be reset to auto-commit mode after committing.
 
         :param models_to_refresh: The DAOModels to refresh after committing
-        raises: NotFound if a model does not exist in the database
+        raises NotFound: if a model does not exist in the database
         """
         self.db.commit()
         for model in models_to_refresh:
