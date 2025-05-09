@@ -1,7 +1,7 @@
 import pytest
 
 from daomodel.dao import DAO, NotFound, Conflict
-from daomodel.util import MissingInput, next_id
+from daomodel.util import MissingInput, InvalidArgumentCount, next_id
 from tests.conftest import TestDAOFactory, Student, Person, Book
 
 
@@ -25,8 +25,15 @@ def test_create__default_fields(daos: TestDAOFactory):
 
 
 def test_create__required_fields(daos: TestDAOFactory):
-    with pytest.raises(KeyError):
+    with pytest.raises(InvalidArgumentCount) as error:
         daos[Person].create('John')
+    assert 'Expected 2 values, got 1' in str(error.value.detail)
+
+
+def test_create__too_many_args(daos: TestDAOFactory):
+    with pytest.raises(InvalidArgumentCount) as error:
+        daos[Student].create(100, 'extra', 'args')
+    assert 'Expected 1 values, got 3' in str(error.value.detail)
 
 
 def test_create_with(daos: TestDAOFactory):
@@ -183,8 +190,15 @@ def test_get__multiple_column(daos: TestDAOFactory):
 
 
 def test_get__missing_column(daos: TestDAOFactory):
-    with pytest.raises(MissingInput):
+    with pytest.raises(InvalidArgumentCount) as error:
         daos[Person].get('John')
+    assert 'Expected 2 values, got 1' in str(error.value.detail)
+
+
+def test_get__too_many_args(daos: TestDAOFactory):
+    with pytest.raises(InvalidArgumentCount) as error:
+        daos[Student].get(100, 'extra', 'args')
+    assert 'Expected 1 values, got 3' in str(error.value.detail)
 
 
 def test_get__not_found(daos: TestDAOFactory):
@@ -295,3 +309,31 @@ def test_transaction__rollback(daos: TestDAOFactory):
     dao.commit()
     daos.assert_in_db(Student, 101, name='Bob')
     daos.assert_not_in_db(Student, 100)
+
+
+def test_check_pk_arguments__single_column(daos: TestDAOFactory):
+    dao = daos[Student]
+    result = dao._check_pk_arguments((100,))
+    assert result == {'id': 100}
+
+
+def test_check_pk_arguments__multi_column(daos: TestDAOFactory):
+    dao = daos[Person]
+    result = dao._check_pk_arguments(('John', 23))
+    assert result == {'name': 'John', 'age': 23}
+
+
+def test_check_pk_arguments__too_few_args(daos: TestDAOFactory):
+    dao = daos[Student]
+    with pytest.raises(InvalidArgumentCount) as error:
+        dao._check_pk_arguments(())
+    assert 'Expected 1 values, got 0' in str(error.value.detail)
+    assert 'Student primary key' in str(error.value.detail)
+
+
+def test_check_pk_arguments__too_many_args(daos: TestDAOFactory):
+    dao = daos[Student]
+    with pytest.raises(InvalidArgumentCount) as error:
+        dao._check_pk_arguments((100, 'extra', 'args'))
+    assert 'Expected 1 values, got 3' in str(error.value.detail)
+    assert 'Student primary key' in str(error.value.detail)

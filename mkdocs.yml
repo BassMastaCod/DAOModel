@@ -2,10 +2,26 @@ site_name: DAOModel
 docs_dir: .
 
 nav:
-  - Home: README.md
-  - Getting Started: docs/getting_started.md
+- Home: README.md
+- Getting Started: docs/getting_started.md
+- DAO: docs/usage/dao.md
 
 theme: readthedocs
 
 plugins:
-  - same-dir
+- same-dir
+- search
+- mkdocstrings:
+    handlers:
+      python:
+        options:
+          show_source: false
+          heading_level: 4
+          show_root_heading: true
+          show_root_full_path: false
+          separate_signature: true
+          show_signature_annotations: true
+          docstring_style: sphinx
+          docstring_section_style: spacy
+          show_root_members_full_path: false
+          members_order: source
