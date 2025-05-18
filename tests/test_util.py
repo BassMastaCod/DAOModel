@@ -15,7 +15,7 @@ from tests.labeled_tests import labeled_tests
     (Person.ssn, 'person.ssn'),
     (Book.owner, 'book.owner')
 ])
-def test_reference_of(column: Column, expected:  str):
+def test_reference_of(column: Column, expected: str):
     assert reference_of(column) == expected
 
 

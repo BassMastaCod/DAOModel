@@ -16,22 +16,22 @@ def create_engine(path: Optional[str] = None) -> Engine:
     :return: The newly created SQLite Engine
     """
     if path is None:
-        path = ""
+        path = ''
         pool = sqlalchemy.StaticPool
     else:
-        path = "/" + path
+        path = '/' + path
         pool = None
     return sqlalchemy.create_engine(
-        "sqlite://" + path,
-        connect_args={"check_same_thread": False},
+        'sqlite://' + path,
+        connect_args={'check_same_thread': False},
         poolclass=pool
     )
 
 
-@event.listens_for(Engine, "connect")
+@event.listens_for(Engine, 'connect')
 def enforce_fk_constraints_for_sqlite(connection, _connection_record) -> None:
     cursor = connection.cursor()
-    cursor.execute("pragma foreign_keys=on")
+    cursor.execute('pragma foreign_keys=on')
     cursor.close()
 
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Any, TypeVar, Iterable, Iterator, Callable
+from typing import Optional, Any, TypeVar, Iterable, Iterator
 
 from sqlalchemy import func, Column, text, UnaryExpression
 from sqlalchemy.orm import Session

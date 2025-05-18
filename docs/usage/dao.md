@@ -38,7 +38,7 @@ Creating new records in your database is straightforward with the DAO.
 # Create a new customer with just the primary key
 customer = dao.create(1)  # Creates a Customer with id=1
 
-order = order_dao.create(42, 'A123', b'PRD001') # Creates a OrderDetail having multiple primary key values
+order = order_dao.create(42, "A123", b"PRD001") # Creates a OrderDetail having multiple primary key values
 ```
 
 If you wish to set more properties than just the primary key, you will want to use the `create_with` method.
@@ -130,7 +130,7 @@ Alternatively, you can use the `upsert` method to store the updated record regar
 ::: daomodel.dao.DAO.upsert
 ```python
 # Create a model that may or may not exist
-customer = Customer(id=10, name="Maybe New", email="maybe@example.com")
+customer = Customer(id=10, name='Maybe New', email='maybe@example.com')
 
 # Upsert it - will create if id=10 doesn't exist, or update if it does
 dao.upsert(customer)
@@ -188,15 +188,15 @@ dao.start_transaction()
 
 try:
     # Perform multiple operations
-    customer1 = dao.create_with(id=1, name="Transaction Test 1")
-    customer2 = dao.create_with(id=2, name="Transaction Test 2")
+    customer1 = dao.create_with(id=1, name='Transaction Test 1')
+    customer2 = dao.create_with(id=2, name='Transaction Test 2')
     
     # Commit the transaction
     dao.commit()
 except Exception as e:
     # Rollback on error
     dao.rollback()
-    print(f"Transaction failed: {e}")
+    print(f'Transaction failed: {e}')
 ```
 
 #### commit
@@ -210,7 +210,7 @@ If you wish to back out of all changes instead of committing them, you can see t
 dao.start_transaction()
 
 # Make some changes
-customer = dao.create_with(id=100, name="Will be rolled back")
+customer = dao.create_with(id=100, name='Will be rolled back')
 
 # Decide to cancel these changes
 dao.rollback()
@@ -219,7 +219,7 @@ dao.rollback()
 try:
     dao.get(100)  # This will raise NotFound
 except NotFound:
-    print("Customer was not created due to rollback")
+    print('Customer was not created due to rollback')
 ```
 
 ## Query
@@ -231,7 +231,7 @@ query = dao.query
 
 # Example: Update all customers with '@example.com' email to have 'Example Customer' as their name
 query.filter(Customer.email.like('%@example.com')).update(
-    {"name": "Example Customer"},
+    {'name': 'Example Customer'},
     synchronize_session=False
 )
 
