@@ -3,7 +3,8 @@ from typing import Iterable, Any, Optional
 import pytest
 from sqlalchemy import Column
 
-from daomodel import DAOModel, names_of, Unsearchable, reference_of, PrimaryKey, ForeignKey, PrimaryForeignKey
+from daomodel import DAOModel, names_of, Unsearchable, reference_of
+from daomodel.fields import PrimaryKey, ForeignKey, PrimaryForeignKey
 from tests.labeled_tests import labeled_tests
 
 
@@ -12,13 +13,13 @@ class Model(DAOModel):
 
 
 class SimpleModel(DAOModel, table=True):
-    pkA: int = PrimaryKey
+    pkA: int = PrimaryKey()
 
 simple_instance = SimpleModel(pkA=23)
 
 
 class ForeignKEYModel(DAOModel, table=True):
-    pkB: int = PrimaryKey
+    pkB: int = PrimaryKey()
     prop: str
     fk: int = ForeignKey('simple_model.pkA')
 
@@ -28,8 +29,8 @@ class BaseModel(DAOModel):
 
 
 class ComplicatedModel(BaseModel, table=True):
-    pkC: int = PrimaryKey
-    pkD: int = PrimaryKey
+    pkC: int = PrimaryKey()
+    pkD: int = PrimaryKey()
     prop2: Optional[str]
     fkA: int = ForeignKey('simple_model.pkA')
     fkB: int = ForeignKey('foreign_key_model.pkB')

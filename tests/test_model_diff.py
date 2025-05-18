@@ -4,7 +4,8 @@ from typing import Optional, Any
 
 import pytest
 
-from daomodel import DAOModel, PrimaryKey, OptionalPrimaryKey
+from daomodel import DAOModel
+from daomodel.fields import PrimaryKey
 from daomodel.model_diff import ModelDiff, Preference
 from tests.labeled_tests import labeled_tests
 
@@ -16,8 +17,8 @@ class LaundryStatus(Enum):
 
 
 class Rental(DAOModel, table=True):
-    address: str = PrimaryKey
-    apt: Optional[str] = OptionalPrimaryKey
+    address: str = PrimaryKey()
+    apt: Optional[str] = PrimaryKey()
     dwelling_type: str
     sqft: int
     bedrooms: int

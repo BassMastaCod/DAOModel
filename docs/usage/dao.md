@@ -6,18 +6,18 @@ This page explains the basic operations available through your new DAO interface
 For the examples on this page, we'll assume the following sample DAOs.
 ```python
 from daomodel import DAO, DAOModel
-from daomodel.model import PrimaryKey
+from daomodel.fields import PrimaryKey
 
 class Customer(DAOModel, table=True):
-    id: int = PrimaryKey
+    id: int = PrimaryKey()
     name: str
     email: str
 
 # Model with a composite primary key
 class OrderDetail(DAOModel, table=True):
-    order_id: int = PrimaryKey
-    line_number: str = PrimaryKey
-    product_code: bytes = PrimaryKey
+    order_id: int = PrimaryKey()
+    line_number: str = PrimaryKey()
+    product_code: bytes = PrimaryKey()
     quantity: int
 
 dao = DAO(Customer, db)
