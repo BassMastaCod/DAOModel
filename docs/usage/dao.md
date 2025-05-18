@@ -23,6 +23,7 @@ class OrderDetail(DAOModel, table=True):
 dao = DAO(Customer, db)
 order_dao = DAO(OrderDetail, db)
 ```
+> **Note:** `db` in the above code is from [Getting Started](../getting_started.md#configure-and-initialize-your-db).
 
 ## CRUD Operations
 
@@ -95,7 +96,7 @@ customer = dao.get_with(id=1, name='Updated Name')
 If you do not know the primary key values, you can search for a record based on other properties.
 
 ::: daomodel.dao.DAO.find
-Searching is covered in more detail on the [Search](#search) page.
+Searching is covered in more detail on the [Search](search.md) page.
 
 If you just want to know if a model is in the DB, the `exists` method can help with that.
 
