@@ -22,8 +22,8 @@ class BaseService:
         
         :param source: The source DAOModel to be merged into the destination
         :param destination_pk_values: The primary key values indicating where to merge the model
-        :raises: NotFound: if the destination model does not exist in the database
-        :raises: Conflict: if the source model fails to merge into the destination
+        :raises NotFound: if the destination model does not exist in the database
+        :raises Conflict: if the source model fails to merge into the destination
         """
         model_dao = self.daos[type(source)]
         model_dao.start_transaction()

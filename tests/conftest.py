@@ -77,7 +77,7 @@ class Student(BasePerson, table=True):
 class TestDAOFactory(DAOFactory):
     """
     A DAOFactory specifically designed for pytest.
-    Includes functionality that can assert what is commited within the DB (through a secondary Session).
+    Includes functionality that can assert what is committed within the DB (through a secondary Session).
     """
     def __init__(self):
         engine = create_engine()  # create_engine('test.db')  # See DB for debugging, must delete file to rerun

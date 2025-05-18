@@ -39,7 +39,7 @@ class ModelDiff(dict[str, tuple[Any, Any]]):
 
         :param field: The name of the field to fetch
         :return: The left value for the specified field
-        :raises: KeyError if the field is invalid or otherwise not included in this diff
+        :raises KeyError: if the field is invalid or otherwise not included in this diff
         """
         if field not in self:
             raise KeyError(f'{field} not found in diff.')
@@ -50,7 +50,7 @@ class ModelDiff(dict[str, tuple[Any, Any]]):
 
         :param field: The name of the field to fetch
         :return: The right value for the specified field
-        :raises: KeyError if the field is invalid or otherwise not included in this diff
+        :raises KeyError: if the field is invalid or otherwise not included in this diff
         """
         if field not in self:
             raise KeyError(f'{field} not found in diff.')
@@ -62,7 +62,7 @@ class ModelDiff(dict[str, tuple[Any, Any]]):
 
         :param field: The name of the field
         :return: The Preference between the possible values
-        :raises: KeyError if the field is invalid or otherwise not included in this diff
+        :raises KeyError: if the field is invalid or otherwise not included in this diff
         """
         raise NotImplementedError(f'Cannot determine which value is preferred for {field}: '
                                   f'{self.get_left(field)} -> {self.get_right(field)}')
@@ -178,7 +178,7 @@ class ChangeSet(ModelDiff):
 
         :param field: The name of the field to fetch
         :return: The baseline value for the specified field
-        :raises: KeyError if the field is invalid or otherwise not included in this diff
+        :raises KeyError: if the field is invalid or otherwise not included in this diff
         """
         return self.get_left(field)
 
@@ -187,7 +187,7 @@ class ChangeSet(ModelDiff):
 
         :param field: The name of the field to fetch
         :return: The target value for the specified field
-        :raises: KeyError if the field is invalid or otherwise not included in this diff
+        :raises KeyError: if the field is invalid or otherwise not included in this diff
         """
         return self.get_right(field)
 
@@ -228,7 +228,7 @@ class ChangeSet(ModelDiff):
 
         :param field: The field having a conflict
         :return: The result of the resolution which may be the baseline value, target value, or something new entirely
-        :raises: Conflict if a resolution cannot be determined
+        :raises Conflict: if a resolution cannot be determined
         """
         def raise_conflict(*values: Any) -> Any:
             raise Conflict(msg=f'Unable to determine preferred result for {field}: {values}')
@@ -248,7 +248,7 @@ class ChangeSet(ModelDiff):
         """Removes unwanted changes, preserving the meaningful values, regardless of them being from baseline or target
 
         :return: This ChangeSet to allow for chaining function calls
-        :raises: Conflict if both baseline and target have meaningful values (unless resolve_conflict is overridden)
+        :raises Conflict: if both baseline and target have meaningful values (unless resolve_conflict is overridden)
         """
         for field in list(self.keys()):
             preferred = self.get_preferred(field)

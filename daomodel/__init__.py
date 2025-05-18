@@ -33,7 +33,7 @@ class DAOModel(SQLModel):
 
     @classmethod
     def doc_name(cls) -> str:
-        """A reader friendly version of this Model name to be used within documentation.
+        """A reader-friendly version of this Model name to be used within documentation.
 
         :return: The model name in Title Case
         """
@@ -51,7 +51,7 @@ class DAOModel(SQLModel):
     def get_pk_names(cls) -> list[str]:
         """Returns the names of Columns that comprise the Primary Key for this Model.
 
-        :return: A list of str of the primary key
+        :return: A list (of str) of the primary key
         """
         return names_of(cls.get_pk())
 
@@ -106,7 +106,7 @@ class DAOModel(SQLModel):
 
     @kwargs_if_none_provided(all=True)
     def get_property_names(self, **kwargs: bool) -> list[str]:
-        """Returns the names of the specified properties of this Model
+        """Returns the names of the specified properties for this Model
 
         Supported property categories to specify are:
             all: All model properties including those inherited
@@ -153,10 +153,10 @@ class DAOModel(SQLModel):
         return in_order(result, property_order)
 
     def get_property_values(self, **kwargs: bool) -> dict[str, Any]:
-        """Reads values of the specified properties of this Model.
+        """Reads values of the specified properties for this Model.
 
-        :param kwargs: see get_property_names()
-        :return: a dict of property names and their values
+        :param kwargs: See `get_property_names`
+        :return: A dict of property names and their values
         """
         return self.get_values_of(self.get_property_names(**kwargs))
 
@@ -210,7 +210,7 @@ class DAOModel(SQLModel):
         :param prop: str type reference of the Column or the Column itself
         :param foreign_tables: A list of foreign tables to populated with tables of properties deemed to be foreign
         :return: The searchable Column
-        :raises: Unsearchable if the property is not Searchable for this class
+        :raises Unsearchable: if the property is not Searchable for this class
         """
         if type(prop) is not str:
             prop = reference_of(prop)
