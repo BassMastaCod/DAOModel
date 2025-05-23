@@ -4,6 +4,7 @@ from typing import Any, Optional, Callable
 
 from daomodel import DAOModel
 from daomodel.dao import Conflict
+from daomodel.property_filter import DEFAULT
 
 
 class Preference(Enum):
@@ -169,8 +170,8 @@ class ChangeSet(ModelDiff):
                  include_pk: Optional[bool] = False,
                  **conflict_resolution: Preference|Callable|Any):
         super().__init__(baseline, target, include_pk)
-        self.assigned_in_baseline = self.left.get_property_names(assigned=True)
-        self.assigned_in_target = self.right.get_property_names(assigned=True)
+        self.modified_in_baseline = self.left.get_property_names(~DEFAULT)
+        self.modified_in_target = self.right.get_property_names(~DEFAULT)
         self.conflict_resolution = conflict_resolution
 
     def get_baseline(self, field: str) -> Any:
@@ -213,9 +214,9 @@ class ChangeSet(ModelDiff):
     def get_preferred(self, field: str) -> Preference:
         return (
             Preference.LEFT if not self.has_target_value(field) else
-            Preference.BOTH if field in self.assigned_in_baseline and field in self.assigned_in_target else
-            Preference.LEFT if field in self.assigned_in_baseline else
-            Preference.RIGHT if field in self.assigned_in_target else
+            Preference.BOTH if field in self.modified_in_baseline and field in self.modified_in_target else
+            Preference.LEFT if field in self.modified_in_baseline else
+            Preference.RIGHT if field in self.modified_in_target else
             Preference.NEITHER
         )
 
@@ -291,7 +292,7 @@ class MergeSet(ChangeSet):
         self.left = baseline
         self.right = targets
         for model in targets:
-            self.assigned_in_target += model.get_property_names(assigned=True)
+            self.modified_in_target += model.get_property_names(~DEFAULT)
 
         for model in targets:
             for k, v in baseline.compare(model).items():

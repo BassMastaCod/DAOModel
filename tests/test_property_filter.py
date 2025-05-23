@@ -220,3 +220,66 @@ def test_evaluate_to_no_results():
 })
 def test_mixed_filters(property_filter: PropertyFilter, expected: set[str]):
     assert property_filter.evaluate(property_model) == expected
+
+@labeled_tests({
+    'primary key properties':
+        (PK, [
+            'pk_value',
+            'pk_default_none',
+            'pk_default',
+            'pk_override',
+            'pk_default_optional',
+            'pk_override_optional',
+            'pk_override_none',
+
+            'pk_fk_value',
+            'pk_fk_default_none',
+            'pk_fk_default',
+            'pk_fk_override',
+            'pk_fk_default_optional',
+            'pk_fk_override_optional',
+            'pk_fk_override_none'
+        ]),
+    'foreign but not primary key properties':
+        (FK & ~PK, [
+            'fk_value',
+            'fk_default_none',
+            'fk_default',
+            'fk_override',
+            'fk_default_optional',
+            'fk_override_optional',
+            'fk_override_none'
+        ])
+})
+def test_get_property_names(property_filter: PropertyFilter, expected: list[str]):
+    assert property_model.get_property_names(property_filter) == expected
+
+def test_get_property_names__no_args():
+    assert property_model.get_property_names() == all_properties
+
+def test_get_property_names__multiple_args():
+    assert property_model.get_property_names(~PK, ~FK, ~NONE | DEFAULT) == [
+        'field_value',
+        'field_default_none',
+        'field_default',
+        'field_override',
+        'field_default_optional',
+        'field_override_optional'
+    ]
+
+@labeled_tests({
+    'standard properties':
+        (~(PK | FK), {
+            'field_value': 1,
+            'field_default_none': None,
+            'field_default': 0,
+            'field_override': 1,
+            'field_default_optional': 0,
+            'field_override_optional': 1,
+            'field_override_none': None
+        }),
+    'no properties':
+        (PK & ~PK, dict())
+})
+def test_get_property_values(property_filter: PropertyFilter, expected: dict[str, Any]):
+    assert property_model.get_property_values(property_filter) == expected

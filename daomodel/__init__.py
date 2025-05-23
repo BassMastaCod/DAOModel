@@ -5,9 +5,8 @@ from sqlalchemy import Column, Engine, MetaData, Connection
 from str_case_util import Case
 from sqlalchemy.ext.declarative import declared_attr
 
-from daomodel.util import reference_of, names_of, in_order, retain_in_dict, remove_from_dict, kwargs_if_none_provided
-
-PROPERTY_CATEGORIES = ['all', 'pk', 'fk', 'standard', 'assigned', 'defaults', 'none']
+from daomodel.util import reference_of, names_of, in_order, retain_in_dict, remove_from_dict
+from daomodel.property_filter import PropertyFilter, ALL, PK
 
 
 class DAOModel(SQLModel):
@@ -103,61 +102,117 @@ class DAOModel(SQLModel):
         """
         return cls.__table__.c
 
-    @kwargs_if_none_provided(all=True)
-    def get_property_names(self, **kwargs: bool) -> list[str]:
-        """Returns the names of the specified properties for this Model
+    def get_property_names(self, *filters: PropertyFilter) -> list[str]:
+        """Returns the names of the specified properties for this Model.
 
-        Supported property categories to specify are:
-            all: All model properties including those inherited
-            pk: Primary Key properties
-            fk: Foreign Key properties
-            standard: All other properties (that aren't pk or fk)
-            assigned: Properties that have a non-default value
-            defaults: Properties that are equivalent to their default value
-            none: Properties that do not have a value
-        Property categories may be set to True (to include) or False (to exclude).
-        The categories are added/removed in the order that they are encountered as arguments.
-            Therefore, arguments of get_property_names(pk=False, all=True) will result in all properties
-            while get_property_names(all=True, pk=False) will result in all but the primary key properties.
-        assigned, defaults, and none will overlap with each other and the other categories
-            so order is important to get the properties you intend.
-        If no arguments are provided, all properties will be returned.
+        Requested property categories may be refined through filters:
 
-        :param kwargs: The property categories to include or exclude
-        :return: A list of property names in the order they are defined within the code (see get_properties)
+        - `ALL`: All properties
+        - `PK`: Primary Key properties
+        - `FK`: Foreign Key properties
+        - `DEFAULT`: Properties that are equivalent to their default value
+        - `NONE`: Properties that do not have a value
+
+        ```python
+        # Get all properties (default if no filter specified)
+        model.get_property_names()
+
+        # Get all primary key properties
+        model.get_property_names(PK)
+        ```
+
+        Each filter can be negated by prepending `~` to indicate _NOT_:
+        ```python
+        # Get all non-null properties
+        model.get_property_names(~NONE)
+
+        # Get all properties that are not relationships
+        model.get_property_names(~FK)
+        ```
+
+        Operators allow for combining filters into expressions:
+
+        - `&` (AND): Properties must match both filters
+        - `|` (OR): Properties must match at least one filter
+        - `~` (NOT): Properties must NOT match the filter
+
+        ```python
+        # Get missing relationships
+        model.get_property_names(FK & NONE)
+
+        # Get properties that are a primary or foreign key
+        model.get_property_names(PK | FK)
+
+        # Get properties that are their default value or null
+        model.get_property_names(DEFAULT | NONE)
+
+        # Get properties that are either not null or are primary key relationships
+        model.get_property_names(~NONE | PK & FK)
+        ```
+
+        Multiple filter arguments (seperated by commas) are combined with AND:
+        ```python
+        # Get primary keys that aren't foreign keys
+        model.get_property_names(PK, ~FK)  # equivalent to: PK & ~FK
+
+        # Make sure they are also not null
+        model.get_property_names(PK, ~FK, ~NONE)  # equivalent to: PK & ~FK & ~NONE
+        ```
+
+        Combine several filters to form complex expressions:
+        ```python
+        # Get properties that are either primary keys that aren't foreign keys or are non-null default values
+        model.get_property_names(PK & ~FK | DEFAULT & ~NONE)
+        ```
+
+        The filters within an expression are resolved in a specific order:
+
+        1. `~` (NOT): Properties must NOT match the filter
+        2. `&` (AND): Properties must match both filters
+        3. `|` (OR): Properties must match at least one filter
+
+        Therefore, the following expressions are all equivalent:
+        ```python
+        model.get_property_names(~NONE | PK & ~FK)
+        model.get_property_names(PK & ~FK | ~NONE)
+        model.get_property_names(~FK & PK | ~NONE)
+        ```
+
+        To change the order of evaluation, use parentheses:
+        ```python
+        # properties that are either not null or are primary keys but not foreign keys
+        model.get_property_names(~FK & PK | ~NONE)
+
+        # properties that are either not null or are not both primary and foreign keys
+        model.get_property_names(~(FK & PK) | ~NONE)
+
+        # properties that are not foreign keys and properties that are either primary keys or are non-null
+        model.get_property_names(~FK & (PK | ~NONE))
+        ```
+
+        :param filters: Property filter expressions using PK, FK, DEFAULT, NONE. Multiple filters are combined with AND.
+        :return: A list of property names in the order they are defined within the code
         """
-        property_order = names_of(self.get_properties())
-        all_properties = set(property_order)
-        result = set()
+        match len(filters):
+            case 0:
+                prop_filter = ALL
+            case 1:
+                prop_filter = filters[0]
+            case _:
+                prop_filter = filters[0]
+                for next_filter in filters[1:]:
+                    prop_filter &= next_filter
 
-        for key, value in kwargs.items():
-            if key not in PROPERTY_CATEGORIES:
-                raise ValueError(f'Unexpected keyword argument {key} is not one of {PROPERTY_CATEGORIES}')
-            if key == 'all':
-                props = all_properties
-            elif key == 'pk':
-                props = self.get_pk_names()
-            elif key == 'fk':
-                props = names_of(self.get_fk_properties())
-            elif key == 'assigned':
-                props = self.model_dump(exclude_defaults=True, exclude_none=True)
-            else:
-                if key == 'standard':
-                    exclude = self.get_pk_names() + names_of(self.get_fk_properties())
-                else:
-                    exclude = self.model_dump(**{f'exclude_{key}': True})
-                props = all_properties.difference(exclude)
+        result = prop_filter.evaluate(self)
+        return in_order(result, names_of(self.get_properties()))
 
-            result = result.union(props) if value else result.difference(props)
-        return in_order(result, property_order)
-
-    def get_property_values(self, **kwargs: bool) -> dict[str, Any]:
+    def get_property_values(self, *filters: PropertyFilter) -> dict[str, Any]:
         """Reads values of the specified properties for this Model.
 
-        :param kwargs: See `get_property_names`
+        :param filters: Property filter expressions (see `get_property_names`)
         :return: A dict of property names and their values
         """
-        return self.get_values_of(self.get_property_names(**kwargs))
+        return self.get_values_of(self.get_property_names(*filters))
 
     def get_value_of(self, column: Column|str) -> Any:
         """Shortcut function to return the value for the specified Column."""
@@ -183,11 +238,10 @@ class DAOModel(SQLModel):
         :param include_pk: True if you want to include the primary key in the diff
         :return: A dictionary of property names with a tuple of this instance's value and the other value respectively
         """
-        args = {'all': True}
-        if not include_pk:
-            args['pk'] = False
-        source_values = self.get_property_values(**args)
-        other_values = other.get_property_values(**args)
+        filter_expr = None if include_pk else ~PK
+        source_values = self.get_property_values(filter_expr) if filter_expr else self.get_property_values()
+        other_values = other.get_property_values(filter_expr) if filter_expr else other.get_property_values()
+        
         diff = {}
         for k, v in source_values.items():
             if other_values[k] != v:
