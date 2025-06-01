@@ -6,7 +6,7 @@ from sqlalchemy import func, Column, text, UnaryExpression
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
-from daomodel.util import values_from_dict, filter_dict, MissingInput, InvalidArgumentCount, ensure_iter, dedupe, ConditionOperator
+from daomodel.util import values_from_dict, retain_in_dict, MissingInput, InvalidArgumentCount, ensure_iter, dedupe, ConditionOperator
 
 from daomodel import DAOModel
 
@@ -115,7 +115,7 @@ class DAO:
         :return: The new DAOModel
         :raises Conflict: if an entry already exists for the primary key (does not apply if insert=False)
         """
-        model = self.model_class(**filter_dict(*self.model_class.get_pk_names(), **values))
+        model = self.model_class(**retain_in_dict(values, *self.model_class.get_pk_names()))
         model.set_values(ignore_pk=True, **values)
         if insert:
             self.insert(model)
