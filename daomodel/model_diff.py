@@ -159,7 +159,7 @@ class ChangeSet(ModelDiff):
 
     5. Static Resolution:
        ```
-       ChangeSet(baseline, target, name="Static Name", default="Default Value")
+       ChangeSet(baseline, target, name='Static Name', default='Default Value')
        ```
     
     View the test code for more examples.

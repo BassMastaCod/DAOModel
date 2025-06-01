@@ -26,7 +26,7 @@ def reference_of(column: Column) -> str:
     :param column: The column to convert
     :return: The 'table.column' notation of the Column
     """
-    return f"{column.table.name}.{column.name}"
+    return f'{column.table.name}.{column.name}'
 
 
 def names_of(properties: Iterable[Column]) -> list[str]:
@@ -64,7 +64,7 @@ def values_from_dict(*keys: Any, **values: Any) -> tuple:
         if key in values:
             result.append(values[key])
         else:
-            raise MissingInput(f"Requested key {key} not found in dictionary")
+            raise MissingInput(f'Requested key {key} not found in dictionary')
     return tuple(result)
 
 
@@ -156,7 +156,7 @@ class ConditionOperator:
         :param column: The column on which to evaluate
         :return: the expression
         """
-        raise NotImplementedError("Must implement `get_expression` in subclass")
+        raise NotImplementedError('Must implement `get_expression` in subclass')
 
 
 class GreaterThan(ConditionOperator):

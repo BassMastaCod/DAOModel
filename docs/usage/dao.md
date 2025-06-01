@@ -39,7 +39,7 @@ Creating new records in your database is straightforward with the DAO.
 # Create a new customer with just the primary key
 customer = dao.create(1)  # Creates a Customer with id=1
 
-order = order_dao.create(42, "A123", b"PRD001") # Creates a OrderDetail having multiple primary key values
+order = order_dao.create(42, 'A123', b'PRD001') # Creates a OrderDetail having multiple primary key values
 ```
 
 If you wish to set more properties than just the primary key, you will want to use the `create_with` method.

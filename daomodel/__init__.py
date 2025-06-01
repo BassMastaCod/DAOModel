@@ -61,7 +61,7 @@ class DAOModel(SQLModel):
         return tuple(getattr(self, key) for key in names_of(self.get_pk()))
 
     def get_pk_dict(self) -> dict[str, Any]:
-        """Returns the dictionary Primary Keys for this instance of the Model.
+        """Returns the Primary Key values for this instance of the Model.
 
         :return: A dict of primary key names/values
         """
@@ -69,7 +69,9 @@ class DAOModel(SQLModel):
 
     @classmethod
     def get_fks(cls) -> set[Column]:
-        """Returns the Columns of other objects that are represented by Foreign Keys for this Model.
+        """Returns the Columns of other tables that are represented by Foreign Keys for this Model.
+
+        A returned Column could be within this Model in the case of a cyclic relationship.
 
         :return: An unordered set of columns
         """
@@ -215,7 +217,11 @@ class DAOModel(SQLModel):
         return self.get_values_of(self.get_property_names(*filters))
 
     def get_value_of(self, column: Column|str) -> Any:
-        """Shortcut function to return the value for the specified Column."""
+        """Shortcut function to return the value for the specified Column.
+
+        :param column: The Column, or column name, to read
+        :raises `AttributeError`: if the column is not found.
+        """
         if not isinstance(column, str):
             column = column.name
         return getattr(self, column)
@@ -241,7 +247,7 @@ class DAOModel(SQLModel):
         filter_expr = None if include_pk else ~PK
         source_values = self.get_property_values(filter_expr) if filter_expr else self.get_property_values()
         other_values = other.get_property_values(filter_expr) if filter_expr else other.get_property_values()
-        
+
         diff = {}
         for k, v in source_values.items():
             if other_values[k] != v:
@@ -272,7 +278,7 @@ class DAOModel(SQLModel):
             if type(column) is tuple:
                 tables = column[:-1]
                 column = column[-1]
-            if reference_of(column) in [prop, f"{cls.normalized_name()}.{prop}"]:
+            if reference_of(column) in [prop, f'{cls.normalized_name()}.{prop}']:
                 foreign_tables.extend([t.__table__ for t in tables])
                 if column.table is not cls.__table__:
                     foreign_tables.append(column.table)
@@ -326,8 +332,8 @@ class DAOModel(SQLModel):
     def __str__(self) -> str:
         """
         str representation of this is a str of the primary key.
-        A single-column PK results in a simple str value of said column i.e. "1234"
-        A multi-column PK results in a str of tuple of PK values i.e. ("Cod", "123 Lake Way")
+        A single-column PK results in a simple str value of said column i.e. '1234'
+        A multi-column PK results in a str of tuple of PK values i.e. ('Cod', '123 Lake Way')
         """
         pk_values = self.get_pk_values()
         if len(pk_values) == 1:
@@ -338,7 +344,7 @@ class DAOModel(SQLModel):
 class Unsearchable(Exception):
     """Indicates that the Search Query is not allowed for the specified field."""
     def __init__(self, prop: str, model: type(DAOModel)):
-        self.detail = f"Cannot search for {prop} of {model.doc_name()}"
+        self.detail = f'Cannot search for {prop} of {model.doc_name()}'
 
 
 def all_models(bind: [Engine|Connection]) -> set[type[DAOModel]]:

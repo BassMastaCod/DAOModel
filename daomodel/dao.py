@@ -20,7 +20,7 @@ class NotFound(Exception):
 class Conflict(Exception):
     """Indicates that the store could not be updated due to an existing conflict."""
     def __init__(self, model: Optional[DAOModel] = None, msg: Optional[str] = None):
-        self.detail = msg if msg else f"{model.__class__.doc_name()} {model} already exists"
+        self.detail = msg if msg else f'{model.__class__.doc_name()} {model} already exists'
 
 
 Model = TypeVar('Model', bound=DAOModel)
@@ -49,7 +49,7 @@ class SearchResults(list[Model]):
     def __str__(self) -> str:
         string = str(self.results)
         if self.page:
-            string = f"Page {self.page}; {self.per_page} of {self.total} results {string}"
+            string = f'Page {self.page}; {self.per_page} of {self.total} results {string}'
         return string
 
     def first(self) -> Optional[Model]:
@@ -94,7 +94,7 @@ class DAO:
         """
         keys = self.model_class.get_pk_names()
         if len(pk_values) != len(keys):
-            raise InvalidArgumentCount(len(keys), len(pk_values), f"{self.model_class.doc_name()} primary key")
+            raise InvalidArgumentCount(len(keys), len(pk_values), f'{self.model_class.doc_name()} primary key')
         return {keys[i]: pk_values[i] for i in range(len(keys))}
 
     def create(self, *pk_values: Any) -> Model:
@@ -210,12 +210,12 @@ class DAO:
 
         # TODO: Add support for checking for specific values within foreign tables
         for key, value in filters.items():
-            if key == "order":  # TODO: rename to avoid collisions with actual column names
+            if key == 'order':  # TODO: rename to avoid collisions with actual column names
                 order = self._order(value, foreign_tables)
-            elif key == "duplicate":
-                query = self._count(query, value, foreign_tables, "dupe").where(text(f"dupe.count > 1"))
-            elif key == "unique":
-                query = self._count(query, value, foreign_tables, "uniq").where(text(f"uniq.count <= 1"))
+            elif key == 'duplicate':
+                query = self._count(query, value, foreign_tables, 'dupe').where(text(f'dupe.count > 1'))
+            elif key == 'unique':
+                query = self._count(query, value, foreign_tables, 'uniq').where(text(f'uniq.count <= 1'))
             else:  # TODO: Add logic for is_set and not_set that works for foreign values
                 query = self._filter(query, key, value, foreign_tables)
 
@@ -231,7 +231,7 @@ class DAO:
                 page = 1
             query = query.offset((page - 1) * per_page).limit(per_page)
         elif page:
-            raise MissingInput("Must specify how many results per page")
+            raise MissingInput('Must specify how many results per page')
 
         return SearchResults(query.all(), total, page, per_page)
 
@@ -240,7 +240,7 @@ class DAO:
                foreign_tables: list[DAOModel]) -> list[Column|UnaryExpression]:
         order = []
         if type(value) is str:
-            value = value.split(", ")
+            value = value.split(', ')
         for column in ensure_iter(value):
             if type(column) is UnaryExpression:
                 if self.model_class.find_searchable_column(column.element, foreign_tables) is not None:
@@ -251,11 +251,11 @@ class DAO:
 
     def _count(self, query: Query, prop: str, foreign_tables: list[DAOModel], alias: str) -> Query:
         column = self.model_class.find_searchable_column(prop, foreign_tables)
-        subquery = (self.db.query(column, func.count(column).label("count"))
+        subquery = (self.db.query(column, func.count(column).label('count'))
                     .group_by(column)
                     .subquery()
                     .alias(alias))
-        return query.join(subquery, column == text(f"{alias}.{column.name}"))
+        return query.join(subquery, column == text(f'{alias}.{column.name}'))
 
     def _filter(self, query: Query, key: [str|Column], value: Any, foreign_tables: list[type[DAOModel]]) -> Query:
         column = self.model_class.find_searchable_column(key, foreign_tables)
@@ -314,6 +314,6 @@ class DAO:
         :raises RuntimeError: if not in transaction mode
         """
         if self._auto_commit:
-            raise RuntimeError("Cannot rollback while not in transaction mode")
+            raise RuntimeError('Cannot rollback while not in transaction mode')
         self.db.rollback()
         self._end_transaction()
