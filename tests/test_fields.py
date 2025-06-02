@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Optional
 
 import pytest
@@ -5,8 +6,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import Field
 
 from daomodel import DAOModel, names_of
-from daomodel.fields import Identifier
+from daomodel.fields import Identifier, utc_now, CurrentTimestampField, AutoUpdatingTimestampField, JSONField
 from tests.conftest import TestDAOFactory
+from tests.labeled_tests import labeled_tests
+
+
+ZERO_TIMESTAMP = datetime(1970, 1, 1)
 
 
 class TestModel(DAOModel, table=True):
@@ -40,6 +45,18 @@ class ModelWithPrimaryForeignKey(DAOModel, table=True):
 class ModelWithCustomOnDelete(DAOModel, table=True):
     id: Identifier[int]
     other_id: TestModel = Field(foreign_key='test_model.id', ondelete='RESTRICT')
+
+
+class ModelWithTimestamps(DAOModel, table=True):
+    id: Identifier[int]
+    name: Optional[str]
+    created_at: datetime = CurrentTimestampField
+    updated_at: datetime = AutoUpdatingTimestampField
+
+
+class ModelWithJson(DAOModel, table=True):
+    id: Identifier[int]
+    data: dict = JSONField
 
 
 def test_identifier():
@@ -149,3 +166,41 @@ def test_foreign_key__custom_on_delete(daos: TestDAOFactory):
 
     with pytest.raises(IntegrityError):
         test_dao.remove(test_entry)
+
+
+def test_utc_now():
+    now = utc_now()
+    assert isinstance(now, datetime)
+    assert now.tzinfo is timezone.utc
+
+
+def test_current_timestamp(daos: TestDAOFactory):
+    dao = daos[ModelWithTimestamps]
+    dao.create(1)
+    entry = dao.get(1)
+    assert entry.created_at is not None
+    assert entry.created_at > ZERO_TIMESTAMP
+
+
+def test_auto_updating_timestamp(daos: TestDAOFactory):
+    dao = daos[ModelWithTimestamps]
+    dao.create(1)
+    entry = dao.get(1)
+    updated_at = entry.updated_at
+    assert updated_at is not None
+    assert updated_at > ZERO_TIMESTAMP
+
+    entry.name = 'Test'
+    dao.commit()
+    assert entry.updated_at > updated_at
+
+
+@labeled_tests({
+    'standard json': {'Hello': 'World!', 'Lorem': ['Ipsum', 'Dolor', 'Sit', 'Amet']},
+    'empty json': {},
+})
+def test_json_field(json: dict):
+    with TestDAOFactory() as daos:
+        dao = daos[ModelWithJson]
+        dao.create_with(id=1, data=json)
+        assert dao.get(1).data == json
