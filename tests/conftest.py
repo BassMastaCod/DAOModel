@@ -11,12 +11,13 @@ from sqlmodel import Field
 from daomodel import DAOModel
 from daomodel.dao import NotFound, DAO
 from daomodel.db import DAOFactory, create_engine, init_db
+from daomodel.fields import Identifier
 from daomodel.util import next_id
 
 
 class Person(DAOModel, table=True):
-    name: str = Field(primary_key=True)
-    age: int = Field(primary_key=True)
+    name: Identifier[str]
+    age: Identifier[int]
     ssn: Optional[str]
 
     @classmethod
@@ -24,13 +25,8 @@ class Person(DAOModel, table=True):
         return {cls.name, cls.age}
 
 
-class PersonDisplay(Person):
-    name: str = Field(primary_key=True)
-    age: int = Field(primary_key=True)
-
-
 class Book(DAOModel, table=True):
-    name: str = Field(primary_key=True)
+    name: Identifier[str]
     subject: str
     owner: int = Field(
         sa_column=Column(
@@ -44,8 +40,8 @@ class Book(DAOModel, table=True):
 
 
 class Hall(DAOModel, table=True):
-    location: str = Field(primary_key=True)
-    floor: int = Field(primary_key=True)
+    location: Identifier[str]
+    floor: Identifier[int]
     color: str
 
 
@@ -57,14 +53,14 @@ class Locker(DAOModel, table=True):
         ),
     )
 
-    number: int = Field(primary_key=True)
+    number: Identifier[int]
     owner: int = Field(foreign_key='student.id')
     location: str
     floor: int
 
 
 class BasePerson(DAOModel):
-    id: int = Field(primary_key=True)
+    id: Identifier[int]
     name: Optional[str]
 
 
@@ -74,7 +70,7 @@ class Staff(BasePerson, table=True):
 
 class Student(BasePerson, table=True):
     gender: Optional[str]
-    active: bool = Field(default=True)
+    active: bool = True
 
     @classmethod
     def get_searchable_properties(cls) -> set[Column|tuple[DAOModel, ..., Column]]:

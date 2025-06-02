@@ -5,6 +5,7 @@ from sqlalchemy import Column
 from sqlmodel import Field
 
 from daomodel import DAOModel, names_of, Unsearchable, reference_of
+from daomodel.fields import Identifier
 from tests.labeled_tests import labeled_tests
 
 
@@ -13,15 +14,15 @@ class Model(DAOModel):
 
 
 class SimpleModel(DAOModel, table=True):
-    pkA: int = Field(primary_key=True)
+    pkA: Identifier[int]
 
 simple_instance = SimpleModel(pkA=23)
 
 
 class ForeignKEYModel(DAOModel, table=True):
-    pkB: int = Field(primary_key=True)
+    pkB: Identifier[int]
     prop: str
-    fk: int = Field(foreign_key='simple_model.pkA')
+    fk: SimpleModel
 
 
 class BaseModel(DAOModel):
@@ -29,8 +30,8 @@ class BaseModel(DAOModel):
 
 
 class ComplicatedModel(BaseModel, table=True):
-    pkC: int = Field(primary_key=True)
-    pkD: int = Field(primary_key=True)
+    pkC: Identifier[int]
+    pkD: Identifier[int]
     prop2: Optional[str]
     fkA: int = Field(foreign_key='simple_model.pkA')
     fkB: int = Field(foreign_key='foreign_key_model.pkB')

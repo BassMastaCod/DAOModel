@@ -3,9 +3,9 @@ from enum import Enum, auto
 from typing import Optional, Any
 
 import pytest
-from sqlmodel import Field
 
 from daomodel import DAOModel
+from daomodel.fields import Identifier
 from daomodel.model_diff import ModelDiff, Preference
 from tests.labeled_tests import labeled_tests
 
@@ -17,14 +17,14 @@ class LaundryStatus(Enum):
 
 
 class Rental(DAOModel, table=True):
-    address: str = Field(primary_key=True)
-    apt: Optional[str] = Field(primary_key=True)
+    address: Identifier[str]
+    apt: Identifier[Optional[str]]
     dwelling_type: str
     sqft: int
     bedrooms: int
     bathrooms: Decimal
     garage_parking: int = 0
-    laundry: Optional[LaundryStatus] = None
+    laundry: Optional[LaundryStatus]
     cost: int
 
 
