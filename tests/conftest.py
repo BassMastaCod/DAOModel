@@ -2,6 +2,7 @@ from datetime import date
 from typing import Optional, Any
 
 import pytest
+import sqlalchemy
 from _pytest.outcomes import fail
 from sqlalchemy import Column, ForeignKeyConstraint
 from sqlalchemy.orm import sessionmaker
@@ -10,13 +11,12 @@ from sqlmodel import Field
 from daomodel import DAOModel
 from daomodel.dao import NotFound, DAO
 from daomodel.db import DAOFactory, create_engine, init_db
-from daomodel.fields import PrimaryKey, ForeignKey
 from daomodel.util import next_id
 
 
 class Person(DAOModel, table=True):
-    name: str = PrimaryKey()
-    age: int = PrimaryKey()
+    name: str = Field(primary_key=True)
+    age: int = Field(primary_key=True)
     ssn: Optional[str]
 
     @classmethod
@@ -25,19 +25,27 @@ class Person(DAOModel, table=True):
 
 
 class PersonDisplay(Person):
-    name: str = PrimaryKey()
-    age: int = PrimaryKey()
+    name: str = Field(primary_key=True)
+    age: int = Field(primary_key=True)
 
 
 class Book(DAOModel, table=True):
-    name: str = PrimaryKey()
+    name: str = Field(primary_key=True)
     subject: str
-    owner: int = ForeignKey('student.id')
+    owner: int = Field(
+        sa_column=Column(
+            sqlalchemy.ForeignKey(
+                'student.id',
+                ondelete='CASCADE',
+                onupdate='CASCADE'
+            )
+        )
+    )
 
 
 class Hall(DAOModel, table=True):
-    location: str = PrimaryKey()
-    floor: int = PrimaryKey()
+    location: str = Field(primary_key=True)
+    floor: int = Field(primary_key=True)
     color: str
 
 
@@ -49,14 +57,14 @@ class Locker(DAOModel, table=True):
         ),
     )
 
-    number: int = PrimaryKey()
-    owner: int = ForeignKey('student.id')
+    number: int = Field(primary_key=True)
+    owner: int = Field(foreign_key='student.id')
     location: str
     floor: int
 
 
 class BasePerson(DAOModel):
-    id: int = PrimaryKey()
+    id: int = Field(primary_key=True)
     name: Optional[str]
 
 

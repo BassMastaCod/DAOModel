@@ -2,17 +2,17 @@ from datetime import date
 from typing import Optional, Any
 
 import pytest
+from sqlmodel import Field
 
 from daomodel import DAOModel
 from daomodel.dao import Conflict
-from daomodel.fields import PrimaryKey
 from daomodel.model_diff import ChangeSet, Preference, Resolved, Unresolved, MergeSet
 from daomodel.util import mode
 from tests.labeled_tests import labeled_tests
 
 
 class CalendarEvent(DAOModel, table=True):
-    title: str = PrimaryKey()
+    title: str = Field(primary_key=True)
     day: date
     time: Optional[str] = 'All Day'
     location: Optional[str]

@@ -2,9 +2,9 @@ from typing import Iterable, Any, Optional
 
 import pytest
 from sqlalchemy import Column
+from sqlmodel import Field
 
 from daomodel import DAOModel, names_of, Unsearchable, reference_of
-from daomodel.fields import PrimaryKey, ForeignKey, PrimaryForeignKey
 from tests.labeled_tests import labeled_tests
 
 
@@ -13,15 +13,15 @@ class Model(DAOModel):
 
 
 class SimpleModel(DAOModel, table=True):
-    pkA: int = PrimaryKey()
+    pkA: int = Field(primary_key=True)
 
 simple_instance = SimpleModel(pkA=23)
 
 
 class ForeignKEYModel(DAOModel, table=True):
-    pkB: int = PrimaryKey()
+    pkB: int = Field(primary_key=True)
     prop: str
-    fk: int = ForeignKey('simple_model.pkA')
+    fk: int = Field(foreign_key='simple_model.pkA')
 
 
 class BaseModel(DAOModel):
@@ -29,11 +29,11 @@ class BaseModel(DAOModel):
 
 
 class ComplicatedModel(BaseModel, table=True):
-    pkC: int = PrimaryKey()
-    pkD: int = PrimaryKey()
+    pkC: int = Field(primary_key=True)
+    pkD: int = Field(primary_key=True)
     prop2: Optional[str]
-    fkA: int = ForeignKey('simple_model.pkA')
-    fkB: int = ForeignKey('foreign_key_model.pkB')
+    fkA: int = Field(foreign_key='simple_model.pkA')
+    fkB: int = Field(foreign_key='foreign_key_model.pkB')
 
     @classmethod
     def get_searchable_properties(cls) -> set[Column|tuple[type[DAOModel], ..., Column]]:
@@ -43,9 +43,9 @@ complicated_instance = ComplicatedModel(pkC=17, pkD=76, prop1='prop', prop2='ert
 
 
 class MultiForeignKEYModel(DAOModel, table=True):
-    fkC: int = PrimaryForeignKey('complicated_model.pkC')
-    fkD: int = PrimaryForeignKey('complicated_model.pkD')
-    fk_prop: str = ForeignKey('foreign_key_model.prop')
+    fkC: int = Field(primary_key=True, foreign_key='complicated_model.pkC')
+    fkD: int = Field(primary_key=True, foreign_key='complicated_model.pkD')
+    fk_prop: str = Field(foreign_key='foreign_key_model.prop')
 
 
 def test_tablename():
