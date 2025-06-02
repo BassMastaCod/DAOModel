@@ -102,17 +102,6 @@ def remove_from_dict(d: dict[Any, Any], *keys: Any) -> dict[Any, Any]:
     return {k: v for k, v in d.items() if k not in keys}
 
 
-def filter_dict(*keys: Any, **values: Any) -> dict[str, Any]:
-    """Filters a dictionary to specified keys.
-
-    :param keys: The target keys for the new dict
-    :param values: The dictionary to filter down
-    :return: The filter down values as a new dict
-    """
-    warnings.warn('Use retain_in_dict instead', DeprecationWarning)
-    return {key: values[key] for key in keys}
-
-
 def ensure_iter(elements: Any):
     """Ensures that the provided argument is iterable.
 
