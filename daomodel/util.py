@@ -19,6 +19,16 @@ class InvalidArgumentCount(Exception):
             self.detail += f' for {context}'
 
 
+class UnsupportedFeatureError(Exception):
+    """Indicates that a feature is not yet supported.
+
+    If you think the feature should be implemented, please open an issue on GitHub.
+    """
+    def __init__(self, detail: str):
+        self.detail = detail + (' NOTE: This functionality is not yet supported. '
+                                'Please submit a request through GitHub if you would like it implemented.')
+
+
 def reference_of(column: Column) -> str:
     """
     Prepares a str reference of a column.
