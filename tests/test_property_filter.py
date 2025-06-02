@@ -1,49 +1,49 @@
 from typing import Optional, Any
 
 import pytest
-from sqlmodel import Field
 
 from daomodel import DAOModel
+from daomodel.fields import Identifier
 from daomodel.property_filter import PropertyFilter, BasicPropertyFilter, AndFilter, ALL, PK, FK, DEFAULT, NONE
 from tests.labeled_tests import labeled_tests
 
 
 class ForeignModel(DAOModel, table=True):
-    pk: int = Field(primary_key=True)
+    pk: Identifier[int]
 
 
 class PropertyModel(DAOModel, table=True):
-    pk_value: int = Field(primary_key=True)
-    pk_default_none: Optional[int] = Field(primary_key=True)
-    pk_default: int = Field(default=0, primary_key=True)
-    pk_override: int = Field(default=0, primary_key=True)
-    pk_default_optional: Optional[int] = Field(default=0, primary_key=True)
-    pk_override_optional: Optional[int] = Field(default=0, primary_key=True)
-    pk_override_none: Optional[int] = Field(default=0, primary_key=True)
+    pk_value: Identifier[int]
+    pk_default_none: Identifier[Optional[int]]
+    pk_default: Identifier[int] = 0
+    pk_override: Identifier[int] = 0
+    pk_default_optional: Identifier[Optional[int]] = 0
+    pk_override_optional: Identifier[Optional[int]] = 0
+    pk_override_none: Identifier[Optional[int]] = 0
 
-    pk_fk_value: int = Field(primary_key=True, foreign_key='foreign_model.pk')
-    pk_fk_default_none: Optional[int] = Field(primary_key=True, foreign_key='foreign_model.pk')
-    pk_fk_default: int = Field(default=0, primary_key=True, foreign_key='foreign_model.pk')
-    pk_fk_override: int = Field(default=0, primary_key=True, foreign_key='foreign_model.pk')
-    pk_fk_default_optional: Optional[int] = Field(default=0, primary_key=True, foreign_key='foreign_model.pk')
-    pk_fk_override_optional: Optional[int] = Field(default=0, primary_key=True, foreign_key='foreign_model.pk')
-    pk_fk_override_none: Optional[int] = Field(default=0, primary_key=True, foreign_key='foreign_model.pk')
+    pk_fk_value: Identifier[ForeignModel]
+    pk_fk_default_none: Identifier[Optional[ForeignModel]]
+    pk_fk_default: Identifier[ForeignModel] = 0
+    pk_fk_override: Identifier[ForeignModel] = 0
+    pk_fk_default_optional: Identifier[Optional[ForeignModel]] = 0
+    pk_fk_override_optional: Identifier[Optional[ForeignModel]] = 0
+    pk_fk_override_none: Identifier[Optional[ForeignModel]] = 0
 
-    fk_value: int = Field(foreign_key='foreign_model.pk')
-    fk_default_none: Optional[int] = Field(foreign_key='foreign_model.pk')
-    fk_default: int = Field(default=0, foreign_key='foreign_model.pk')
-    fk_override: int = Field(default=0, foreign_key='foreign_model.pk')
-    fk_default_optional: Optional[int] = Field(default=0, foreign_key='foreign_model.pk')
-    fk_override_optional: Optional[int] = Field(default=0, foreign_key='foreign_model.pk')
-    fk_override_none: Optional[int] = Field(default=0, foreign_key='foreign_model.pk')
+    fk_value: ForeignModel
+    fk_default_none: Optional[ForeignModel]
+    fk_default: ForeignModel = 0
+    fk_override: ForeignModel = 0
+    fk_default_optional: Optional[ForeignModel] = 0
+    fk_override_optional: Optional[ForeignModel] = 0
+    fk_override_none: Optional[ForeignModel] = 0
 
-    field_value: int = Field()
-    field_default_none: Optional[int] = Field()
-    field_default: int = Field(default=0)
-    field_override: int = Field(default=0)
-    field_default_optional: Optional[int] = Field(default=0)
-    field_override_optional: Optional[int] = Field(default=0)
-    field_override_none: Optional[int] = Field(default=0)
+    field_value: int
+    field_default_none: Optional[int]
+    field_default: int = 0
+    field_override: int = 0
+    field_default_optional: Optional[int] = 0
+    field_override_optional: Optional[int] = 0
+    field_override_none: Optional[int] = 0
 
 
 property_model = PropertyModel(

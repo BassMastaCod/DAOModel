@@ -76,8 +76,12 @@ class DAOModelMetaclass(SQLModelMetaclass):
 
             if field_args:
                 if field_name in class_dict:
-                    existing_args = vars(class_dict.get(field_name))
-                    field_args = {**field_args, **existing_args}
+                    existing_field = class_dict.get(field_name)
+                    if hasattr(existing_field, '__dict__'):
+                        existing_args = vars(existing_field)
+                        field_args = {**field_args, **existing_args}
+                    else:
+                        field_args['default'] = existing_field
                 class_dict[field_name] = Field(**field_args)
 
         return super().__new__(cls, name, bases, class_dict, **kwargs)
