@@ -5,11 +5,12 @@ from sqlalchemy import Column, Engine, MetaData, Connection
 from str_case_util import Case
 from sqlalchemy.ext.declarative import declared_attr
 
+from daomodel.metaclass import DAOModelMetaclass
 from daomodel.util import reference_of, names_of, in_order, retain_in_dict, remove_from_dict
 from daomodel.property_filter import PropertyFilter, ALL, PK
 
 
-class DAOModel(SQLModel):
+class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
     """An SQLModel specifically designed to support a DAO."""
 
     @declared_attr
