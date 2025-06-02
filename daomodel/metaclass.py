@@ -1,42 +1,83 @@
-from typing import Dict, Any, Tuple, Type, get_origin, get_args
-from sqlmodel.main import SQLModelMetaclass, Field, Undefined
+from typing import Dict, Any, Tuple, Type, get_origin, get_args, Union
+import inspect
+from sqlmodel.main import SQLModelMetaclass, Field
+from sqlalchemy import ForeignKey
+
+from daomodel.util import reference_of, UnsupportedFeatureError
 from daomodel.fields import Identifier
 
 
+def is_dao_model(cls: Type[Any]) -> bool:
+    return inspect.isclass(cls) and 'DAOModel' in (base.__name__ for base in inspect.getmro(cls))
+
+
 class DAOModelMetaclass(SQLModelMetaclass):
-    """
-    A metaclass for DAOModel that adds support for Identifier typing.
-    """
+    """A metaclass for DAOModel that adds support for Identifier and DAOModel typing."""
+
     def __new__(
-        cls,
-        name: str,
-        bases: Tuple[Type[Any], ...],
-        class_dict: Dict[str, Any],
-        **kwargs: Any,
+            cls,
+            name: str,
+            bases: Tuple[Type[Any], ...],
+            class_dict: Dict[str, Any],
+            **kwargs: Any,
     ) -> Any:
         annotations = class_dict.get('__annotations__', {})
-        new_annotations = {}
-
         for field_name, field_type in annotations.items():
+            field_args = {}
             if get_origin(field_type) is Identifier:
                 field_type = get_args(field_type)[0]
-                if field_name not in class_dict:
-                    class_dict[field_name] = Field(primary_key=True)
-                elif hasattr(class_dict[field_name], '__class__') and class_dict[field_name].__class__.__name__ == 'Field':
-                   field_info = class_dict[field_name]
-                   # Create a new Field with primary_key=True and all other attributes preserved
-                   sa_kwargs = getattr(field_info, 'sa_column_kwargs', {}) or {}
-                   sa_kwargs['primary_key'] = True
-                   class_dict[field_name] = Field(
-                       default=getattr(field_info, 'default', Undefined),
-                       default_factory=getattr(field_info, 'default_factory', Undefined),
-                       sa_column=getattr(field_info, 'sa_column', Undefined),
-                       sa_column_args=getattr(field_info, 'sa_column_args', Undefined),
-                       sa_column_kwargs=sa_kwargs,
-                       primary_key=True,
-                   )
-            new_annotations[field_name] = field_type
+                field_args['primary_key'] = True
 
-        class_dict['__annotations__'] = new_annotations
+            is_optional = False
+            if get_origin(field_type) is Union:
+                args = get_args(field_type)
+                if len(args) == 2 and args[1] is type(None) and is_dao_model(args[0]):
+                    is_optional = True
+                    field_type = args[0]
+
+            if is_dao_model(field_type):
+                if len(field_type.get_pk()) == 1:
+                    single_pk = next(iter(field_type.get_pk()))
+                    field_type = field_type.__annotations__[single_pk.name]
+                    field_args['foreign_key'] = reference_of(single_pk)
+                    # Check if field already exists with custom parameters
+                    custom_ondelete = None
+                    if field_name in class_dict:
+                        existing_field = class_dict.get(field_name)
+                        # Check for both ondelete and on_delete parameters
+                        if hasattr(existing_field, 'ondelete'):
+                            custom_ondelete = existing_field.ondelete
+                        elif hasattr(existing_field, 'on_delete'):
+                            custom_ondelete = existing_field.on_delete
+
+                    # Set default ondelete behavior if not customized
+                    if custom_ondelete is None:
+                        if is_optional:
+                            field_args['nullable'] = True
+                            field_args['ondelete'] = 'SET NULL'
+                        else:
+                            field_args['ondelete'] = 'CASCADE'
+                    else:
+                        field_args['ondelete'] = custom_ondelete
+                        if is_optional:
+                            field_args['nullable'] = True
+
+                    # Pass ondelete to ForeignKey constructor
+                    field_args['sa_column_args'] = [
+                        ForeignKey(
+                            reference_of(single_pk), 
+                            onupdate='CASCADE',
+                            ondelete=field_args['ondelete']
+                        )
+                    ]
+                else:
+                    raise UnsupportedFeatureError(f'Cannot map to composite key of {field_type.__name__}.')
+            annotations[field_name] = field_type
+
+            if field_args:
+                if field_name in class_dict:
+                    existing_args = vars(class_dict.get(field_name))
+                    field_args = {**field_args, **existing_args}
+                class_dict[field_name] = Field(**field_args)
 
         return super().__new__(cls, name, bases, class_dict, **kwargs)

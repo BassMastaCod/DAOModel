@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import TypeVar, Generic, get_args, get_origin
+from typing import TypeVar, Generic
 from sqlmodel import Field
 from sqlalchemy import JSON
 
@@ -8,8 +8,7 @@ T = TypeVar('T')
 
 
 class Identifier(Generic[T]):
-    """
-    A type annotation for primary key fields.
+    """A type annotation for primary key fields.
 
     Usage:
         id: Identifier[str]
@@ -24,6 +23,5 @@ def utc_now():
 
 CurrentTimestampField = Field(default_factory=utc_now)
 AutoUpdatingTimestampField = Field(default_factory=utc_now, sa_column_kwargs={'onupdate': utc_now})
-
 
 JSONField = Field(sa_type=JSON)
