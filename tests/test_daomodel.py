@@ -405,34 +405,34 @@ def test_get_searchable_properties__meta(expected: Column | ColumnBreadcrumbs):
 
 
 @labeled_tests({
-    'column': [
-        (ComplicatedModel.pkC, []),
-        (ComplicatedModel.pkD, []),
-        (ComplicatedModel.prop1, []),
-        (ComplicatedModel.fkA, []),
-        (ComplicatedModel.fkB, [])
+    'column': [ Expected([]),
+        ComplicatedModel.pkC,
+        ComplicatedModel.pkD,
+        ComplicatedModel.prop1,
+        ComplicatedModel.fkA,
+        ComplicatedModel.fkB
     ],
-    'column reference': [
-        ('complicated_model.pkC', []),
-        ('complicated_model.pkD', []),
-        ('complicated_model.prop1', []),
-        ('complicated_model.fkA', []),
-        ('complicated_model.fkB', [])
+    'column reference': [ Expected([]),
+        'complicated_model.pkC',
+        'complicated_model.pkD',
+        'complicated_model.prop1',
+        'complicated_model.fkA',
+        'complicated_model.fkB'
     ],
-    'column name': [
-        ('pkC', []),
-        ('pkD', []),
-        ('prop1', []),
-        ('fkA', []),
-        ('fkB', [])
+    'column name': [ Expected([]),
+        'pkC',
+        'pkD',
+        'prop1',
+        'fkA',
+        'fkB'
     ],
-    'foreign property': [
-        (ForeignKEYModel.prop, [ForeignKEYModel.normalized_name()]),
-        ('foreign_key_model.prop', [ForeignKEYModel.normalized_name()])
+    'foreign property': [ Expected([ForeignKEYModel.normalized_name()]),
+        ForeignKEYModel.prop,
+        'foreign_key_model.prop'
     ],
-    'nested foreign property': [
-        (SimpleModel.pkA, [ForeignKEYModel.normalized_name(), SimpleModel.normalized_name()]),
-        ('simple_model.pkA', [ForeignKEYModel.normalized_name(), SimpleModel.normalized_name()])
+    'nested foreign property': [ Expected([ForeignKEYModel.normalized_name(), SimpleModel.normalized_name()]),
+        SimpleModel.pkA,
+        'simple_model.pkA'
     ]
 })
 def test_find_searchable_column(prop: str|Column, expected: list[str]):
