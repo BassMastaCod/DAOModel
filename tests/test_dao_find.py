@@ -1,7 +1,7 @@
 import pytest
 from sqlmodel import desc
 
-from daomodel import Unsearchable
+from daomodel import UnsearchableError
 from daomodel.dao import DAO, SearchResults
 from daomodel.util import MissingInput, LessThan, GreaterThan, GreaterThanEqualTo, LessThanEqualTo, Between, \
     AnyOf, NoneOf, IsSet, is_set, NotSet, not_set
@@ -69,12 +69,12 @@ def test_find__filter_by_bool_property(student_dao: DAO):
 
 
 def test_find__unsearchable_property(daos: TestDAOFactory):
-    with pytest.raises(Unsearchable):
+    with pytest.raises(UnsearchableError):
         daos[Person].find(ssn=32)
 
 
 def test_find__invalid_property(daos: TestDAOFactory):
-    with pytest.raises(Unsearchable):
+    with pytest.raises(UnsearchableError):
         daos[Student].find(sex='m')
 
 
@@ -94,7 +94,7 @@ def test_find__is_set_foreign_property(student_dao: DAO):
 
 
 def test_find__is_set_unsearchable(student_dao: DAO):
-    with pytest.raises(Unsearchable):
+    with pytest.raises(UnsearchableError):
         student_dao.find(is_set_=Hall.floor)
 
 
@@ -110,7 +110,7 @@ def test_find__not_set_foreign_property(student_dao: DAO):
 
 
 def test_find__condition_operator_unsearchable(person_dao: DAO):
-    with pytest.raises(Unsearchable):
+    with pytest.raises(UnsearchableError):
         person_dao.find(ssn=is_set)
 
 
@@ -241,7 +241,7 @@ def test_find__order_by_nested_foreign_property(school_dao: DAO):
 
 
 def test_find__order_by_unsearchable(daos: TestDAOFactory):
-    with pytest.raises(Unsearchable):
+    with pytest.raises(UnsearchableError):
         daos[Person].find(order=Person.ssn)
 
 
@@ -254,7 +254,7 @@ def test_find__duplicate_foreign_property(school_dao: DAO):
 
 
 def test_find__duplicate_unsearchable(daos: TestDAOFactory):
-    with pytest.raises(Unsearchable):
+    with pytest.raises(UnsearchableError):
         daos[Person].find(duplicate=Person.ssn)
 
 
@@ -267,7 +267,7 @@ def test_find__unique_foreign_property(school_dao: DAO):
 
 
 def test_find__unique_unsearchable(daos: TestDAOFactory):
-    with pytest.raises(Unsearchable):
+    with pytest.raises(UnsearchableError):
         daos[Person].find(unique=Person.ssn)
 
 

@@ -287,7 +287,7 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
                 if column.table is not cls.__table__:
                     foreign_tables.append(column.table)
                 return column
-        raise Unsearchable(prop, cls)
+        raise UnsearchableError(prop, cls)
 
     @classmethod
     def pk_values_to_dict(cls, *pk_values: Any) -> dict[str, Any]:
@@ -345,7 +345,7 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
         return str(pk_values)
 
 
-class Unsearchable(Exception):
+class UnsearchableError(Exception):
     """Indicates that the Search Query is not allowed for the specified field."""
     def __init__(self, prop: str, model: type(DAOModel)):
         self.detail = f'Cannot search for {prop} of {model.doc_name()}'

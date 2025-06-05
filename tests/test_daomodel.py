@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import Column
 from sqlmodel import Field
 
-from daomodel import DAOModel, names_of, Unsearchable, reference_of
+from daomodel import DAOModel, names_of, UnsearchableError, reference_of
 from daomodel.fields import Identifier
 from tests.labeled_tests import labeled_tests
 
@@ -429,7 +429,7 @@ def test_find_searchable_column(prop: str|Column, expected: list[str]):
 
 
 def test_find_searchable_column__foreign_without_table():
-    with pytest.raises(Unsearchable):
+    with pytest.raises(UnsearchableError):
         ComplicatedModel.find_searchable_column('prop', [])
 
 
