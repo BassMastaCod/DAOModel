@@ -47,7 +47,9 @@ class RestrictModel(DAOModel, table=True):
     other_id: BasicModel = Field(foreign_key='basic_model.id', ondelete='RESTRICT')
 
 
-
+class InheritedModel(ReferenceModel, table=True):
+    id2: Identifier[int]
+    public: BasicModel
 
 
 class TimestampsModel(DAOModel, table=True):
@@ -88,6 +90,15 @@ def test_reference():
     assert names_of(ReferenceModel.get_fks()) == ['id']
     assert names_of(ReferenceModel.get_fk_properties()) == ['other_id']
 
+
+@pytest.mark.skip(reason='Support needs to be implemented')
+def test_reference__inherited():
+    assert names_of(InheritedModel.get_fk_properties()) == ['other_id', 'public']
+
+
+@pytest.mark.skip(reason='Support needs to be implemented')
+def test_identifier__inherited():
+    assert InheritedModel.get_pk_names() == ['id', 'id2']
 
 
 def test_reference__required(daos: TestDAOFactory):
