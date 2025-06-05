@@ -11,18 +11,14 @@ from sqlmodel import Field
 from daomodel import DAOModel
 from daomodel.dao import NotFound, DAO
 from daomodel.db import DAOFactory, create_engine, init_db
-from daomodel.fields import Identifier
+from daomodel.fields import Identifier, Unsearchable
 from daomodel.util import next_id
 
 
 class Person(DAOModel, table=True):
     name: Identifier[str]
     age: Identifier[int]
-    ssn: Optional[str]
-
-    @classmethod
-    def get_searchable_properties(cls) -> set[Column]:
-        return {cls.name, cls.age}
+    ssn: Unsearchable[Optional[str]]
 
 
 class Book(DAOModel, table=True):
