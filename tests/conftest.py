@@ -68,11 +68,11 @@ class Student(BasePerson, table=True):
     gender: Optional[str]
     active: bool = True
 
-    @classmethod
-    def get_searchable_properties(cls) -> set[Column|tuple[DAOModel, ..., Column]]:
-        return {cls.id, cls.name, cls.gender, cls.active,
-                Book.name, Book.subject, Locker.number,
-                (Locker, Hall.color)}
+    class Meta:
+        searchable_relations = {
+            Book.name, Book.subject, Locker.number,
+            (Locker, Hall.color)
+        }
 
 
 class TestDAOFactory(DAOFactory):

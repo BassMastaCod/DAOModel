@@ -4,9 +4,9 @@ import pytest
 from sqlalchemy import Column
 from sqlmodel import Field
 
-from daomodel import DAOModel, names_of, UnsearchableError, reference_of
-from daomodel.fields import Identifier
-from tests.labeled_tests import labeled_tests
+from daomodel import DAOModel, names_of, UnsearchableError, reference_of, ColumnBreadcrumbs
+from daomodel.fields import Identifier, Unsearchable
+from tests.labeled_tests import labeled_tests, Expected
 
 
 class Model(DAOModel):
@@ -22,6 +22,7 @@ simple_instance = SimpleModel(pkA=23)
 class ForeignKEYModel(DAOModel, table=True):
     pkB: Identifier[int]
     prop: str
+    sensitive_prop: Unsearchable[str]
     fk: SimpleModel
 
 
@@ -32,13 +33,16 @@ class BaseModel(DAOModel):
 class ComplicatedModel(BaseModel, table=True):
     pkC: Identifier[int]
     pkD: Identifier[int]
-    prop2: Optional[str]
+    prop2: Unsearchable[Optional[str]]
     fkA: int = Field(foreign_key='simple_model.pkA')
     fkB: int = Field(foreign_key='foreign_key_model.pkB')
 
-    @classmethod
-    def get_searchable_properties(cls) -> set[Column|tuple[type[DAOModel], ..., Column]]:
-        return {cls.pkC, cls.pkD, cls.prop1, cls.fkA, cls.fkB, ForeignKEYModel.prop, (ForeignKEYModel, SimpleModel.pkA)}
+    class Meta:
+        searchable_relations = {
+            ForeignKEYModel.prop,
+            ForeignKEYModel.sensitive_prop,
+            (ForeignKEYModel, SimpleModel.pkA)
+        }
 
 complicated_instance = ComplicatedModel(pkC=17, pkD=76, prop1='prop', prop2='erty', fkA=23, fkB=32)
 
@@ -228,7 +232,7 @@ def test_get_references_of(model: type[DAOModel], reference: type[DAOModel], exp
     'single column':
         (SimpleModel, ['pkA']),
     'multiple columns':
-        (ForeignKEYModel, ['pkB', 'prop', 'fk']),
+        (ForeignKEYModel, ['pkB', 'prop', 'sensitive_prop', 'fk']),
     'inherited columns':
         (ComplicatedModel, ['prop1', 'pkC', 'pkD', 'prop2', 'fkA', 'fkB'])
 })
@@ -387,8 +391,17 @@ def test_compare__include_pk(model: DAOModel, other: DAOModel, expected: dict[st
     'multiple columns':
         (ForeignKEYModel, ['pkB', 'prop', 'fk'])
 })
-def test_get_searchable_properties__single_column(model: type[DAOModel], expected: list[str]):
+def test_get_searchable_properties(model: type[DAOModel], expected: list[str]):
     assert names_of(model.get_searchable_properties()) == expected
+
+
+@labeled_tests({
+    'mapped relation': ForeignKEYModel.prop,
+    'unsearchable mapped relation': ForeignKEYModel.sensitive_prop,
+    'breadcrumbs': (ForeignKEYModel, SimpleModel.pkA)
+})
+def test_get_searchable_properties__meta(expected: Column | ColumnBreadcrumbs):
+    assert expected in ComplicatedModel.get_searchable_properties()
 
 
 @labeled_tests({
@@ -424,7 +437,7 @@ def test_get_searchable_properties__single_column(model: type[DAOModel], expecte
 })
 def test_find_searchable_column(prop: str|Column, expected: list[str]):
     foreign_tables = []
-    assert ComplicatedModel.find_searchable_column(prop, foreign_tables)
+    assert ComplicatedModel.find_searchable_column(prop, foreign_tables) is not None
     assert [t.name for t in foreign_tables] == expected
 
 

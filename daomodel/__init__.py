@@ -272,11 +272,14 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
             internal_notes: Unsearchable[str]  # Not searchable
         ```
 
+        Properties of related models are only searchable if defined within your model's Meta class.
+        Please readthedocs for more information.
+
         :return: A list of searchable columns
         """
         unsearchable = getattr(getattr(cls, '_unsearchable', None), 'default', set())
         searchable = [column for column in cls.get_properties() if column.name not in unsearchable]
-        searchable.extend(getattr(getattr(cls, 'Meta', None), 'searchable_relations', {}).items())
+        searchable.extend(getattr(getattr(cls, 'Meta', None), 'searchable_relations', set()))
         return searchable
 
     @classmethod
@@ -284,7 +287,7 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
         """Returns the specified searchable Column.
 
         :param prop: str type reference of the Column or the Column itself
-        :param foreign_tables: A list of foreign tables to populated with tables of properties deemed to be foreign
+        :param foreign_tables: A list of foreign tables to be populated with tables of properties deemed to be foreign
         :return: The searchable Column
         :raises Unsearchable: if the property is not Searchable for this class
         """
