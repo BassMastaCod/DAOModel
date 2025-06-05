@@ -6,7 +6,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import Field
 
 from daomodel import DAOModel, names_of
-from daomodel.fields import Identifier, utc_now, CurrentTimestampField, AutoUpdatingTimestampField, JSONField
+from daomodel.fields import Identifier, Unsearchable, \
+    utc_now, CurrentTimestampField, AutoUpdatingTimestampField, JSONField
 from tests.conftest import TestDAOFactory
 from tests.labeled_tests import labeled_tests
 
@@ -47,14 +48,48 @@ class RestrictModel(DAOModel, table=True):
     other_id: BasicModel = Field(foreign_key='basic_model.id', ondelete='RESTRICT')
 
 
+class UnsearchablePropertyModel(DAOModel, table=True):
+    id: Identifier[int]
+    name: str
+    secret: Unsearchable[str]
+
+
+class UnsearchableIdentifierModel(DAOModel, table=True):
+    id: Unsearchable[Identifier[int]]
+    name: str
+
+
+class UnsearchableReferenceModel(DAOModel, table=True):
+    id: Identifier[int]
+    searchable: BasicModel
+    unsearchable: Unsearchable[BasicModel]
+
+
+class UnsearchableOptionalModel(DAOModel, table=True):
+    id: Identifier[int]
+    name: Unsearchable[Optional[str]]
+
+
+class UnsearchableIdentifierOptionalReferenceModel(DAOModel, table=True):
+    id: Unsearchable[Identifier[Optional[int]]]
+    name: str
+
+
+class CompletelyUnsearchableModel(DAOModel, table=True):
+    id: Unsearchable[Identifier[int]]
+    name: Unsearchable[str]
+
+
 class ParentModel(DAOModel):
     id: Identifier[int]
     other_id: BasicModel
+    hidden_other_id: Unsearchable[BasicModel]
 
 
 class InheritedModel(ParentModel, table=True):
     id2: Identifier[int]
     public: BasicModel
+    private: Unsearchable[str]
 
 
 class TimestampsModel(DAOModel, table=True):
@@ -97,7 +132,7 @@ def test_reference():
 
 
 def test_reference__inherited():
-    assert set(names_of(InheritedModel.get_fk_properties())) == {'other_id', 'public'}
+    assert set(names_of(InheritedModel.get_fk_properties())) == {'other_id', 'hidden_other_id', 'public'}
 
 
 def test_identifier__inherited():
@@ -184,6 +219,23 @@ def test_reference__custom_on_delete(daos: TestDAOFactory):
 
     with pytest.raises(IntegrityError):
         test_dao.remove(test_entry)
+
+
+@labeled_tests({
+    'unsearchable property': (UnsearchablePropertyModel, ['id', 'name']),
+    'unsearchable identifier': (UnsearchableIdentifierModel, ['name']),
+    'unsearchable reference': (UnsearchableReferenceModel, ['id', 'searchable']),
+    'unsearchable optional': (UnsearchableOptionalModel, ['id']),
+    'unsearchable identifier/optional/reference': (UnsearchableIdentifierOptionalReferenceModel, ['name']),
+    'no searchable fields': (CompletelyUnsearchableModel, [])
+})
+def test_unsearchable(model: DAOModel, expected: list[str]):
+    assert names_of(model.get_searchable_properties()) == expected
+
+
+@pytest.mark.skip(reason='Not yet supported')
+def test_unsearchable__inherited():
+    assert names_of(InheritedModel.get_searchable_properties()) == ['id', 'other_id', 'id2', 'public']
 
 
 def test_utc_now():

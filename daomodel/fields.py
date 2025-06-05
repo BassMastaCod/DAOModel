@@ -11,7 +11,21 @@ class Identifier(Generic[T]):
     """A type annotation for primary key fields.
 
     Usage:
-        id: Identifier[str]
+        class MyModel(DAOModel, table=True)
+            id: Identifier[str]
+            ...
+    """
+    pass
+
+
+class Unsearchable(Generic[T]):
+    """A type annotation to mark a field as not searchable.
+
+    Usage:
+        class MyModel(DAOModel, table=True)
+            ...
+            internal_notes: Unsearchable[str]
+            ...
     """
     pass
 

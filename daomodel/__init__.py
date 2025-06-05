@@ -262,9 +262,22 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
     def get_searchable_properties(cls) -> Iterable[Column | ColumnBreadcrumbs]:
         """Returns all the Columns for this Model that may be searched using the DAO find function.
 
+        All properties are searchable unless marked with the Unsearchable type annotation.
+
+        To mark a property as unsearchable:
+        ```python
+        class MyModel(DAOModel, table=True):
+            id: Identifier[int]  # Searchable by default
+            name: str  # Searchable by default
+            internal_notes: Unsearchable[str]  # Not searchable
+        ```
+
         :return: A list of searchable columns
         """
-        return cls.get_properties()
+        unsearchable = getattr(getattr(cls, '_unsearchable', None), 'default', set())
+        searchable = [column for column in cls.get_properties() if column.name not in unsearchable]
+        searchable.extend(getattr(getattr(cls, 'Meta', None), 'searchable_relations', {}).items())
+        return searchable
 
     @classmethod
     def find_searchable_column(cls, prop: [str|Column], foreign_tables: list[type['DAOModel']]) -> Column:
