@@ -14,7 +14,7 @@ from tests.labeled_tests import labeled_tests
 ZERO_TIMESTAMP = datetime(1970, 1, 1)
 
 
-class TestModel(DAOModel, table=True):
+class BasicModel(DAOModel, table=True):
     id: Identifier[str]
 
 
@@ -23,105 +23,109 @@ class CompositeKeyModel(DAOModel, table=True):
     id2: Identifier[int]
 
 
-class ModelWithOptionalPk(DAOModel, table=True):
+class ReferenceModel(DAOModel, table=True):
+    id: Identifier[int]
+    other_id: BasicModel
+
+
+class IdentifierReferenceModel(DAOModel, table=True):
+    other_id: Identifier[BasicModel]
+
+
+class OptionalIdentifierModel(DAOModel, table=True):
     id: Identifier[Optional[int]]
     name: Optional[str]
 
 
-class ModelWithForeignKey(DAOModel, table=True):
+class OptionalReferenceModel(DAOModel, table=True):
     id: Identifier[int]
-    other_id: TestModel
+    other_id: Optional[BasicModel]
 
 
-class ModelWithOptionalFk(DAOModel, table=True):
+class RestrictModel(DAOModel, table=True):
     id: Identifier[int]
-    other_id: Optional[TestModel]
+    other_id: BasicModel = Field(foreign_key='basic_model.id', ondelete='RESTRICT')
 
 
-class ModelWithPrimaryForeignKey(DAOModel, table=True):
-    other_id: Identifier[TestModel]
 
 
-class ModelWithCustomOnDelete(DAOModel, table=True):
-    id: Identifier[int]
-    other_id: TestModel = Field(foreign_key='test_model.id', ondelete='RESTRICT')
 
-
-class ModelWithTimestamps(DAOModel, table=True):
+class TimestampsModel(DAOModel, table=True):
     id: Identifier[int]
     name: Optional[str]
     created_at: datetime = CurrentTimestampField
     updated_at: datetime = AutoUpdatingTimestampField
 
 
-class ModelWithJson(DAOModel, table=True):
+class JsonModel(DAOModel, table=True):
     id: Identifier[int]
     data: dict = JSONField
 
 
 def test_identifier():
-    assert TestModel.get_pk_names() == ['id']
+    assert BasicModel.get_pk_names() == ['id']
 
 
-def test_primary_key__composite():
+def test_identifier__composite():
     assert CompositeKeyModel.get_pk_names() == ['id1', 'id2']
 
 
-def test_primary_key__required(daos: TestDAOFactory):
-    dao = daos[TestModel]
+def test_identifier__required(daos: TestDAOFactory):
+    dao = daos[BasicModel]
     entry = dao.create_with(insert=False)
     with pytest.raises(IntegrityError):
         dao.insert(entry)
 
 
-def test_primary_key__optional(daos: TestDAOFactory):
-    dao = daos[ModelWithOptionalPk]
+def test_identifier__optional(daos: TestDAOFactory):
+    dao = daos[OptionalIdentifierModel]
     assert dao.find().total == 0
     dao.create_with()
     assert dao.find().first().name is None
 
 
-def test_foreign_key():
-    assert names_of(ModelWithForeignKey.get_fks()) == ['id']
-    assert names_of(ModelWithForeignKey.get_fk_properties()) == ['other_id']
+def test_reference():
+    assert names_of(ReferenceModel.get_fks()) == ['id']
+    assert names_of(ReferenceModel.get_fk_properties()) == ['other_id']
 
 
-def test_foreign_key__required(daos: TestDAOFactory):
-    dao = daos[ModelWithForeignKey]
+
+def test_reference__required(daos: TestDAOFactory):
+    dao = daos[ReferenceModel]
     entry = dao.create_with(id=1, insert=False)
     with pytest.raises(IntegrityError):
         dao.insert(entry)
 
 
-def test_foreign_key__optional(daos: TestDAOFactory):
-    dao = daos[ModelWithOptionalFk]
+def test_reference__optional(daos: TestDAOFactory):
+    dao = daos[OptionalReferenceModel]
     dao.create_with(id=1)
     assert dao.get(1).other_id is None
 
 
-def test_primary_foreign_key():
-    assert TestModel.get_pk_names() == ['id']
-    assert names_of(ModelWithForeignKey.get_fks()) == ['id']
-    assert names_of(ModelWithForeignKey.get_fk_properties()) == ['other_id']
+def test_identifier_reference():
+    assert BasicModel.get_pk_names() == ['id']
+    assert names_of(ReferenceModel.get_fks()) == ['id']
+    assert names_of(ReferenceModel.get_fk_properties()) == ['other_id']
 
 
-def test_primary_foreign_key__required(daos: TestDAOFactory):
-    dao = daos[ModelWithPrimaryForeignKey]
+def test_identifier_reference__required(daos: TestDAOFactory):
+    dao = daos[IdentifierReferenceModel]
     entry = dao.create_with(insert=False)
     with pytest.raises(IntegrityError):
         dao.insert(entry)
 
 
-def test_primary_foreign_key__optional(daos: TestDAOFactory):
-    dao = daos[ModelWithOptionalFk]
+def test_identifier_reference__optional(daos: TestDAOFactory):
+    dao = daos[OptionalReferenceModel]
     dao.create_with(id=1)
     assert dao.get(1).other_id is None
 
 
-def test_foreign_key__cascade_on_update(daos: TestDAOFactory):
-    test_dao = daos[TestModel]
-    fk_dao = daos[ModelWithForeignKey]
-    optional_fk_dao = daos[ModelWithOptionalFk]
+def test_reference__cascade_on_update(daos: TestDAOFactory):
+    test_dao = daos[BasicModel]
+    fk_dao = daos[ReferenceModel]
+    optional_fk_dao = daos[OptionalReferenceModel]
 
     test_entry = test_dao.create('A')
     fk_entry = fk_dao.create_with(id=1, other_id='A')
@@ -132,9 +136,9 @@ def test_foreign_key__cascade_on_update(daos: TestDAOFactory):
     assert optional_fk_entry.other_id == 'B'
 
 
-def test_foreign_key__cascade_on_delete(daos: TestDAOFactory):
-    test_dao = daos[TestModel]
-    fk_dao = daos[ModelWithForeignKey]
+def test_reference__cascade_on_delete(daos: TestDAOFactory):
+    test_dao = daos[BasicModel]
+    fk_dao = daos[ReferenceModel]
 
     test_entry = test_dao.create('A')
     fk_entry = fk_dao.create_with(id=1, other_id='A')
@@ -144,9 +148,9 @@ def test_foreign_key__cascade_on_delete(daos: TestDAOFactory):
     assert not fk_dao.exists(fk_entry)
 
 
-def test_foreign_key__on_delete_of_optional(daos: TestDAOFactory):
-    test_dao = daos[TestModel]
-    fk_dao = daos[ModelWithOptionalFk]
+def test_reference__on_delete_of_optional(daos: TestDAOFactory):
+    test_dao = daos[BasicModel]
+    fk_dao = daos[OptionalReferenceModel]
 
     test_entry = test_dao.create('A')
     fk_entry = fk_dao.create_with(id=1, other_id='A')
@@ -157,9 +161,9 @@ def test_foreign_key__on_delete_of_optional(daos: TestDAOFactory):
     assert fk_entry.other_id is None
 
 
-def test_foreign_key__custom_on_delete(daos: TestDAOFactory):
-    test_dao = daos[TestModel]
-    fk_dao = daos[ModelWithCustomOnDelete]
+def test_reference__custom_on_delete(daos: TestDAOFactory):
+    test_dao = daos[BasicModel]
+    fk_dao = daos[RestrictModel]
 
     test_entry = test_dao.create('A')
     fk_dao.create_with(id=1, other_id='A')
@@ -175,7 +179,7 @@ def test_utc_now():
 
 
 def test_current_timestamp(daos: TestDAOFactory):
-    dao = daos[ModelWithTimestamps]
+    dao = daos[TimestampsModel]
     dao.create(1)
     entry = dao.get(1)
     assert entry.created_at is not None
@@ -183,7 +187,7 @@ def test_current_timestamp(daos: TestDAOFactory):
 
 
 def test_auto_updating_timestamp(daos: TestDAOFactory):
-    dao = daos[ModelWithTimestamps]
+    dao = daos[TimestampsModel]
     dao.create(1)
     entry = dao.get(1)
     updated_at = entry.updated_at
@@ -201,6 +205,6 @@ def test_auto_updating_timestamp(daos: TestDAOFactory):
 })
 def test_json_field(json: dict):
     with TestDAOFactory() as daos:
-        dao = daos[ModelWithJson]
+        dao = daos[JsonModel]
         dao.create_with(id=1, data=json)
         assert dao.get(1).data == json
