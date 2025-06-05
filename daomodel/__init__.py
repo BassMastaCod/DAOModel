@@ -10,6 +10,9 @@ from daomodel.util import reference_of, names_of, in_order, retain_in_dict, remo
 from daomodel.property_filter import PropertyFilter, ALL, PK
 
 
+ColumnBreadcrumbs = tuple[type['DAOModel'], ..., Column]
+
+
 class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
     """An SQLModel specifically designed to support a DAO."""
 
@@ -256,7 +259,7 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
         return diff
 
     @classmethod
-    def get_searchable_properties(cls) -> Iterable[Column|tuple[type['DAOModel'], ..., Column]]:
+    def get_searchable_properties(cls) -> Iterable[Column | ColumnBreadcrumbs]:
         """Returns all the Columns for this Model that may be searched using the DAO find function.
 
         :return: A list of searchable columns
