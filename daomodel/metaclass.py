@@ -1,5 +1,6 @@
 from typing import Dict, Any, Tuple, Type, get_origin, get_args, Union
 import inspect
+import uuid
 from sqlmodel.main import SQLModelMetaclass, Field
 from sqlalchemy import ForeignKey
 
@@ -35,6 +36,8 @@ class DAOModelMetaclass(SQLModelMetaclass):
             if get_origin(field_type) is Identifier:
                 field_type = get_args(field_type)[0]
                 field_args['primary_key'] = True
+                if field_type is uuid.UUID:
+                    field_args['default_factory'] = uuid.uuid4
 
             is_optional = False
             if get_origin(field_type) is Union:

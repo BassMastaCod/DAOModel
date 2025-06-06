@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import Optional
+from uuid import UUID
 
 import pytest
 from sqlalchemy.exc import IntegrityError
@@ -102,6 +103,10 @@ class TimestampsModel(DAOModel, table=True):
 class JsonModel(DAOModel, table=True):
     id: Identifier[int]
     data: dict = JSONField
+
+
+class UUIDModel(DAOModel, table=True):
+    id: Identifier[UUID]
 
 
 def test_identifier():
@@ -274,3 +279,16 @@ def test_json_field(json: dict):
         dao = daos[JsonModel]
         dao.create_with(id=1, data=json)
         assert dao.get(1).data == json
+
+
+def test_uuid_identifier(daos: TestDAOFactory):
+    dao = daos[UUIDModel]
+    entry = dao.create_with()
+
+    assert entry.id is not None
+    assert isinstance(entry.id, UUID)
+
+    entry2 = dao.create_with()
+    assert entry2.id is not None
+    assert isinstance(entry2.id, UUID)
+    assert entry.id != entry2.id
