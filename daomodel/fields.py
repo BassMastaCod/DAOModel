@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 from typing import TypeVar, Generic
 from sqlmodel import Field
-from sqlalchemy import JSON
 
 
 T = TypeVar('T')
@@ -25,18 +24,6 @@ class Unsearchable(Generic[T]):
         class MyModel(DAOModel, table=True)
             ...
             internal_notes: Unsearchable[str]
-            ...
-    """
-    pass
-
-
-class JSONField(Generic[T]):
-    """A type annotation for JSON fields.
-
-    Usage:
-        class MyModel(DAOModel, table=True)
-            ...
-            data: JSONField[dict]
             ...
     """
     pass

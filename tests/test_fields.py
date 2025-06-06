@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 
 from daomodel import DAOModel, names_of
 from daomodel.fields import Identifier, Unsearchable, Protected, \
-    utc_now, CurrentTimestampField, AutoUpdatingTimestampField, JSONField
+    utc_now, CurrentTimestampField, AutoUpdatingTimestampField
 from tests.conftest import TestDAOFactory
 from tests.labeled_tests import labeled_tests
 
@@ -101,7 +101,7 @@ class TimestampsModel(DAOModel, table=True):
 
 class JsonModel(DAOModel, table=True):
     id: Identifier[int]
-    data: JSONField[dict]
+    data: dict
 
 
 class UUIDModel(DAOModel, table=True):

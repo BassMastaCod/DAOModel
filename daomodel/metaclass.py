@@ -5,7 +5,7 @@ from sqlmodel.main import SQLModelMetaclass, Field
 from sqlalchemy import ForeignKey, JSON
 
 from daomodel.util import reference_of, UnsupportedFeatureError
-from daomodel.fields import Identifier, Unsearchable, JSONField, Protected
+from daomodel.fields import Identifier, Unsearchable, Protected
 
 
 def is_dao_model(cls: Type[Any]) -> bool:
@@ -47,8 +47,7 @@ class DAOModelMetaclass(SQLModelMetaclass):
                     is_optional = True
                     field_type = args[0]
 
-            if get_origin(field_type) is JSONField:
-                field_type = get_args(field_type)[0]
+            if field_type is dict:
                 field_args['sa_type'] = JSON
             elif is_dao_model(field_type):
                 if len(field_type.get_pk()) == 1:
