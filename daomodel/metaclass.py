@@ -40,9 +40,8 @@ class DAOModelMetaclass(SQLModelMetaclass):
                 if field_type is uuid.UUID:
                     field_args['default_factory'] = uuid.uuid4
 
-            is_protected = False
-            if get_origin(field_type) is Protected:
-                is_protected = True
+            is_protected = get_origin(field_type) is Protected
+            if is_protected:
                 field_type = get_args(field_type)[0]
 
             is_optional = False
