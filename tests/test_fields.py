@@ -106,6 +106,7 @@ class JsonModel(DAOModel, table=True):
 
 class UUIDModel(DAOModel, table=True):
     id: Identifier[UUID]
+    other_id: UUID
 
 
 def test_identifier():
@@ -280,14 +281,22 @@ def test_json_field(json: dict):
         assert dao.get(1).data == json
 
 
-def test_uuid_identifier(daos: TestDAOFactory):
+def test_uuid(daos: TestDAOFactory):
     dao = daos[UUIDModel]
     entry = dao.create_with()
 
     assert entry.id is not None
     assert isinstance(entry.id, UUID)
 
+    assert entry.other_id is not None
+    assert isinstance(entry.other_id, UUID)
+    assert entry.id != entry.other_id
+
     entry2 = dao.create_with()
     assert entry2.id is not None
     assert isinstance(entry2.id, UUID)
     assert entry.id != entry2.id
+
+    assert entry2.other_id is not None
+    assert isinstance(entry2.other_id, UUID)
+    assert entry.other_id != entry2.other_id

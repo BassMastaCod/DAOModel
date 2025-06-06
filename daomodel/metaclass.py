@@ -33,8 +33,6 @@ class DAOModelMetaclass(SQLModelMetaclass):
             if get_origin(field_type) is Identifier:
                 field_type = get_args(field_type)[0]
                 field_args['primary_key'] = True
-                if field_type is uuid.UUID:
-                    field_args['default_factory'] = uuid.uuid4
 
             is_protected = get_origin(field_type) is Protected
             if is_protected:
@@ -47,7 +45,9 @@ class DAOModelMetaclass(SQLModelMetaclass):
                     is_optional = True
                     field_type = args[0]
 
-            if field_type is dict:
+            if field_type is uuid.UUID:
+                field_args['default_factory'] = uuid.uuid4
+            elif field_type is dict:
                 field_args['sa_type'] = JSON
             elif is_dao_model(field_type):
                 if len(field_type.get_pk()) == 1:
