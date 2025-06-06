@@ -22,15 +22,12 @@ class DAOModelMetaclass(SQLModelMetaclass):
             class_dict: Dict[str, Any],
             **kwargs: Any,
     ) -> Any:
-        if '_unsearchable' not in class_dict:
-            class_dict['_unsearchable'] = set()
-
         annotations = class_dict.get('__annotations__', {})
 
         for field_name, field_type in annotations.items():
             field_args = {}
             if get_origin(field_type) is Unsearchable:
-                class_dict['_unsearchable'].add(field_name)
+                class_dict.setdefault('_unsearchable', set()).add(field_name)
                 field_type = get_args(field_type)[0]
 
             if get_origin(field_type) is JSONField:
