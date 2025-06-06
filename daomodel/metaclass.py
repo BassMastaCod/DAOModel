@@ -5,7 +5,7 @@ from sqlmodel.main import SQLModelMetaclass, Field
 from sqlalchemy import ForeignKey, JSON
 
 from daomodel.util import reference_of, UnsupportedFeatureError
-from daomodel.fields import Identifier, Unsearchable, JSONField
+from daomodel.fields import Identifier, Unsearchable, JSONField, Protected
 
 
 def is_dao_model(cls: Type[Any]) -> bool:
@@ -43,6 +43,11 @@ class DAOModelMetaclass(SQLModelMetaclass):
                 if field_type is uuid.UUID:
                     field_args['default_factory'] = uuid.uuid4
 
+            is_protected = False
+            if get_origin(field_type) is Protected:
+                is_protected = True
+                field_type = get_args(field_type)[0]
+
             is_optional = False
             if get_origin(field_type) is Union:
                 args = get_args(field_type)
@@ -72,6 +77,8 @@ class DAOModelMetaclass(SQLModelMetaclass):
                             field_args['ondelete'] = 'SET NULL'
                         else:
                             field_args['ondelete'] = 'CASCADE'
+                        if is_protected:
+                            field_args['ondelete'] = 'RESTRICT'
                     else:
                         field_args['ondelete'] = custom_ondelete
                         if is_optional:

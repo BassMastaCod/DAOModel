@@ -42,6 +42,20 @@ class JSONField(Generic[T]):
     pass
 
 
+class Protected(Generic[T]):
+    """A type annotation for foreign key fields with RESTRICT delete behavior.
+
+    This prevents the referenced object from being deleted if it is still referenced.
+
+    Usage:
+        class MyModel(DAOModel, table=True)
+            ...
+            parent: Protected[ParentModel]
+            ...
+    """
+    pass
+
+
 def utc_now():
     """Returns the current UTC time with timezone information."""
     return datetime.now(timezone.utc)

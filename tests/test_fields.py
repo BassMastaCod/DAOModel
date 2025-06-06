@@ -4,10 +4,9 @@ from uuid import UUID
 
 import pytest
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import Field
 
 from daomodel import DAOModel, names_of
-from daomodel.fields import Identifier, Unsearchable, \
+from daomodel.fields import Identifier, Unsearchable, Protected, \
     utc_now, CurrentTimestampField, AutoUpdatingTimestampField, JSONField
 from tests.conftest import TestDAOFactory
 from tests.labeled_tests import labeled_tests
@@ -46,7 +45,7 @@ class OptionalReferenceModel(DAOModel, table=True):
 
 class RestrictModel(DAOModel, table=True):
     id: Identifier[int]
-    other_id: BasicModel = Field(foreign_key='basic_model.id', ondelete='RESTRICT')
+    other_id: Protected[BasicModel]
 
 
 class UnsearchablePropertyModel(DAOModel, table=True):
@@ -215,7 +214,7 @@ def test_reference__on_delete_of_optional(daos: TestDAOFactory):
     assert fk_entry.other_id is None
 
 
-def test_reference__custom_on_delete(daos: TestDAOFactory):
+def test_reference__protected(daos: TestDAOFactory):
     test_dao = daos[BasicModel]
     fk_dao = daos[RestrictModel]
 
