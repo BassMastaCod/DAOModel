@@ -25,15 +25,11 @@ class DAOModelMetaclass(SQLModelMetaclass):
         annotations = class_dict.get('__annotations__', {})
 
         for field_name, field_type in annotations.items():
-            field_args = {}
             if get_origin(field_type) is Unsearchable:
                 class_dict.setdefault('_unsearchable', set()).add(field_name)
                 field_type = get_args(field_type)[0]
 
-            if get_origin(field_type) is JSONField:
-                field_type = get_args(field_type)[0]
-                field_args['sa_type'] = JSON
-
+            field_args = {}
             if get_origin(field_type) is Identifier:
                 field_type = get_args(field_type)[0]
                 field_args['primary_key'] = True
@@ -51,7 +47,10 @@ class DAOModelMetaclass(SQLModelMetaclass):
                     is_optional = True
                     field_type = args[0]
 
-            if is_dao_model(field_type):
+            if get_origin(field_type) is JSONField:
+                field_type = get_args(field_type)[0]
+                field_args['sa_type'] = JSON
+            elif is_dao_model(field_type):
                 if len(field_type.get_pk()) == 1:
                     single_pk = next(iter(field_type.get_pk()))
                     field_type = field_type.__annotations__[single_pk.name]
