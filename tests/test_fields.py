@@ -102,7 +102,7 @@ class TimestampsModel(DAOModel, table=True):
 
 class JsonModel(DAOModel, table=True):
     id: Identifier[int]
-    data: dict = JSONField
+    data: JSONField[dict]
 
 
 class UUIDModel(DAOModel, table=True):

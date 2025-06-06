@@ -30,6 +30,18 @@ class Unsearchable(Generic[T]):
     pass
 
 
+class JSONField(Generic[T]):
+    """A type annotation for JSON fields.
+
+    Usage:
+        class MyModel(DAOModel, table=True)
+            ...
+            data: JSONField[dict]
+            ...
+    """
+    pass
+
+
 def utc_now():
     """Returns the current UTC time with timezone information."""
     return datetime.now(timezone.utc)
@@ -37,5 +49,3 @@ def utc_now():
 
 CurrentTimestampField = Field(default_factory=utc_now)
 AutoUpdatingTimestampField = Field(default_factory=utc_now, sa_column_kwargs={'onupdate': utc_now})
-
-JSONField = Field(sa_type=JSON)

@@ -2,10 +2,10 @@ from typing import Dict, Any, Tuple, Type, get_origin, get_args, Union
 import inspect
 import uuid
 from sqlmodel.main import SQLModelMetaclass, Field
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, JSON
 
 from daomodel.util import reference_of, UnsupportedFeatureError
-from daomodel.fields import Identifier, Unsearchable
+from daomodel.fields import Identifier, Unsearchable, JSONField
 
 
 def is_dao_model(cls: Type[Any]) -> bool:
@@ -32,6 +32,10 @@ class DAOModelMetaclass(SQLModelMetaclass):
             if get_origin(field_type) is Unsearchable:
                 class_dict['_unsearchable'].add(field_name)
                 field_type = get_args(field_type)[0]
+
+            if get_origin(field_type) is JSONField:
+                field_type = get_args(field_type)[0]
+                field_args['sa_type'] = JSON
 
             if get_origin(field_type) is Identifier:
                 field_type = get_args(field_type)[0]
