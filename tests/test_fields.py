@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
 from typing import Optional
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy.exc import IntegrityError
+from sqlmodel import Field
 
 from daomodel import DAOModel, names_of
 from daomodel.fields import Identifier, Unsearchable, Protected, \
@@ -104,9 +105,44 @@ class JsonModel(DAOModel, table=True):
     data: dict
 
 
-class UUIDModel(DAOModel, table=True):
-    id: Identifier[UUID]
-    other_id: UUID
+class StandardUUIDModel(DAOModel, table=True):
+    id: Identifier[int]
+    uuid: UUID
+
+
+class OptionalUUIDModel(DAOModel, table=True):
+    id: Identifier[int]
+    uuid: Optional[UUID]
+
+
+class IdentifierUUIDModel(DAOModel, table=True):
+    id: Identifier[int]
+    uuid: Identifier[UUID]
+
+
+class UnsearchableUUIDModel(DAOModel, table=True):
+    id: Identifier[int]
+    uuid: Unsearchable[UUID]
+
+
+class IdentifierOptionalUUIDModel(DAOModel, table=True):
+    id: Identifier[int]
+    uuid: Identifier[Optional[UUID]]
+
+
+class UnsearchableOptionalUUIDModel(DAOModel, table=True):
+    id: Identifier[int]
+    uuid: Unsearchable[Optional[UUID]]
+
+
+class UnsearchableIdentifierUUIDModel(DAOModel, table=True):
+    id: Identifier[int]
+    uuid: Unsearchable[Identifier[UUID]]
+
+
+class UnsearchableIdentifierOptionalUUIDModel(DAOModel, table=True):
+    id: Identifier[int]
+    uuid: Unsearchable[Identifier[Optional[UUID]]]
 
 
 def test_identifier():
@@ -281,22 +317,25 @@ def test_json_field(json: dict):
         assert dao.get(1).data == json
 
 
-def test_uuid(daos: TestDAOFactory):
-    dao = daos[UUIDModel]
-    entry = dao.create_with()
+@labeled_tests({
+    'standard uuid': StandardUUIDModel,
+    'optional uuid': OptionalUUIDModel,
+    'identifier uuid': IdentifierUUIDModel,
+    'unsearchable uuid': UnsearchableUUIDModel,
+    'identifier optional uuid': IdentifierOptionalUUIDModel,
+    'unsearchable optional uuid': UnsearchableOptionalUUIDModel,
+    'unsearchable identifier uuid': UnsearchableIdentifierUUIDModel,
+    'unsearchable identifier optional uuid': UnsearchableIdentifierOptionalUUIDModel
+})
+def test_uuid(model: type[DAOModel]):
+    with TestDAOFactory() as daos:
+        dao = daos[model]
+        entry = dao.create_with(id=1)
 
-    assert entry.id is not None
-    assert isinstance(entry.id, UUID)
+        assert getattr(entry, 'uuid') is not None
+        assert isinstance(getattr(entry, 'uuid'), UUID)
 
-    assert entry.other_id is not None
-    assert isinstance(entry.other_id, UUID)
-    assert entry.id != entry.other_id
-
-    entry2 = dao.create_with()
-    assert entry2.id is not None
-    assert isinstance(entry2.id, UUID)
-    assert entry.id != entry2.id
-
-    assert entry2.other_id is not None
-    assert isinstance(entry2.other_id, UUID)
-    assert entry.other_id != entry2.other_id
+        entry2 = dao.create_with(id=2)
+        assert getattr(entry2, 'uuid') is not None
+        assert isinstance(getattr(entry2, 'uuid'), UUID)
+        assert getattr(entry, 'uuid') != getattr(entry2, 'uuid')

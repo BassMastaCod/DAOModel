@@ -41,7 +41,7 @@ class DAOModelMetaclass(SQLModelMetaclass):
             is_optional = False
             if get_origin(field_type) is Union:
                 args = get_args(field_type)
-                if len(args) == 2 and args[1] is type(None) and is_dao_model(args[0]):
+                if len(args) == 2 and args[1] is type(None):
                     is_optional = True
                     field_type = args[0]
 
@@ -88,7 +88,7 @@ class DAOModelMetaclass(SQLModelMetaclass):
                     ]
                 else:
                     raise UnsupportedFeatureError(f'Cannot map to composite key of {field_type.__name__}.')
-            annotations[field_name] = field_type
+            annotations[field_name] = Union[field_type|None] if is_optional else field_type
 
             if field_args:
                 if field_name in class_dict:
