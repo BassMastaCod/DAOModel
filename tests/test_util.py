@@ -6,8 +6,8 @@ from sqlalchemy.testing.schema import Column
 from daomodel import reference_of
 from daomodel.util import names_of, values_from_dict, ensure_iter, dedupe, in_order, retain_in_dict, \
     remove_from_dict, mode
-from tests.conftest import Person, Book
 from tests.labeled_tests import labeled_tests
+from tests.school_models import Person, Book
 
 
 @pytest.mark.parametrize('column, expected', [

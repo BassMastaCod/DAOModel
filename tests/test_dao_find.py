@@ -5,9 +5,8 @@ from daomodel import UnsearchableError
 from daomodel.dao import DAO, SearchResults
 from daomodel.util import MissingInput, LessThan, GreaterThan, GreaterThanEqualTo, LessThanEqualTo, Between, \
     AnyOf, NoneOf, IsSet, is_set, NotSet, not_set
-from tests.conftest import all_students, TestDAOFactory, Student, Person, page_one, page_two, page_three, age_ordered, \
-    pk_ordered, duplicated_names, active, inactive, active_females, having_gender, not_having_name, unique_names, Book, \
-    Hall, having_book, Locker, not_having_locker, having_math_book, in_blue_hall
+from tests.conftest import TestDAOFactory
+from tests.school_models import *
 
 
 def test_find__all(student_dao: DAO):
