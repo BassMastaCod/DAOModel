@@ -56,6 +56,15 @@ class SearchResults(list[Model]):
         """Returns the first result or None if there are no results"""
         return next(iter(self), None)
 
+    def only(self) -> Optional[Model]:
+        """Returns the single result that was found.
+
+        :raises ValueError: If there are no results or more than one result
+        """
+        if len(self) != 1:
+            raise ValueError('Expected exactly one result')
+        return self.first()
+
 
 class DAO:
     """A DAO implementation for SQLAlchemy to make your code less SQLly."""

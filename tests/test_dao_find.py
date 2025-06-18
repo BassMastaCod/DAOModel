@@ -1,11 +1,9 @@
-import pytest
 from sqlmodel import desc
 
 from daomodel import UnsearchableError
-from daomodel.dao import DAO, SearchResults
+from daomodel.dao import SearchResults
 from daomodel.util import MissingInput, LessThan, GreaterThan, GreaterThanEqualTo, LessThanEqualTo, Between, \
     AnyOf, NoneOf, IsSet, is_set, NotSet, not_set
-from tests.conftest import TestDAOFactory
 from tests.school_models import *
 
 
@@ -15,6 +13,11 @@ def test_find__all(student_dao: DAO):
 
 def test_first__multiple_results(student_dao: DAO):
     assert student_dao.find().first() == all_students[0]
+
+
+def test_only__multiple_results(student_dao: DAO):
+    with pytest.raises(ValueError):
+        student_dao.find().only()
 
 
 def test_find__single_result(daos: TestDAOFactory):
@@ -29,12 +32,23 @@ def test_first__single_result(daos: TestDAOFactory):
     assert dao.find().first() == Student(id=100)
 
 
+def test_only__single_result(daos: TestDAOFactory):
+    dao = daos[Student]
+    dao.create(100)
+    assert dao.find().only() == Student(id=100)
+
+
 def test_find__no_results(daos: TestDAOFactory):
     assert daos[Student].find() == SearchResults([])
 
 
 def test_first__no_results(daos: TestDAOFactory):
     assert daos[Student].find().first() is None
+
+
+def test_only__no_results(daos: TestDAOFactory):
+    with pytest.raises(ValueError):
+        daos[Student].find().only()
 
 
 def test_find__limit(student_dao: DAO):
