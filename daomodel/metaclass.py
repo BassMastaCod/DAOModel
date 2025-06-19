@@ -1,7 +1,7 @@
 from typing import Dict, Any, Tuple, Type, get_origin, get_args, Union
 import inspect
 import uuid
-from sqlmodel.main import SQLModelMetaclass, Field
+from sqlmodel.main import SQLModelMetaclass, Field, FieldInfo
 from sqlalchemy import ForeignKey, JSON
 
 from daomodel.util import reference_of, UnsupportedFeatureError
@@ -29,7 +29,7 @@ class DAOModelMetaclass(SQLModelMetaclass):
                 class_dict.setdefault('_unsearchable', set()).add(field_name)
                 field_type = get_args(field_type)[0]
 
-            field_args = {}
+            field_args: dict[str, Any] = {'nullable': False}
             if get_origin(field_type) is Identifier:
                 field_type = get_args(field_type)[0]
                 field_args['primary_key'] = True
@@ -38,11 +38,10 @@ class DAOModelMetaclass(SQLModelMetaclass):
             if is_protected:
                 field_type = get_args(field_type)[0]
 
-            is_optional = False
             if get_origin(field_type) is Union:
                 args = get_args(field_type)
                 if len(args) == 2 and args[1] is type(None):
-                    is_optional = True
+                    field_args['nullable'] = True
                     field_type = args[0]
 
             if field_type is uuid.UUID:
@@ -66,8 +65,7 @@ class DAOModelMetaclass(SQLModelMetaclass):
 
                     # Set default ondelete behavior if not customized
                     if custom_ondelete is None:
-                        if is_optional:
-                            field_args['nullable'] = True
+                        if field_args['nullable']:
                             field_args['ondelete'] = 'SET NULL'
                         else:
                             field_args['ondelete'] = 'CASCADE'
@@ -75,29 +73,27 @@ class DAOModelMetaclass(SQLModelMetaclass):
                             field_args['ondelete'] = 'RESTRICT'
                     else:
                         field_args['ondelete'] = custom_ondelete
-                        if is_optional:
-                            field_args['nullable'] = True
 
                     # Pass ondelete to ForeignKey constructor
                     field_args['sa_column_args'] = [
                         ForeignKey(
-                            reference_of(single_pk), 
+                            reference_of(single_pk),
                             onupdate='CASCADE',
                             ondelete=field_args['ondelete']
                         )
                     ]
                 else:
                     raise UnsupportedFeatureError(f'Cannot map to composite key of {field_type.__name__}.')
-            annotations[field_name] = Union[field_type|None] if is_optional else field_type
+            annotations[field_name] = Union[field_type|None] if field_args['nullable'] else field_type
 
-            if field_args:
-                if field_name in class_dict:
-                    existing_field = class_dict.get(field_name)
-                    if hasattr(existing_field, '__dict__'):
-                        existing_args = vars(existing_field)
-                        field_args = {**field_args, **existing_args}
-                    else:
-                        field_args['default'] = existing_field
-                class_dict[field_name] = Field(**field_args)
+            if field_name in class_dict:
+                existing_field = class_dict.get(field_name)
+                if isinstance(existing_field, FieldInfo):
+                    for key, value in field_args.items():
+                        setattr(existing_field, key, value)
+                    continue
+                else:
+                    field_args['default'] = existing_field
+            class_dict[field_name] = Field(**field_args)
 
         return super().__new__(cls, name, bases, class_dict, **kwargs)
