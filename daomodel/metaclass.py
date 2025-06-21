@@ -107,9 +107,12 @@ class DAOModelMetaclass(SQLModelMetaclass):
                 field.type = field.type.__annotations__[single_pk.name]
                 field['foreign_key'] = reference_of(single_pk)
 
+                ondelete = None
+                if field in model:
+                    existing_field = model[field.name]
+                    ondelete = getattr(existing_field, 'ondelete', None) or getattr(existing_field, 'on_delete', None)
                 field['ondelete'] = (
-                    getattr(existing_field := class_dict.get(field.name), 'ondelete', None) or
-                    getattr(existing_field, 'on_delete', None) or
+                    ondelete if ondelete is not None else
                     'RESTRICT' if field.has_modifier(Protected) else
                     'SET NULL' if field['nullable'] else
                     'CASCADE'

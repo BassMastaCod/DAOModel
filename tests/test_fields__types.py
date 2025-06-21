@@ -3,6 +3,7 @@ from uuid import UUID
 
 import pytest
 from sqlalchemy.exc import IntegrityError
+from sqlmodel import Field
 
 from daomodel import DAOModel
 from daomodel.fields import Protected, Identifier
@@ -30,6 +31,11 @@ class OptionalReferenceModel(DAOModel, table=True):
 class RestrictModel(DAOModel, table=True):
     id: Identifier[int]
     other_id: Protected[OtherModel]
+
+
+class CustomOnDeleteModel(DAOModel, table=True):
+    id: Identifier[int]
+    other_id: Optional[OtherModel] = Field(foreign_key='auto', ondelete='CASCADE')
 
 
 class UUIDModel(DAOModel, table=True):
@@ -92,11 +98,11 @@ def test_reference__cascade_on_update(daos: TestDAOFactory):
     fk_dao = daos[StandardReferenceModel]
     optional_fk_dao = daos[OptionalReferenceModel]
 
-    test_entry = test_dao.create('A')
+    other_entry = test_dao.create('A')
     fk_entry = fk_dao.create_with(id=1, other_id='A')
     optional_fk_entry = optional_fk_dao.create_with(id=2, other_id='A')
 
-    test_dao.rename(test_entry, 'B')
+    test_dao.rename(other_entry, 'B')
     assert fk_entry.other_id == 'B'
     assert optional_fk_entry.other_id == 'B'
 
@@ -105,36 +111,51 @@ def test_reference__cascade_on_delete(daos: TestDAOFactory):
     test_dao = daos[OtherModel]
     fk_dao = daos[StandardReferenceModel]
 
-    test_entry = test_dao.create('A')
-    fk_entry = fk_dao.create_with(id=1, other_id='A')
-    assert fk_dao.exists(fk_entry)
+    other_entry = test_dao.create('A')
+    fk_dao.create_with(id=1, other_id='A')
+    daos.assert_in_db(StandardReferenceModel, 1, other_id='A')
 
-    test_dao.remove(test_entry)
-    assert not fk_dao.exists(fk_entry)
+    test_dao.remove(other_entry)
+    daos.assert_not_in_db(StandardReferenceModel, 1)
 
 
 def test_reference__on_delete_of_optional(daos: TestDAOFactory):
     test_dao = daos[OtherModel]
     fk_dao = daos[OptionalReferenceModel]
 
-    test_entry = test_dao.create('A')
-    fk_entry = fk_dao.create_with(id=1, other_id='A')
-    assert fk_dao.exists(fk_entry)
+    other_entry = test_dao.create('A')
+    fk_dao.create_with(id=1, other_id='A')
+    daos.assert_in_db(OptionalReferenceModel, 1, other_id='A')
 
-    test_dao.remove(test_entry)
-    assert fk_dao.exists(fk_entry)
-    assert fk_entry.other_id is None
+    test_dao.remove(other_entry)
+    daos.assert_in_db(OptionalReferenceModel, 1, other_id=None)
+
+
+def test_reference__override_on_delete(daos: TestDAOFactory):
+    test_dao = daos[OtherModel]
+    fk_dao = daos[CustomOnDeleteModel]
+
+    fk_entry = fk_dao.create(1)
+    daos.assert_in_db(CustomOnDeleteModel, 1, other_id=None)
+
+    other_entry = test_dao.create('A')
+    fk_entry.other_id = other_entry.id
+    fk_dao.upsert(fk_entry)
+    daos.assert_in_db(CustomOnDeleteModel, 1, other_id='A')
+
+    test_dao.remove(other_entry)
+    daos.assert_not_in_db(CustomOnDeleteModel, 1)
 
 
 def test_reference__protected(daos: TestDAOFactory):
     test_dao = daos[OtherModel]
     fk_dao = daos[RestrictModel]
 
-    test_entry = test_dao.create('A')
+    other_entry = test_dao.create('A')
     fk_dao.create_with(id=1, other_id='A')
 
     with pytest.raises(IntegrityError):
-        test_dao.remove(test_entry)
+        test_dao.remove(other_entry)
 
 
 def test_reference__uuid(daos: TestDAOFactory):
