@@ -118,7 +118,7 @@ class ChangeSet(ModelDiff):
     The `conflict_resolution` argument allows users to define specific conflict resolution rules
     for handling differences between the baseline and target models. This parameter can 
     accept field-specific resolution methods or a default resolution method for all fields.
-    If no resolution can be determined, a `Conflict` exception is raised. NOTE: This resolution
+    If no resolution can be determined, a `Conflict` exception is raised. Note: This resolution
     is only applicable for a Preference of `BOTH` as determined by `get_preferred()`.
     
     Examples:

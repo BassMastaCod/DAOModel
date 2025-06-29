@@ -17,33 +17,34 @@ More on this at [SQLModel's Documentation](https://sqlmodel.tiangolo.com/tutoria
 ## Inherit DAOModel in place of SQLModel
 
 `DAOModel` acts as a middleman, adding methods to your model class, turning it into a `DAOModel`.
-Since `DAOModel` inherits from `SQLModel` your object still `isinstance(m, SQLModel)`.
 
 ```python
 class Customer(DAOModel, table=True):
     id: int = Field(primary_key=True)
     name: str
 ```
+> **Note:** Since `DAOModel` inherits from `SQLModel` your object still `isinstance(m, SQLModel)`.
 
 ## Configure and Initialize your DB
 
-This library doesn't really care how you set up your database. [Skip ahead](#create-a-dao-for-your-daomodel) if you already know how to do so.
+This library doesn't require you to set up your database in a specific manner.
+[Skip ahead](#create-a-dao-for-your-daomodel) if you already know how to do so.
 Otherwise, you may find some of the library's built-in functionality useful.
 
-### Create your engine using DAOModel's helper function
+### 1. Create your engine using DAOModel's helper function
 
 ```python
 engine = create_engine('database.db')
 ```
 
 This uses **SQLite** to store your data. If you don't need persistence,
-an in-memory **SQLite** DB (perfect for testing) is achievable by excluding the path:
+an in-memory **SQLite** DB is achievable by excluding the path:
 
 ```python
 engine = create_engine()
 ```
 
-While good to start, when/if this doesn't meet your needs, please refer to
+While good to start, if/when this doesn't meet your needs, please refer to
 [SQLAlchemy's Docs on Engines](https://docs.sqlalchemy.org/core/engines_connections.html)
 
 ### Initialize the Engine
@@ -56,7 +57,7 @@ init_db(engine)
 
 This is simply a shortcut method of `SQLModel.metadata.create_all(engine)`.
 
-> **NOTE:** Be sure your Models are all imported (if defined outside of this file)
+> **Note:** Be sure your Models are all imported (if defined outside of this file)
 > before executing this code or else those tables will not be included.
 
 ### Create a DB session
@@ -81,10 +82,10 @@ With that said, creating a `DAO` is simple enough, but you will need your db ses
 DAO(Customer, db)
 ```
 
-> **NOTE:** You pass the Class to DAO, not an instance of the Class
+> **Note:** You pass the Class, not an instance of the Class, as the argument
 
 All the tedious coding is handled by the `DAO` class.
-It reads the definition of your model and provides methods for your standard CRUD operations for the database session.
+It reads the definition of your model and provides your standard CRUD operations methods for the database session.
 
 So there you have it, You now have a usable DAO layer for your model!
 Let's look at the full code:
@@ -93,7 +94,6 @@ Let's look at the full code:
 from sqlmodel import Field, Session
 from daomodel import DAOModel, DAO
 from daomodel.db import create_engine, init_db
-
 
 class Customer(DAOModel, table=True):
     id: int = Field(primary_key=True)
@@ -105,7 +105,7 @@ db = Session(engine)
 dao = DAO(Customer, db)
 ```
 
-It may not be exactly what is wanted for your final product, but it gets you up and running quickly.
+The above may not be exactly what is wanted for your final product, but it gets you up and running quickly.
 Just a few lines is all you need to get started!
 
 ## Next Steps

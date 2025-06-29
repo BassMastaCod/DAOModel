@@ -25,7 +25,7 @@ class UnsupportedFeatureError(Exception):
     If you think the feature should be implemented, please open an issue on GitHub.
     """
     def __init__(self, detail: str):
-        self.detail = detail + (' NOTE: This functionality is not yet supported. '
+        self.detail = detail + (' Note: This functionality is not yet supported. '
                                 'Please submit a request through GitHub if you would like it implemented.')
 
 

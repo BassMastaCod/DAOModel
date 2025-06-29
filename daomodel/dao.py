@@ -306,7 +306,7 @@ class DAO:
         If this DAO was in transaction mode, it will be reset to auto-commit mode after committing.
 
         :param models_to_refresh: The DAOModels to refresh after committing
-        raises NotFound: if a model does not exist in the database
+        :raises NotFound: if a model does not exist in the database
         """
         self.db.commit()
         for model in models_to_refresh:
@@ -316,7 +316,7 @@ class DAO:
         self._end_transaction()
 
     def rollback(self) -> None:
-        """Rolls back all pending database changes of a transaction.
+        """Reverts all pending database changes of a transaction.
 
         This will discard all changes that have not yet been committed.
 
