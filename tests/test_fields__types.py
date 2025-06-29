@@ -47,6 +47,11 @@ class UUIDReferenceModel(DAOModel, table=True):
     other_id: UUIDModel
 
 
+class UUIDOptionalReferenceModel(DAOModel, table=True):
+    id: Identifier[int]
+    other_id: Optional[UUIDModel]
+
+
 @labeled_tests({**get_test_cases('field')})
 def test_field(annotation: Any):
     model_type = create_test_model(annotation)
@@ -168,3 +173,8 @@ def test_reference__uuid(daos: TestDAOFactory):
     entry = reference_dao.get(1)
     assert entry.other_id is not None
     assert uuid_dao.get(entry.other_id) is not None
+
+
+def test_reference__uuid__optional(daos: TestDAOFactory):
+    daos[UUIDOptionalReferenceModel].create(1)
+    daos.assert_in_db(UUIDOptionalReferenceModel, 1, other_id=None)
