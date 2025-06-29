@@ -3,15 +3,16 @@ from typing import Optional, Any
 
 import pytest
 
-from daomodel import DAOModel, PrimaryKey
+from daomodel import DAOModel
 from daomodel.dao import Conflict
+from daomodel.fields import Identifier
 from daomodel.model_diff import ChangeSet, Preference, Resolved, Unresolved, MergeSet
 from daomodel.util import mode
 from tests.labeled_tests import labeled_tests
 
 
 class CalendarEvent(DAOModel, table=True):
-    title: str = PrimaryKey
+    title: Identifier[str]
     day: date
     time: Optional[str] = 'All Day'
     location: Optional[str]

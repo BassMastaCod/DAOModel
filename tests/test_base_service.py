@@ -1,7 +1,8 @@
 from datetime import date
 
 from daomodel.base_service import BaseService, SOURCE_VALUE, DESTINATION_VALUE
-from tests.conftest import Staff, TestDAOFactory
+from tests.conftest import TestDAOFactory
+from tests.school_models import Staff
 
 
 def longest(values: list[str]) -> str:

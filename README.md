@@ -1,19 +1,20 @@
 # DAOModel
-An instant CRUD layer for your Python models (Powered by
-[SQLModel](https://sqlmodel.tiangolo.com/) /
-[Pydantic](https://docs.pydantic.dev/latest/) /
-[SQLAlchemy](https://www.sqlalchemy.org/)).
+An instant CRUD layer for your Python models.
+
+DAOModel is a powerful yet beginner-friendly database toolkit built on top of industry-standard libraries
+([SQLModel](https://sqlmodel.tiangolo.com/), [Pydantic](https://docs.pydantic.dev/latest/), and [SQLAlchemy](https://www.sqlalchemy.org/)).
+It provides everything you need to get your database-backed project up and running quickly.
 
 * Eliminate repetitive work by auto-creating your DAOs
 * Make your code more straightforward and readable
-* Write less code, meaning:
-    * have a usable product sooner
-    * less testing
-    * less potential for bugs
+* Write less code, which means:
+    * having a usable product sooner
+    * reduced testing burden
+    * minimal potential bugs
 
 ## Purpose
 Assembled from a collection of duplicated logic found across several projects,
-this library serves as a starting point for your database-backed Python project.
+this library serves as a starting point for your Python project.
 Though great for complex apps, it's also a great starting point for simple projects.
 DAOModel will benefit new developers the most by providing a straight forward start to writing code.
 
@@ -25,8 +26,9 @@ please [submit a ticket](https://github.com/BassMastaCod/DAOModel/issues/new)
 so that I can be sure that even beginners are able to benefit from this project.
 
 ## Features
-* Expands upon SQLModel; works with your existing models
+* Expands upon SQLModel; works seamlessly with existing models
 * SQLAlchemy under the hood; keep existing logic while using DAOModel functions for new code
+* A proven, reliable data layer
 * Advanced search capabilities without raw SQL
 * Quality-of-life additions
 
@@ -53,7 +55,7 @@ Speaking of SQLite, this library configures Foreign Key constraints to be enforc
 
 ### Table Names
 Table names are configured to be snake_case which differs from SQLModel.
-This can be adjusted by overriding `def __tablename__` in your own child class.
+See [Table Naming](docs/usage/model.md#table-naming) for more information.
 
 ### Unsupported Functionality
 Not all functionality will work as intended through DAOModel.

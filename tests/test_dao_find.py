@@ -1,13 +1,10 @@
-import pytest
 from sqlmodel import desc
 
-from daomodel import Unsearchable
-from daomodel.dao import DAO, SearchResults
+from daomodel import UnsearchableError
+from daomodel.dao import SearchResults
 from daomodel.util import MissingInput, LessThan, GreaterThan, GreaterThanEqualTo, LessThanEqualTo, Between, \
     AnyOf, NoneOf, IsSet, is_set, NotSet, not_set
-from tests.conftest import all_students, TestDAOFactory, Student, Person, page_one, page_two, page_three, age_ordered, \
-    pk_ordered, duplicated_names, active, inactive, active_females, having_gender, not_having_name, unique_names, Book, \
-    Hall, having_book, Locker, not_having_locker, having_math_book, in_blue_hall
+from tests.school_models import *
 
 
 def test_find__all(student_dao: DAO):
@@ -16,6 +13,11 @@ def test_find__all(student_dao: DAO):
 
 def test_first__multiple_results(student_dao: DAO):
     assert student_dao.find().first() == all_students[0]
+
+
+def test_only__multiple_results(student_dao: DAO):
+    with pytest.raises(ValueError):
+        student_dao.find().only()
 
 
 def test_find__single_result(daos: TestDAOFactory):
@@ -30,12 +32,23 @@ def test_first__single_result(daos: TestDAOFactory):
     assert dao.find().first() == Student(id=100)
 
 
+def test_only__single_result(daos: TestDAOFactory):
+    dao = daos[Student]
+    dao.create(100)
+    assert dao.find().only() == Student(id=100)
+
+
 def test_find__no_results(daos: TestDAOFactory):
     assert daos[Student].find() == SearchResults([])
 
 
 def test_first__no_results(daos: TestDAOFactory):
     assert daos[Student].find().first() is None
+
+
+def test_only__no_results(daos: TestDAOFactory):
+    with pytest.raises(ValueError):
+        daos[Student].find().only()
 
 
 def test_find__limit(student_dao: DAO):
@@ -69,12 +82,12 @@ def test_find__filter_by_bool_property(student_dao: DAO):
 
 
 def test_find__unsearchable_property(daos: TestDAOFactory):
-    with pytest.raises(Unsearchable):
+    with pytest.raises(UnsearchableError):
         daos[Person].find(ssn=32)
 
 
 def test_find__invalid_property(daos: TestDAOFactory):
-    with pytest.raises(Unsearchable):
+    with pytest.raises(UnsearchableError):
         daos[Student].find(sex='m')
 
 
@@ -94,7 +107,7 @@ def test_find__is_set_foreign_property(student_dao: DAO):
 
 
 def test_find__is_set_unsearchable(student_dao: DAO):
-    with pytest.raises(Unsearchable):
+    with pytest.raises(UnsearchableError):
         student_dao.find(is_set_=Hall.floor)
 
 
@@ -110,7 +123,7 @@ def test_find__not_set_foreign_property(student_dao: DAO):
 
 
 def test_find__condition_operator_unsearchable(person_dao: DAO):
-    with pytest.raises(Unsearchable):
+    with pytest.raises(UnsearchableError):
         person_dao.find(ssn=is_set)
 
 
@@ -241,7 +254,7 @@ def test_find__order_by_nested_foreign_property(school_dao: DAO):
 
 
 def test_find__order_by_unsearchable(daos: TestDAOFactory):
-    with pytest.raises(Unsearchable):
+    with pytest.raises(UnsearchableError):
         daos[Person].find(order=Person.ssn)
 
 
@@ -254,7 +267,7 @@ def test_find__duplicate_foreign_property(school_dao: DAO):
 
 
 def test_find__duplicate_unsearchable(daos: TestDAOFactory):
-    with pytest.raises(Unsearchable):
+    with pytest.raises(UnsearchableError):
         daos[Person].find(duplicate=Person.ssn)
 
 
@@ -267,7 +280,7 @@ def test_find__unique_foreign_property(school_dao: DAO):
 
 
 def test_find__unique_unsearchable(daos: TestDAOFactory):
-    with pytest.raises(Unsearchable):
+    with pytest.raises(UnsearchableError):
         daos[Person].find(unique=Person.ssn)
 
 

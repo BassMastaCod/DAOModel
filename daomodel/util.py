@@ -1,6 +1,5 @@
 import warnings
-from functools import wraps
-from typing import Iterable, Any, OrderedDict, Callable
+from typing import Iterable, Any, OrderedDict
 
 from sqlalchemy import Column, ColumnElement
 from sqlmodel import or_, and_
@@ -20,6 +19,16 @@ class InvalidArgumentCount(Exception):
             self.detail += f' for {context}'
 
 
+class UnsupportedFeatureError(Exception):
+    """Indicates that a feature is not yet supported.
+
+    If you think the feature should be implemented, please open an issue on GitHub.
+    """
+    def __init__(self, detail: str):
+        self.detail = detail + (' Note: This functionality is not yet supported. '
+                                'Please submit a request through GitHub if you would like it implemented.')
+
+
 def reference_of(column: Column) -> str:
     """
     Prepares a str reference of a column.
@@ -27,7 +36,7 @@ def reference_of(column: Column) -> str:
     :param column: The column to convert
     :return: The 'table.column' notation of the Column
     """
-    return f"{column.table.name}.{column.name}"
+    return f'{column.table.name}.{column.name}'
 
 
 def names_of(properties: Iterable[Column]) -> list[str]:
@@ -65,7 +74,7 @@ def values_from_dict(*keys: Any, **values: Any) -> tuple:
         if key in values:
             result.append(values[key])
         else:
-            raise MissingInput(f"Requested key {key} not found in dictionary")
+            raise MissingInput(f'Requested key {key} not found in dictionary')
     return tuple(result)
 
 
@@ -91,17 +100,6 @@ def remove_from_dict(d: dict[Any, Any], *keys: Any) -> dict[Any, Any]:
     :return: The modified values as a new dict
     """
     return {k: v for k, v in d.items() if k not in keys}
-
-
-def filter_dict(*keys: Any, **values: Any) -> dict[str, Any]:
-    """Filters a dictionary to specified keys.
-
-    :param keys: The target keys for the new dict
-    :param values: The dictionary to filter down
-    :return: The filter down values as a new dict
-    """
-    warnings.warn('Use retain_in_dict instead', DeprecationWarning)
-    return {key: values[key] for key in keys}
 
 
 def ensure_iter(elements: Any):
@@ -141,18 +139,6 @@ def in_order(original: Iterable, order: list) -> list:
     return [item for item in order if item in original]
 
 
-def kwargs_if_none_provided(**default_kwargs: Any) -> Callable:
-    """A decorator to provide default values into `**kwargs` only if `kwargs` is empty."""
-    def decorator(func: Callable) -> Callable:
-        @wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
-            if not kwargs:
-                kwargs = default_kwargs
-            return func(*args, **kwargs)
-        return wrapper
-    return decorator
-
-
 def next_id() -> None:
     """Indicates to the model that an id should be auto-incremented"""
     return None
@@ -169,7 +155,7 @@ class ConditionOperator:
         :param column: The column on which to evaluate
         :return: the expression
         """
-        raise NotImplementedError("Must implement `get_expression` in subclass")
+        raise NotImplementedError('Must implement `get_expression` in subclass')
 
 
 class GreaterThan(ConditionOperator):

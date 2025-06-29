@@ -4,6 +4,7 @@ from typing import Any, Optional, Callable
 
 from daomodel import DAOModel
 from daomodel.dao import Conflict
+from daomodel.property_filter import DEFAULT
 
 
 class Preference(Enum):
@@ -39,7 +40,7 @@ class ModelDiff(dict[str, tuple[Any, Any]]):
 
         :param field: The name of the field to fetch
         :return: The left value for the specified field
-        :raises: KeyError if the field is invalid or otherwise not included in this diff
+        :raises KeyError: if the field is invalid or otherwise not included in this diff
         """
         if field not in self:
             raise KeyError(f'{field} not found in diff.')
@@ -50,7 +51,7 @@ class ModelDiff(dict[str, tuple[Any, Any]]):
 
         :param field: The name of the field to fetch
         :return: The right value for the specified field
-        :raises: KeyError if the field is invalid or otherwise not included in this diff
+        :raises KeyError: if the field is invalid or otherwise not included in this diff
         """
         if field not in self:
             raise KeyError(f'{field} not found in diff.')
@@ -62,7 +63,7 @@ class ModelDiff(dict[str, tuple[Any, Any]]):
 
         :param field: The name of the field
         :return: The Preference between the possible values
-        :raises: KeyError if the field is invalid or otherwise not included in this diff
+        :raises KeyError: if the field is invalid or otherwise not included in this diff
         """
         raise NotImplementedError(f'Cannot determine which value is preferred for {field}: '
                                   f'{self.get_left(field)} -> {self.get_right(field)}')
@@ -117,7 +118,7 @@ class ChangeSet(ModelDiff):
     The `conflict_resolution` argument allows users to define specific conflict resolution rules
     for handling differences between the baseline and target models. This parameter can 
     accept field-specific resolution methods or a default resolution method for all fields.
-    If no resolution can be determined, a `Conflict` exception is raised. NOTE: This resolution
+    If no resolution can be determined, a `Conflict` exception is raised. Note: This resolution
     is only applicable for a Preference of `BOTH` as determined by `get_preferred()`.
     
     Examples:
@@ -158,7 +159,7 @@ class ChangeSet(ModelDiff):
 
     5. Static Resolution:
        ```
-       ChangeSet(baseline, target, name="Static Name", default="Default Value")
+       ChangeSet(baseline, target, name='Static Name', default='Default Value')
        ```
     
     View the test code for more examples.
@@ -169,8 +170,8 @@ class ChangeSet(ModelDiff):
                  include_pk: Optional[bool] = False,
                  **conflict_resolution: Preference|Callable|Any):
         super().__init__(baseline, target, include_pk)
-        self.assigned_in_baseline = self.left.get_property_names(assigned=True)
-        self.assigned_in_target = self.right.get_property_names(assigned=True)
+        self.modified_in_baseline = self.left.get_property_names(~DEFAULT)
+        self.modified_in_target = self.right.get_property_names(~DEFAULT)
         self.conflict_resolution = conflict_resolution
 
     def get_baseline(self, field: str) -> Any:
@@ -178,7 +179,7 @@ class ChangeSet(ModelDiff):
 
         :param field: The name of the field to fetch
         :return: The baseline value for the specified field
-        :raises: KeyError if the field is invalid or otherwise not included in this diff
+        :raises KeyError: if the field is invalid or otherwise not included in this diff
         """
         return self.get_left(field)
 
@@ -187,7 +188,7 @@ class ChangeSet(ModelDiff):
 
         :param field: The name of the field to fetch
         :return: The target value for the specified field
-        :raises: KeyError if the field is invalid or otherwise not included in this diff
+        :raises KeyError: if the field is invalid or otherwise not included in this diff
         """
         return self.get_right(field)
 
@@ -213,9 +214,9 @@ class ChangeSet(ModelDiff):
     def get_preferred(self, field: str) -> Preference:
         return (
             Preference.LEFT if not self.has_target_value(field) else
-            Preference.BOTH if field in self.assigned_in_baseline and field in self.assigned_in_target else
-            Preference.LEFT if field in self.assigned_in_baseline else
-            Preference.RIGHT if field in self.assigned_in_target else
+            Preference.BOTH if field in self.modified_in_baseline and field in self.modified_in_target else
+            Preference.LEFT if field in self.modified_in_baseline else
+            Preference.RIGHT if field in self.modified_in_target else
             Preference.NEITHER
         )
 
@@ -228,7 +229,7 @@ class ChangeSet(ModelDiff):
 
         :param field: The field having a conflict
         :return: The result of the resolution which may be the baseline value, target value, or something new entirely
-        :raises: Conflict if a resolution cannot be determined
+        :raises Conflict: if a resolution cannot be determined
         """
         def raise_conflict(*values: Any) -> Any:
             raise Conflict(msg=f'Unable to determine preferred result for {field}: {values}')
@@ -248,7 +249,7 @@ class ChangeSet(ModelDiff):
         """Removes unwanted changes, preserving the meaningful values, regardless of them being from baseline or target
 
         :return: This ChangeSet to allow for chaining function calls
-        :raises: Conflict if both baseline and target have meaningful values (unless resolve_conflict is overridden)
+        :raises Conflict: if both baseline and target have meaningful values (unless resolve_conflict is overridden)
         """
         for field in list(self.keys()):
             preferred = self.get_preferred(field)
@@ -291,7 +292,7 @@ class MergeSet(ChangeSet):
         self.left = baseline
         self.right = targets
         for model in targets:
-            self.assigned_in_target += model.get_property_names(assigned=True)
+            self.modified_in_target += model.get_property_names(~DEFAULT)
 
         for model in targets:
             for k, v in baseline.compare(model).items():

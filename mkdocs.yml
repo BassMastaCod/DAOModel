@@ -5,8 +5,11 @@ nav:
 - Home: README.md
 - Getting Started: docs/getting_started.md
 - DAO: docs/usage/dao.md
+- Model: docs/usage/model.md
 
 theme: readthedocs
+extra_css:
+  - docs/style.css
 
 plugins:
 - same-dir
@@ -22,6 +25,7 @@ plugins:
           separate_signature: true
           show_signature_annotations: true
           docstring_style: sphinx
-          docstring_section_style: spacy
+          docstring_section_style: list
+          list_style: spacy
           show_root_members_full_path: false
           members_order: source

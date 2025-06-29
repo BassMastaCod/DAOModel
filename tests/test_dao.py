@@ -2,7 +2,8 @@ import pytest
 
 from daomodel.dao import DAO, NotFound, Conflict
 from daomodel.util import MissingInput, InvalidArgumentCount, next_id
-from tests.conftest import TestDAOFactory, Student, Person, Book
+from tests.conftest import TestDAOFactory
+from tests.school_models import Student, Person, Book
 
 
 def test_create__single_column(daos: TestDAOFactory):

@@ -1,17 +1,19 @@
 from typing import Any, Iterable, Optional
 
-import sqlalchemy
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel
 from sqlalchemy import Column, Engine, MetaData, Connection
 from str_case_util import Case
 from sqlalchemy.ext.declarative import declared_attr
 
-from daomodel.util import reference_of, names_of, in_order, retain_in_dict, remove_from_dict, kwargs_if_none_provided
+from daomodel.metaclass import DAOModelMetaclass
+from daomodel.util import reference_of, names_of, in_order, retain_in_dict, remove_from_dict
+from daomodel.property_filter import PropertyFilter, ALL, PK
 
-PROPERTY_CATEGORIES = ['all', 'pk', 'fk', 'standard', 'assigned', 'defaults', 'none']
+
+ColumnBreadcrumbs = tuple[type['DAOModel'], ..., Column]
 
 
-class DAOModel(SQLModel):
+class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
     """An SQLModel specifically designed to support a DAO."""
 
     @declared_attr
@@ -33,7 +35,7 @@ class DAOModel(SQLModel):
 
     @classmethod
     def doc_name(cls) -> str:
-        """A reader friendly version of this Model name to be used within documentation.
+        """A reader-friendly version of this Model name to be used within documentation.
 
         :return: The model name in Title Case
         """
@@ -51,7 +53,7 @@ class DAOModel(SQLModel):
     def get_pk_names(cls) -> list[str]:
         """Returns the names of Columns that comprise the Primary Key for this Model.
 
-        :return: A list of str of the primary key
+        :return: A list (of str) of the primary key
         """
         return names_of(cls.get_pk())
 
@@ -63,7 +65,7 @@ class DAOModel(SQLModel):
         return tuple(getattr(self, key) for key in names_of(self.get_pk()))
 
     def get_pk_dict(self) -> dict[str, Any]:
-        """Returns the dictionary Primary Keys for this instance of the Model.
+        """Returns the Primary Key values for this instance of the Model.
 
         :return: A dict of primary key names/values
         """
@@ -71,7 +73,9 @@ class DAOModel(SQLModel):
 
     @classmethod
     def get_fks(cls) -> set[Column]:
-        """Returns the Columns of other objects that are represented by Foreign Keys for this Model.
+        """Returns the Columns of other tables that are represented by Foreign Keys for this Model.
+
+        A returned Column could be within this Model in the case of a cyclic relationship.
 
         :return: An unordered set of columns
         """
@@ -104,64 +108,124 @@ class DAOModel(SQLModel):
         """
         return cls.__table__.c
 
-    @kwargs_if_none_provided(all=True)
-    def get_property_names(self, **kwargs: bool) -> list[str]:
-        """Returns the names of the specified properties of this Model
+    def get_property_names(self, *filters: PropertyFilter) -> list[str]:
+        """Returns the names of the specified properties for this Model.
 
-        Supported property categories to specify are:
-            all: All model properties including those inherited
-            pk: Primary Key properties
-            fk: Foreign Key properties
-            standard: All other properties (that aren't pk or fk)
-            assigned: Properties that have a non-default value
-            defaults: Properties that are equivalent to their default value
-            none: Properties that do not have a value
-        Property categories may be set to True (to include) or False (to exclude).
-        The categories are added/removed in the order that they are encountered as arguments.
-            Therefore, arguments of get_property_names(pk=False, all=True) will result in all properties
-            while get_property_names(all=True, pk=False) will result in all but the primary key properties.
-        assigned, defaults, and none will overlap with each other and the other categories
-            so order is important to get the properties you intend.
-        If no arguments are provided, all properties will be returned.
+        Requested property categories may be refined through filters:
 
-        :param kwargs: The property categories to include or exclude
-        :return: A list of property names in the order they are defined within the code (see get_properties)
+        - `ALL`: All properties
+        - `PK`: Primary Key properties
+        - `FK`: Foreign Key properties
+        - `DEFAULT`: Properties that are equivalent to their default value
+        - `NONE`: Properties that do not have a value
+
+        ```python
+        # Get all properties (default if no filter specified)
+        model.get_property_names()
+
+        # Get all primary key properties
+        model.get_property_names(PK)
+        ```
+
+        Each filter can be negated by prepending `~` to indicate _NOT_:
+        ```python
+        # Get all non-null properties
+        model.get_property_names(~NONE)
+
+        # Get all properties that are not relationships
+        model.get_property_names(~FK)
+        ```
+
+        Operators allow for combining filters into expressions:
+
+        - `&` (AND): Properties must match both filters
+        - `|` (OR): Properties must match at least one filter
+        - `~` (NOT): Properties must NOT match the filter
+
+        ```python
+        # Get missing relationships
+        model.get_property_names(FK & NONE)
+
+        # Get properties that are a primary or foreign key
+        model.get_property_names(PK | FK)
+
+        # Get properties that are their default value or null
+        model.get_property_names(DEFAULT | NONE)
+
+        # Get properties that are either not null or are primary key relationships
+        model.get_property_names(~NONE | PK & FK)
+        ```
+
+        Multiple filter arguments (seperated by commas) are combined with AND:
+        ```python
+        # Get primary keys that aren't foreign keys
+        model.get_property_names(PK, ~FK)  # equivalent to: PK & ~FK
+
+        # Make sure they are also not null
+        model.get_property_names(PK, ~FK, ~NONE)  # equivalent to: PK & ~FK & ~NONE
+        ```
+
+        Combine several filters to form complex expressions:
+        ```python
+        # Get properties that are either primary keys that aren't foreign keys or are non-null default values
+        model.get_property_names(PK & ~FK | DEFAULT & ~NONE)
+        ```
+
+        The filters within an expression are resolved in a specific order:
+
+        1. `~` (NOT): Properties must NOT match the filter
+        2. `&` (AND): Properties must match both filters
+        3. `|` (OR): Properties must match at least one filter
+
+        Therefore, the following expressions are all equivalent:
+        ```python
+        model.get_property_names(~NONE | PK & ~FK)
+        model.get_property_names(PK & ~FK | ~NONE)
+        model.get_property_names(~FK & PK | ~NONE)
+        ```
+
+        To change the order of evaluation, use parentheses:
+        ```python
+        # properties that are either not null or are primary keys but not foreign keys
+        model.get_property_names(~FK & PK | ~NONE)
+
+        # properties that are either not null or are not both primary and foreign keys
+        model.get_property_names(~(FK & PK) | ~NONE)
+
+        # properties that are not foreign keys and properties that are either primary keys or are non-null
+        model.get_property_names(~FK & (PK | ~NONE))
+        ```
+
+        :param filters: Property filter expressions using PK, FK, DEFAULT, NONE. Multiple filters are combined with AND.
+        :return: A list of property names in the order they are defined within the code
         """
-        property_order = names_of(self.get_properties())
-        all_properties = set(property_order)
-        result = set()
+        match len(filters):
+            case 0:
+                prop_filter = ALL
+            case 1:
+                prop_filter = filters[0]
+            case _:
+                prop_filter = filters[0]
+                for next_filter in filters[1:]:
+                    prop_filter &= next_filter
 
-        for key, value in kwargs.items():
-            if key not in PROPERTY_CATEGORIES:
-                raise ValueError(f'Unexpected keyword argument {key} is not one of {PROPERTY_CATEGORIES}')
-            if key == 'all':
-                props = all_properties
-            elif key == 'pk':
-                props = self.get_pk_names()
-            elif key == 'fk':
-                props = names_of(self.get_fk_properties())
-            elif key == 'assigned':
-                props = self.model_dump(exclude_defaults=True, exclude_none=True)
-            else:
-                if key == 'standard':
-                    exclude = self.get_pk_names() + names_of(self.get_fk_properties())
-                else:
-                    exclude = self.model_dump(**{f'exclude_{key}': True})
-                props = all_properties.difference(exclude)
+        result = prop_filter.evaluate(self)
+        return in_order(result, names_of(self.get_properties()))
 
-            result = result.union(props) if value else result.difference(props)
-        return in_order(result, property_order)
+    def get_property_values(self, *filters: PropertyFilter) -> dict[str, Any]:
+        """Reads values of the specified properties for this Model.
 
-    def get_property_values(self, **kwargs: bool) -> dict[str, Any]:
-        """Reads values of the specified properties of this Model.
-
-        :param kwargs: see get_property_names()
-        :return: a dict of property names and their values
+        :param filters: Property filter expressions (see `get_property_names`)
+        :return: A dict of property names and their values
         """
-        return self.get_values_of(self.get_property_names(**kwargs))
+        return self.get_values_of(self.get_property_names(*filters))
 
     def get_value_of(self, column: Column|str) -> Any:
-        """Shortcut function to return the value for the specified Column."""
+        """Shortcut function to return the value for the specified Column.
+
+        :param column: The Column, or column name, to read
+        :raises `AttributeError`: if the column is not found.
+        """
         if not isinstance(column, str):
             column = column.name
         return getattr(self, column)
@@ -184,11 +248,10 @@ class DAOModel(SQLModel):
         :param include_pk: True if you want to include the primary key in the diff
         :return: A dictionary of property names with a tuple of this instance's value and the other value respectively
         """
-        args = {'all': True}
-        if not include_pk:
-            args['pk'] = False
-        source_values = self.get_property_values(**args)
-        other_values = other.get_property_values(**args)
+        filter_expr = None if include_pk else ~PK
+        source_values = self.get_property_values(filter_expr) if filter_expr else self.get_property_values()
+        other_values = other.get_property_values(filter_expr) if filter_expr else other.get_property_values()
+
         diff = {}
         for k, v in source_values.items():
             if other_values[k] != v:
@@ -196,21 +259,37 @@ class DAOModel(SQLModel):
         return diff
 
     @classmethod
-    def get_searchable_properties(cls) -> Iterable[Column|tuple[type['DAOModel'], ..., Column]]:
+    def get_searchable_properties(cls) -> Iterable[Column | ColumnBreadcrumbs]:
         """Returns all the Columns for this Model that may be searched using the DAO find function.
+
+        All properties are searchable unless marked with the Unsearchable type annotation.
+
+        To mark a property as unsearchable:
+        ```python
+        class MyModel(DAOModel, table=True):
+            id: Identifier[int]  # Searchable by default
+            name: str  # Searchable by default
+            internal_notes: Unsearchable[str]  # Not searchable
+        ```
+
+        Properties of related models are only searchable if defined within your model's Meta class.
+        Please readthedocs for more information.
 
         :return: A list of searchable columns
         """
-        return cls.get_properties()
+        unsearchable = getattr(getattr(cls, '_unsearchable', None), 'default', set())
+        searchable = [column for column in cls.get_properties() if column.name not in unsearchable]
+        searchable.extend(getattr(getattr(cls, 'Meta', None), 'searchable_relations', set()))
+        return searchable
 
     @classmethod
     def find_searchable_column(cls, prop: [str|Column], foreign_tables: list[type['DAOModel']]) -> Column:
         """Returns the specified searchable Column.
 
         :param prop: str type reference of the Column or the Column itself
-        :param foreign_tables: A list of foreign tables to populated with tables of properties deemed to be foreign
+        :param foreign_tables: A list of foreign tables to be populated with tables of properties deemed to be foreign
         :return: The searchable Column
-        :raises: Unsearchable if the property is not Searchable for this class
+        :raises Unsearchable: if the property is not Searchable for this class
         """
         if type(prop) is not str:
             prop = reference_of(prop)
@@ -219,12 +298,12 @@ class DAOModel(SQLModel):
             if type(column) is tuple:
                 tables = column[:-1]
                 column = column[-1]
-            if reference_of(column) in [prop, f"{cls.normalized_name()}.{prop}"]:
+            if reference_of(column) in [prop, f'{cls.normalized_name()}.{prop}']:
                 foreign_tables.extend([t.__table__ for t in tables])
                 if column.table is not cls.__table__:
                     foreign_tables.append(column.table)
                 return column
-        raise Unsearchable(prop, cls)
+        raise UnsearchableError(prop, cls)
 
     @classmethod
     def pk_values_to_dict(cls, *pk_values: Any) -> dict[str, Any]:
@@ -273,8 +352,8 @@ class DAOModel(SQLModel):
     def __str__(self) -> str:
         """
         str representation of this is a str of the primary key.
-        A single-column PK results in a simple str value of said column i.e. "1234"
-        A multi-column PK results in a str of tuple of PK values i.e. ("Cod", "123 Lake Way")
+        A single-column PK results in a simple str value of said column i.e. '1234'
+        A multi-column PK results in a str of tuple of PK values i.e. ('Cod', '123 Lake Way')
         """
         pk_values = self.get_pk_values()
         if len(pk_values) == 1:
@@ -282,10 +361,10 @@ class DAOModel(SQLModel):
         return str(pk_values)
 
 
-class Unsearchable(Exception):
+class UnsearchableError(Exception):
     """Indicates that the Search Query is not allowed for the specified field."""
     def __init__(self, prop: str, model: type(DAOModel)):
-        self.detail = f"Cannot search for {prop} of {model.doc_name()}"
+        self.detail = f'Cannot search for {prop} of {model.doc_name()}'
 
 
 def all_models(bind: [Engine|Connection]) -> set[type[DAOModel]]:
@@ -305,49 +384,3 @@ def all_models(bind: [Engine|Connection]) -> set[type[DAOModel]]:
     metadata.reflect(bind=bind)
     db_tables = metadata.tables.keys()
     return {model for model in daomodel_subclasses(DAOModel) if model.__tablename__ in db_tables}
-
-
-PrimaryKey = Field(primary_key=True)
-OptionalPrimaryKey = Field(primary_key=True, default=None)
-
-
-def PrimaryForeignKey(foreign_property: str) -> Field:
-    """Shortcut for creating a Field that is both a PrimaryKey and ForeignKey.
-
-    :param foreign_property: The table/column reference for the foreign key
-    :return: The SQLModel Field object defining the sa_column
-    """
-    return ForeignKey(foreign_property, primary=True)
-
-
-_sentinel = object()
-
-def ForeignKey(foreign_property: str,
-               default: Optional[Any] = _sentinel,
-               ondelete: Optional[str] = 'CASCADE',
-               primary: Optional[bool] = False) -> Field:
-    """Shortcut for creating a Field that is a ForeignKey.
-
-    Deletions and updates are automatically set to cascade.
-
-    :param foreign_property: The table/column reference for the foreign key
-    :param default: An optional default value for the field
-    :param ondelete: As defined by SQLAlchemy, valid options include SET NULL and RESTRICT. It is CASCADE by default
-    :param primary: True if this field is also a primary key
-    :return: The SQLModel Field object defining the sa_column
-    """
-    sa_column = Column(sqlalchemy.ForeignKey(foreign_property, ondelete=ondelete, onupdate='CASCADE'),
-                       primary_key=primary)
-    return Field(sa_column=sa_column) if default is _sentinel else Field(default=default, sa_column=sa_column)
-
-
-def OptionalForeignKey(foreign_property: str, primary: Optional[bool] = False) -> Field:
-    """Shortcut for creating a Field that is a ForeignKey.
-
-    If the reference is deleted, this field will be set to NULL.
-
-    :param foreign_property: The table/column reference for the foreign key
-    :param primary: True if this field is also a primary key
-    :return: The SQLModel Field object defining the sa_column
-    """
-    return ForeignKey(foreign_property, ondelete='SET NULL', primary=primary)
