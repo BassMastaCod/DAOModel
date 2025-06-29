@@ -1,7 +1,7 @@
-from typing import Dict, Any, Tuple, Type, get_origin, get_args, Union, TypeVar, Generic, Optional
+from typing import Dict, Any, Tuple, Type, get_origin, get_args, Union, Optional
 import inspect
 import uuid
-from sqlmodel.main import SQLModelMetaclass, Field, FieldInfo
+from sqlmodel.main import SQLModelMetaclass, Field, FieldInfo, RelationshipInfo
 from sqlalchemy import ForeignKey, JSON
 
 from daomodel.util import reference_of, UnsupportedFeatureError
@@ -62,7 +62,8 @@ class ClassDictHelper:
     @property
     def fields(self) -> list[Annotation]:
         return [Annotation(field_name, field_type) for field_name, field_type in self.annotations.items() if
-                not field_name.startswith('_')]
+                not field_name.startswith('_') and
+                not (field_name in self.class_dict and isinstance(self[field_name], RelationshipInfo))]
 
     def add_unsearchable(self, field: Annotation) -> None:
         """Mark a field as unsearchable within in the class dictionary."""
