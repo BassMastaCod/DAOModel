@@ -61,7 +61,8 @@ class ClassDictHelper:
 
     @property
     def fields(self) -> list[Annotation]:
-        return [Annotation(field_name, field_type) for field_name, field_type in self.annotations.items()]
+        return [Annotation(field_name, field_type) for field_name, field_type in self.annotations.items() if
+                not field_name.startswith('_')]
 
     def add_unsearchable(self, field: Annotation) -> None:
         """Mark a field as unsearchable within in the class dictionary."""
