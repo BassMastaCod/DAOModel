@@ -5,8 +5,11 @@ nav:
 - Home: README.md
 - Getting Started: docs/getting_started.md
 - DAO: docs/usage/dao.md
+- Model: docs/usage/model.md
 
 theme: readthedocs
+extra_css:
+  - docs/style.css
 
 plugins:
 - same-dir
