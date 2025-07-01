@@ -102,12 +102,12 @@ class DAOModelMetaclass(SQLModelMetaclass):
             elif field.type is dict:
                 field['sa_type'] = JSON
             elif field.is_dao_model():
+                first_pk = next(iter(field.type.get_pk()))
                 if len(field.type.get_pk()) != 1:
-                    raise UnsupportedFeatureError(f'Cannot map to composite key of {field.type.__name__}.')
-
-                single_pk = next(iter(field.type.get_pk()))
-                field.type = field.type.__annotations__[single_pk.name]
-                field['foreign_key'] = reference_of(single_pk)
+                    raise UnsupportedFeatureError(f'Cannot auto map to composite key of {field.type.__name__}. Use '
+                                                  f'Reference(str) instead. i.e. field: int = Reference("{first_pk}")')
+                field.type = field.type.__annotations__[first_pk.name]
+                field['foreign_key'] = reference_of(first_pk)
 
                 ondelete = None
                 if field in model:
