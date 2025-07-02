@@ -100,54 +100,84 @@ class DAOModelMetaclass(SQLModelMetaclass):
         model = ClassDictHelper(class_dict)
 
         for field in model.fields:
-            if field.has_modifier(Unsearchable):
-                model.add_unsearchable(field)
-            if field.has_modifier(Identifier):
-                field['primary_key'] = True
-            field['nullable'] = field.has_modifier(Optional)
-
-            if field.type is uuid.UUID:
-                field['default_factory'] = uuid.uuid4
-            elif field.type is dict:
-                field['sa_type'] = JSON
-            elif model.is_reference(field) or field.is_dao_model():
-                if field.is_dao_model():
-                    first_pk = next(iter(field.type.get_pk()))
-                    if len(field.type.get_pk()) != 1:
-                        raise UnsupportedFeatureError(f'Cannot auto map to composite key of {field.type.__name__}. Use '
-                                                      f'Reference(str) instead. i.e. field: int = Reference("{first_pk}")')
-                    field.type = field.type.__annotations__[first_pk.name]
-                    field['foreign_key'] = reference_of(first_pk)
-                else:
-                    field['foreign_key'] = getattr(model[field], 'foreign_key')
-
-                existing_value = model[field] if field in model else None
-                explicitly_set_value = getattr(existing_value, 'ondelete', None)
-                field['ondelete'] = (
-                    explicitly_set_value if type(explicitly_set_value) is str else
-                    'RESTRICT' if field.has_modifier(Protected) else
-                    'SET NULL' if field['nullable'] else
-                    'CASCADE'
-                )
-
-                field['sa_column_args'] = [
-                    ForeignKey(
-                        field['foreign_key'],
-                        onupdate='CASCADE',
-                        ondelete=field['ondelete']
-                    )
-                ]
-
+            cls._process_field_modifiers(field, model)
+            cls._process_field_type(field, model)
             model.set_annotation(field)
-
-            if field in model:
-                existing_field = model[field]
-                if isinstance(existing_field, FieldInfo):
-                    for key, value in field.args.items():
-                        setattr(existing_field, key, value)
-                    continue
-                else:
-                    field['default'] = existing_field
-            model[field] = Field(**field.args)
+            cls._process_existing_field(field, model)
 
         return super().__new__(cls, name, bases, class_dict, **kwargs)
+
+    @classmethod
+    def _process_field_modifiers(cls, field: Annotation, model: ClassDictHelper) -> None:
+        """Process field modifiers like Unsearchable, Identifier, and Optional."""
+        if field.has_modifier(Unsearchable):
+            model.add_unsearchable(field)
+        if field.has_modifier(Identifier):
+            field['primary_key'] = True
+        field['nullable'] = field.has_modifier(Optional)
+
+    @classmethod
+    def _process_field_type(cls, field: Annotation, model: ClassDictHelper) -> None:
+        """Process field type-specific settings."""
+        if field.type is uuid.UUID:
+            field['default_factory'] = uuid.uuid4
+        elif field.type is dict:
+            field['sa_type'] = JSON
+        elif model.is_reference(field) or field.is_dao_model():
+            cls._process_reference_field(field, model)
+
+    @classmethod
+    def _process_reference_field(cls, field: Annotation, model: ClassDictHelper) -> None:
+        """Process fields that reference other models, AKA foreign key fields."""
+        if field.is_dao_model():
+            cls._process_dao_model_reference(field)
+        else:
+            field['foreign_key'] = getattr(model[field], 'foreign_key')
+
+        field['ondelete'] = cls._determine_ondelete_behavior(field, model)
+
+        field['sa_column_args'] = [
+            ForeignKey(
+                field['foreign_key'],
+                onupdate='CASCADE',
+                ondelete=field['ondelete']
+            )
+        ]
+
+    @classmethod
+    def _process_dao_model_reference(cls, field: Annotation) -> None:
+        """Process a field that directly references a DAOModel."""
+        first_pk = next(iter(field.type.get_pk()))
+        if len(field.type.get_pk()) != 1:
+            raise UnsupportedFeatureError(
+                f'Cannot auto map to composite key of {field.type.__name__}. Use '
+                f'Reference(str) instead. i.e. field: int = Reference("{first_pk}")'
+            )
+        field.type = field.type.__annotations__[first_pk.name]
+        field['foreign_key'] = reference_of(first_pk)
+
+    @classmethod
+    def _determine_ondelete_behavior(cls, field: Annotation, model: ClassDictHelper) -> str:
+        """Determine the appropriate ondelete behavior for a foreign key."""
+        existing_value = model[field] if field in model else None
+        explicitly_set_value = getattr(existing_value, 'ondelete', None)
+
+        return (
+            explicitly_set_value if type(explicitly_set_value) is str else
+            'RESTRICT' if field.has_modifier(Protected) else
+            'SET NULL' if field['nullable'] else
+            'CASCADE'
+        )
+
+    @classmethod
+    def _process_existing_field(cls, field: Annotation, model: ClassDictHelper) -> None:
+        """Process existing field values in the class dictionary."""
+        if field in model:
+            existing_field = model[field]
+            if isinstance(existing_field, FieldInfo):
+                for key, value in field.args.items():
+                    setattr(existing_field, key, value)
+                return
+            else:
+                field['default'] = existing_field
+        model[field] = Field(**field.args)
