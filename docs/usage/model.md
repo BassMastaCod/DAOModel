@@ -338,7 +338,59 @@ In the above example, we wish to make the column Optional but have ondelete _CAS
 > so we just set it to _'auto'_ to indicate that the mapping is automatically taken care of.
 > Regardless of this value, DAOModel will set the foreign_key based on the typing.
 
-As promised, let's discuss Optional fields more.
+Another option is to use the `ReferenceTo` class which provides
+a clean way to specify the target column and any additional configuration options.
+
+#### ReferenceTo
+```diff
+- album: Optional[UUID] = Field(
+-     sa_column=Column(
+-         ForeignKey('album.id', onupdate='CASCADE', ondelete='CASCADE')
+-     )
+- )
++ album: Optional[Album] = ReferenceTo(Album.id, ondelete='CASCADE')
+```
+
+`ReferenceTo` is a powerful feature that allows you to explicitly define foreign key mappings.
+It accepts a target parameter which can be:
+
+- The foreign column as seen above
+- A string in the format 'table.column'
+- Excluded completely (as long as the typing defines the model)
+
+ReferenceTo is particularly useful if you:
+
+- Have a circular dependency between files/models (or even within a single model)
+```python
+class Song(DAOModel, table=True):
+    id: Identifier[int]
+    next_song: Optional[int] = ReferenceTo('song.id')
+```
+- Are referencing a composite key
+```python
+class Payment(DAOModel, table=True):
+    number: Identifier[int]
+    subscriber: Identifier[str] = ReferenceTo(User.username)
+    to_artist: Identifier[str] = ReferenceTo(Artist.name)
+    ...
+```
+- Want the typing to reflect the stored type (`int`, `str`, etc.) rather than the model type (`Album`, `Artist`, etc.)
+```python
+artist: str = ReferenceTo(Artist.name)
+```
+- Need to configure the field behavior beyond the defaults
+```python
+album: Optional[Album] = ReferenceTo(ondelete='CASCADE')
+```
+- Prefer the SQLModel style of defining the relationship but still want the cascades/etc.
+```python
+favorite_song: Optional[int] = ReferenceTo(Song.id)
+```
+
+ReferenceTo will help cover most of your relationship scenarios,
+but as always, you can use Field or Relationship if you'd rather.
+
+Now let's move on to discuss Optional fields more.
 
 ### Required vs Optional
 DAOModel handles optional fields slightly differently from vanilla SQLModel.
@@ -395,7 +447,7 @@ from enum import Enum
 from typing import Optional
 from uuid import UUID
 from daomodel import DAOModel
-from daomodel.fields import Identifier, Protected, CurrentTimestampField, AutoUpdatingTimestampField, Field
+from daomodel.fields import Identifier, Protected, CurrentTimestampField, AutoUpdatingTimestampField, Field, ReferenceTo
 
 class SubscriptionTier(Enum):
     BASIC = 'basic'
@@ -419,7 +471,7 @@ class Album(DAOModel, table=True):
 class Song(DAOModel, table=True):
     id: Identifier[int]
     title: str
-    album: Optional[Album] = Field(foreign_key='auto', ondelete='CASCADE')
+    album: Optional[Album] = ReferenceTo(ondelete='CASCADE')
     featuring: Protected[Optional[Artist]]
     track_details: dict = {}
 
@@ -434,6 +486,40 @@ class Subscription(DAOModel, table=True):
     subscriber: Identifier[Protected[User]]
     to_artist: Identifier[Protected[Optional[Artist]]]
     tier: SubscriptionTier = SubscriptionTier.BASIC
+```
+
+We've discussed many helpful shortcuts provided by DAOModel when defining your models.
+Please do not feel like you have to use these. Use the ones you like and use vanilla SQLModel for everything else.
+Gain, DAOModel is an extension of SQLModel and is designed to improve your coding experience, not completely change it.
+
+### Caveats
+
+DAOModel makes a few changes to how models are defined, so in some situations
+inheriting from DAOModel instead of SQLModel could break existing functionality.
+We have already mentioned some of these but will reiterate here.
+
+#### Table Names
+Table names are configured to be snake_case which differs from SQLModel.
+This won't matter for new tables, but existing SQLModel tables may not align once switched to DAOModel.
+
+For example,
+```python
+class UserAccount(SQLModel, table=True):
+    ...
+```
+creates a table named `useraccount`
+
+while
+```python
+class UserAccount(DAOModel, table=True):
+    ...
+```
+won't reuse the `useraccount` table but will instead make one named `user_account`.
+
+If this causes problems, such as when refactoring your existing project to use DAOModel,
+you may instead import the backwards compatible DAOModel class:
+```python
+from daomodel.backwards_compatibility import DAOModel
 ```
 
 ## Working with DAOModel Instances
@@ -469,7 +555,6 @@ song = daos[Song].create(next_id())
 
 subscription = daos[Subscription].create_with(subscriber=user.username, tier=SubscriptionTier.PREMIUM)
 ```
-
 
 ### Primary Key Management
 
