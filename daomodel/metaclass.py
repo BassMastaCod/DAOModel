@@ -5,11 +5,11 @@ from sqlmodel.main import SQLModelMetaclass, Field, FieldInfo, RelationshipInfo
 from sqlalchemy import ForeignKey, JSON
 
 from daomodel.util import reference_of, UnsupportedFeatureError
-from daomodel.fields import Identifier, Unsearchable, Protected
+from daomodel.fields import Identifier, Unsearchable, Protected, ReferenceTo
 
 
 class Annotation:
-    """A utility class to help manage a single annotation type."""
+    """A utility class to help manage a type-annotated field."""
     def __init__(self, field_name: str, field_type: type[Any]):
         self.name = field_name
 
@@ -26,6 +26,10 @@ class Annotation:
 
         self.type = field_type
         self.args = {}
+
+    def is_private(self) -> bool:
+        """Check whether the annotation is for a private field."""
+        return self.name.startswith('_')
 
     def has_modifier(self, modifier: Any) -> bool:
         """Check whether the annotation has a specified modifier.
@@ -61,19 +65,24 @@ class ClassDictHelper:
 
     @property
     def fields(self) -> list[Annotation]:
-        return [Annotation(field_name, field_type) for field_name, field_type in self.annotations.items() if
-                not field_name.startswith('_') and
-                not (field_name in self.class_dict and isinstance(self[field_name], RelationshipInfo))]
+        fields = [Annotation(field_name, field_type) for field_name, field_type in self.annotations.items()]
+        return [field for field in fields if not field.is_private() and not self.is_relationship(field)]
+
+    def is_relationship(self, field: Annotation) -> bool:
+        return field in self and isinstance(self[field], RelationshipInfo)
+
+    def is_reference(self, field: Annotation) -> bool:
+        return field in self and isinstance(self[field], ReferenceTo)
 
     def add_unsearchable(self, field: Annotation) -> None:
         """Mark a field as unsearchable within in the class dictionary."""
         self.class_dict.setdefault('_unsearchable', set()).add(field.name)
 
-    def __getitem__(self, key: str) -> Any:
-        return self.class_dict.get(key)
+    def __getitem__(self, field: Annotation) -> Any:
+        return self.class_dict.get(field.name)
 
-    def __setitem__(self, key: str, value: Any) -> None:
-        self.class_dict[key] = value
+    def __setitem__(self, field: Annotation, value: Any) -> None:
+        self.class_dict[field.name] = value
 
     def __contains__(self, field: Annotation) -> bool:
         return field.name in self.class_dict
@@ -101,20 +110,21 @@ class DAOModelMetaclass(SQLModelMetaclass):
                 field['default_factory'] = uuid.uuid4
             elif field.type is dict:
                 field['sa_type'] = JSON
-            elif field.is_dao_model():
-                first_pk = next(iter(field.type.get_pk()))
-                if len(field.type.get_pk()) != 1:
-                    raise UnsupportedFeatureError(f'Cannot auto map to composite key of {field.type.__name__}. Use '
-                                                  f'Reference(str) instead. i.e. field: int = Reference("{first_pk}")')
-                field.type = field.type.__annotations__[first_pk.name]
-                field['foreign_key'] = reference_of(first_pk)
+            elif model.is_reference(field) or field.is_dao_model():
+                if field.is_dao_model():
+                    first_pk = next(iter(field.type.get_pk()))
+                    if len(field.type.get_pk()) != 1:
+                        raise UnsupportedFeatureError(f'Cannot auto map to composite key of {field.type.__name__}. Use '
+                                                      f'Reference(str) instead. i.e. field: int = Reference("{first_pk}")')
+                    field.type = field.type.__annotations__[first_pk.name]
+                    field['foreign_key'] = reference_of(first_pk)
+                else:
+                    field['foreign_key'] = getattr(model[field], 'foreign_key')
 
-                ondelete = None
-                if field in model:
-                    existing_field = model[field.name]
-                    ondelete = getattr(existing_field, 'ondelete', None) or getattr(existing_field, 'on_delete', None)
+                existing_value = model[field] if field in model else None
+                explicitly_set_value = getattr(existing_value, 'ondelete', None)
                 field['ondelete'] = (
-                    ondelete if ondelete is not None else
+                    explicitly_set_value if type(explicitly_set_value) is str else
                     'RESTRICT' if field.has_modifier(Protected) else
                     'SET NULL' if field['nullable'] else
                     'CASCADE'
@@ -131,13 +141,13 @@ class DAOModelMetaclass(SQLModelMetaclass):
             model.set_annotation(field)
 
             if field in model:
-                existing_field = model[field.name]
+                existing_field = model[field]
                 if isinstance(existing_field, FieldInfo):
                     for key, value in field.args.items():
                         setattr(existing_field, key, value)
                     continue
                 else:
                     field['default'] = existing_field
-            model[field.name] = Field(**field.args)
+            model[field] = Field(**field.args)
 
         return super().__new__(cls, name, bases, class_dict, **kwargs)
