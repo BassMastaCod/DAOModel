@@ -123,7 +123,7 @@ class Song(SQLModel, table=True):
 class User(SQLModel, table=True):
     __tablename__ = 'user'
     username: str = Field(primary_key=True)
-    email: str
+    email: str = Field(unique=True)
     favorite_song: Optional[int] = Field(
         sa_column=Column(
             ForeignKey('song.id', onupdate='CASCADE', ondelete='SET NULL')
@@ -139,7 +139,7 @@ class Subscription(SQLModel, table=True):
     __tablename__ = 'subscription'
     subscriber: str = Field(
         sa_column=Column(
-            ForeignKey('user.username', onupdate='CASCADE', ondelete='RESTRICT'),
+            ForeignKey('user.email', onupdate='CASCADE', ondelete='RESTRICT'),
             primary_key=True
         )
     )
@@ -366,12 +366,11 @@ class Song(DAOModel, table=True):
     id: Identifier[int]
     next_song: Optional[int] = ReferenceTo('song.id')
 ```
-- Are referencing a composite key
+- Are referencing a non-Identifier field
 ```python
-class Payment(DAOModel, table=True):
-    number: Identifier[int]
-    subscriber: Identifier[str] = ReferenceTo(User.username)
-    to_artist: Identifier[str] = ReferenceTo(Artist.name)
+class Subscription(DAOModel, table=True):
+    ...
+    subscriber: Identifier[str] = ReferenceTo(User.email)
     ...
 ```
 - Want the typing to reflect the stored type (`int`, `str`, etc.) rather than the model type (`Album`, `Artist`, etc.)
@@ -477,13 +476,13 @@ class Song(DAOModel, table=True):
 
 class User(DAOModel, table=True):
     username: Identifier[str]
-    email: str
+    email: str = Field(unique=True)
     favorite_song: Optional[Song]
     date_joined: datetime = CurrentTimestampField
     updated_at: datetime = AutoUpdatingTimestampField
 
 class Subscription(DAOModel, table=True):
-    subscriber: Identifier[Protected[User]]
+    subscriber: Identifier[Protected[str]] = ReferenceTo(User.email)
     to_artist: Identifier[Protected[Optional[Artist]]]
     tier: SubscriptionTier = SubscriptionTier.BASIC
 ```
@@ -545,15 +544,18 @@ show = LivePerformanceEvent(venue='Rooftop of Apple Records', event_date=datetim
 
 In addition to that, DAOModel provides the [Create](dao.md#create) functionality.
 ```python
-user = daos[User].create('cod')
+artist = daos[Artist].create('The Beatles')
+
+# create with additional field values
+user = daos[User].create_with(username='cod', email='cod@theinternet.com')
 
 # create with an auto-generated UUID
 album = daos[Album].create_with(title='Abbey Road', artist=artist.name)
 
-# create with an auto-incremented id
+# create using an auto-incremented id
 song = daos[Song].create(next_id())
 
-subscription = daos[Subscription].create_with(subscriber=user.username, tier=SubscriptionTier.PREMIUM)
+subscription = daos[Subscription].create_with(subscriber=user.email, tier=SubscriptionTier.PREMIUM)
 ```
 
 ### Primary Key Management
@@ -579,7 +581,7 @@ show.get_pk_values()  # Returns ('Rooftop of Apple Records', datetime(1969, 1, 3
 ::: daomodel.DAOModel.get_pk_dict
 ```python
 user.get_pk_dict()  # Returns {'username': 'cod'}
-subscription.get_pk_dict()  # Returns {'subscriber': 'cod', 'to_artist': None}
+subscription.get_pk_dict()  # Returns {'subscriber': 'cod@theinternet.com', 'to_artist': None}
 ```
 
 ### Foreign Key Management

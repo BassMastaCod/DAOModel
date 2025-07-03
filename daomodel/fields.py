@@ -71,8 +71,6 @@ class ReferenceTo(FieldInfo):
                 reference_of(target) if target is not None else
                 None
             )
-        if kwargs['foreign_key'] is None:
-            raise ValueError("Foreign key reference cannot be None")
         super().__init__(**kwargs)
 
 
