@@ -1,7 +1,11 @@
 from datetime import datetime, timezone
-from typing import TypeVar, Generic
-from sqlmodel import Field
+from typing import TypeVar, Generic, Any, Optional
 
+from sqlmodel import Field
+from sqlalchemy import Column
+from sqlmodel.main import FieldInfo
+
+from daomodel.util import reference_of
 
 T = TypeVar('T')
 
@@ -41,6 +45,33 @@ class Protected(Generic[T]):
             ...
     """
     pass
+
+
+class ReferenceTo(FieldInfo):
+    """Shortcut for defining a foreign key field.
+
+    This class is used by the metaclass to set up foreign key constraints.
+    It stores the target information, which the metaclass can then use
+    to create the appropriate foreign key constraints and configurations.
+
+    :param target: Either a string in the format 'table.column', a Column object, or a model attribute
+    :param **kwargs: Additional arguments to pass to Field
+
+    Usage:
+        class MyModel(DAOModel, table=True)
+            ...
+            other_id: int = ReferenceTo('other_model.id')
+            # or
+            other_id: int = ReferenceTo(OtherModel.id)
+    """
+    def __init__(self, target: Optional[str|Column|Any] = None, **kwargs: Any):
+        if 'foreign_key' not in kwargs:
+            kwargs['foreign_key'] = (
+                target if isinstance(target, str) else
+                reference_of(target) if target is not None else
+                None
+            )
+        super().__init__(**kwargs)
 
 
 def utc_now():
