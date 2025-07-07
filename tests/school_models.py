@@ -2,13 +2,11 @@ from datetime import date
 from typing import Optional
 
 import pytest
-import sqlalchemy
-from sqlalchemy import Column, ForeignKeyConstraint
-from sqlmodel import Field
+from sqlalchemy import ForeignKeyConstraint
 
 from daomodel import DAOModel
 from daomodel.dao import DAO
-from daomodel.fields import Identifier, Unsearchable
+from daomodel.fields import Identifier, Unsearchable, ReferenceTo
 from daomodel.util import next_id
 from tests.conftest import TestDAOFactory
 
@@ -22,15 +20,7 @@ class Person(DAOModel, table=True):
 class Book(DAOModel, table=True):
     name: Identifier[str]
     subject: str
-    owner: int = Field(
-        sa_column=Column(
-            sqlalchemy.ForeignKey(
-                'student.id',
-                ondelete='CASCADE',
-                onupdate='CASCADE'
-            )
-        )
-    )
+    owner: int = ReferenceTo('student.id')
 
 
 class Hall(DAOModel, table=True):
@@ -48,7 +38,7 @@ class Locker(DAOModel, table=True):
     )
 
     number: Identifier[int]
-    owner: int = Field(foreign_key='student.id')
+    owner: int = ReferenceTo('student.id')
     location: str
     floor: int
 
