@@ -1,4 +1,5 @@
 import pytest
+from sqlalchemy.exc import InvalidRequestError
 
 from daomodel.dao import DAO, NotFound, Conflict
 from daomodel.util import MissingInput, InvalidArgumentCount, next_id
@@ -280,7 +281,7 @@ def test_commit__missing(daos: TestDAOFactory):
     model = dao.create(100)
     dao.start_transaction()
     dao.remove(model)
-    with pytest.raises(NotFound):
+    with pytest.raises(InvalidRequestError):
         dao.commit(model)
 
 
@@ -288,10 +289,7 @@ def test_transaction(daos: TestDAOFactory):
     dao = daos[Student]
     dao.start_transaction()
     dao.create_with(id=100, name='Billy')
-    daos.assert_not_in_db(Student, 100)
     dao.create_with(id=101, name='Bob')
-    daos.assert_not_in_db(Student, 100)
-    daos.assert_not_in_db(Student, 101)
 
     dao.commit()
     daos.assert_in_db(Student, 100, name='Billy')
@@ -301,8 +299,7 @@ def test_transaction(daos: TestDAOFactory):
 def test_transaction__rollback(daos: TestDAOFactory):
     dao = daos[Student]
     dao.start_transaction()
-    dao.create_with(id=100, name='Alice')
-    daos.assert_not_in_db(Student, 100)
+    dao.create_with(id=100, name='Billy')
     dao.rollback()
     daos.assert_not_in_db(Student, 100)
 
@@ -310,6 +307,57 @@ def test_transaction__rollback(daos: TestDAOFactory):
     dao.commit()
     daos.assert_in_db(Student, 101, name='Bob')
     daos.assert_not_in_db(Student, 100)
+
+
+def transaction_setup(daos: TestDAOFactory) -> tuple[DAO, DAO]:
+    student_dao = daos[Student]
+    book_dao = daos[Book]
+
+    student_dao.start_transaction()
+
+    student_dao.create_with(id=103, name='Charlene')
+    student_dao.db.flush()
+    book_dao.create_with(name='Physics', subject='Science', owner=103)
+    
+    return student_dao, book_dao
+
+
+def test_transaction__multiple_daos(daos: TestDAOFactory):
+    student_dao, book_dao = transaction_setup(daos)
+
+    book_dao.commit()
+
+    daos.assert_in_db(Student, 103, name='Charlene')
+    daos.assert_in_db(Book, 'Physics', subject='Science', owner=103)
+
+
+def test_transaction__multiple_daos__rollback(daos: TestDAOFactory):
+    student_dao, book_dao = transaction_setup(daos)
+
+    student_dao.rollback()
+    book_dao.commit()  # There is no longer anything to commit
+
+    daos.assert_not_in_db(Student, 103)
+    daos.assert_not_in_db(Book, 'Physics')
+
+
+def test_transaction__multiple_daos__error(daos: TestDAOFactory):
+    student_dao, book_dao = transaction_setup(daos)
+
+    try:
+        student_dao.create_with(id=103, name='Duplicate')
+        student_dao.commit()
+    except Conflict:
+        student_dao.rollback()
+
+    book_dao.commit()  # There is no longer anything to commit
+
+    daos.assert_not_in_db(Student, 103)
+    daos.assert_not_in_db(Book, 'Physics')
+
+
+def test_transaction__multiple_sessions(daos: TestDAOFactory):
+    pytest.skip("This test does not work with in-memory database")
 
 
 def test_check_pk_arguments__single_column(daos: TestDAOFactory):

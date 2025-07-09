@@ -97,7 +97,7 @@ customer = dao.get_with(id=1, name='Updated Name')
 If you do not know the primary key values, you can search for a record based on other properties.
 
 ::: daomodel.dao.DAO.find
-Searching is covered in more detail on the [Search](search.md) page.
+Searching is covered in more detail on the [Search](../advanced/search.md) page.
 
 If you only need to know if a model is in the DB, the `exists` method can help with that.
 
@@ -183,6 +183,8 @@ To better understand this concept, let's consider an example. If you're transfer
 you want both the withdrawal and deposit to either succeed together or fail together -
 you don't want one to happen without the other. _Transactions_ provide this "all-or-nothing" guarantee.
 
+### Starting a Transaction
+
 To enter _transaction mode_, use the `start_transaction` method.
 
 ::: daomodel.dao.DAO.start_transaction
@@ -194,7 +196,7 @@ try:
     # Perform multiple operations
     customer1 = dao.create_with(id=1, name='Transaction Test 1')
     customer2 = dao.create_with(id=2, name='Transaction Test 2')
-    
+
     # Commit the transaction
     dao.commit()
 except Exception as e:
@@ -202,6 +204,41 @@ except Exception as e:
     dao.rollback()
     print(f'Transaction failed: {e}')
 ```
+
+### Transactions Across Multiple DAOs
+
+When multiple DAOs share the same database session (such as when they're created from the same `DAOFactory`),
+transactions are automatically coordinated across all of them. This means:
+
+1. Starting a transaction on one DAO affects all DAOs sharing the same session
+2. Changes made through any DAO in the session are part of the same transaction
+3. Committing or rolling back the transaction affects all changes made through any DAO in the session
+
+This is particularly useful when your operations span multiple model types:
+
+```python
+# Get DAOs for different model types
+student_dao = daos[Student]
+book_dao = daos[Book]
+
+# Start a transaction on the factory
+daos.start_transaction()
+
+try:
+    # Create a student
+    student = student_dao.create_with(id=100, name='Alice')
+
+    # Create a book for the student using a different DAO
+    book = book_dao.create_with(name='Physics', subject='Science', owner=100)
+
+    # Commit the transaction - both student and book are saved
+    daos.commit()
+except Exception as e:
+    # Rollback on error - neither student nor book is saved
+    daos.rollback()
+    print(f'Transaction failed: {e}')
+```
+> **Note:** You can call the transaction models on the DAOFactory or an individual DAO from the Factory.
 
 #### commit
 As you can see above, [commit()](#update) is how you finalize a transaction.
