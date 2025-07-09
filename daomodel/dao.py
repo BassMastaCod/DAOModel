@@ -71,20 +71,30 @@ class DAO:
     def __init__(self, model_class: type[Model], db: Session):
         self.model_class = model_class
         self.db = db
-        self._auto_commit = True
+        if not hasattr(self.db, '_in_transaction'):
+            self.db._in_transaction = False
+
+    @property
+    def _auto_commit(self) -> bool:
+        """Determines if the DAO should auto-commit changes.
+
+        This is based on whether the session is in transaction mode -
+        if in transaction mode, auto-commit is disabled.
+
+        :return: True if auto-commit is enabled, False otherwise
+        """
+        return not self.db._in_transaction
 
     def start_transaction(self) -> None:
         """Starts a transaction by setting transaction_mode to True.
 
-        This disables auto_commit and autoflush until the transaction is
-        committed or rolled back.
+        This disables auto_commit until the transaction is committed or rolled back.
         """
-        self._auto_commit = False
-        self.db.autoflush = False
+        self.db._in_transaction = True
 
     def _end_transaction(self) -> None:
-        self._auto_commit = True
-        self.db.autoflush = True
+        """Resets the transaction state after a transaction is committed or rolled back."""
+        self.db._in_transaction = False
 
     @property
     def query(self) -> Query[Any]:
