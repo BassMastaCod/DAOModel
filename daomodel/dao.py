@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
 from daomodel.util import values_from_dict, retain_in_dict, MissingInput, InvalidArgumentCount, ensure_iter, dedupe, ConditionOperator
+from daomodel.transaction import TransactionMixin
 
 from daomodel import DAOModel
 
@@ -66,35 +67,13 @@ class SearchResults(list[Model]):
         return self.first()
 
 
-class DAO:
+class DAO(TransactionMixin):
     """A DAO implementation for SQLAlchemy to make your code less SQLly."""
     def __init__(self, model_class: type[Model], db: Session):
         self.model_class = model_class
         self.db = db
         if not hasattr(self.db, '_in_transaction'):
             self.db._in_transaction = False
-
-    @property
-    def _auto_commit(self) -> bool:
-        """Determines if the DAO should auto-commit changes.
-
-        This is based on whether the session is in transaction mode -
-        if in transaction mode, auto-commit is disabled.
-
-        :return: True if auto-commit is enabled, False otherwise
-        """
-        return not self.db._in_transaction
-
-    def start_transaction(self) -> None:
-        """Starts a transaction by setting transaction_mode to True.
-
-        This disables auto_commit until the transaction is committed or rolled back.
-        """
-        self.db._in_transaction = True
-
-    def _end_transaction(self) -> None:
-        """Resets the transaction state after a transaction is committed or rolled back."""
-        self.db._in_transaction = False
 
     @property
     def query(self) -> Query[Any]:
@@ -300,39 +279,3 @@ class DAO:
         else:
             raise NotFound(model)
         self._commit_if_not_transaction()
-
-    def _commit_if_not_transaction(self):
-        if self._auto_commit:
-            self.commit()
-
-    def commit(self, *models_to_refresh: DAOModel) -> None:
-        """Commits all pending changes to the database.
-
-        'Pending changes' includes data changes made to models that were fetched from the database.
-        Use dao.start_transaction() to avoid automatically calling this method following each insert, upsert, and remove.
-        This will commit all changes within the session and is not limited to this DAO.
-        Following the DB commit, DAOModels will be detached, needing to be refreshed.
-
-        If this DAO was in transaction mode, it will be reset to auto-commit mode after committing.
-
-        :param models_to_refresh: The DAOModels to refresh after committing
-        :raises NotFound: if a model does not exist in the database
-        """
-        self.db.commit()
-        for model in models_to_refresh:
-            if not self.exists(model):
-                raise NotFound(model)
-            self.db.refresh(model)
-        self._end_transaction()
-
-    def rollback(self) -> None:
-        """Reverts all pending database changes of a transaction.
-
-        This will discard all changes that have not yet been committed.
-
-        :raises RuntimeError: if not in transaction mode
-        """
-        if self._auto_commit:
-            raise RuntimeError('Cannot rollback while not in transaction mode')
-        self.db.rollback()
-        self._end_transaction()

@@ -7,6 +7,7 @@ from sqlmodel import SQLModel
 
 from daomodel import DAOModel
 from daomodel.dao import DAO
+from daomodel.transaction import TransactionMixin
 
 
 def create_engine(path: Optional[str] = None) -> Engine:
@@ -43,7 +44,7 @@ def init_db(engine: Engine) -> None:
     SQLModel.metadata.create_all(engine)
 
 
-class DAOFactory:
+class DAOFactory(TransactionMixin):
     """A Factory for creating DAOs for DAOModels.
 
     All DAOs/Sessions are auto closed when opened using a `with` statement.

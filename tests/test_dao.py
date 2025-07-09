@@ -1,4 +1,5 @@
 import pytest
+from sqlalchemy.exc import InvalidRequestError
 
 from daomodel.dao import DAO, NotFound, Conflict
 from daomodel.util import MissingInput, InvalidArgumentCount, next_id
@@ -280,7 +281,7 @@ def test_commit__missing(daos: TestDAOFactory):
     model = dao.create(100)
     dao.start_transaction()
     dao.remove(model)
-    with pytest.raises(NotFound):
+    with pytest.raises(InvalidRequestError):
         dao.commit(model)
 
 
