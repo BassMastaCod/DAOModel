@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
 from daomodel.util import values_from_dict, retain_in_dict, MissingInput, InvalidArgumentCount, ensure_iter, dedupe, ConditionOperator
-from daomodel.transaction import TransactionMixin
+from daomodel.transaction import TransactionMixin, Conflict
 
 from daomodel import DAOModel
 
@@ -18,10 +18,10 @@ class NotFound(Exception):
         self.detail = f'{model.__class__.doc_name()} {model} not found'
 
 
-class Conflict(Exception):
-    """Indicates that the store could not be updated due to an existing conflict."""
-    def __init__(self, model: Optional[DAOModel] = None, msg: Optional[str] = None):
-        self.detail = msg if msg else f'{model.__class__.doc_name()} {model} already exists'
+class PrimaryKeyConflict(Conflict):
+    """Indicates that the store could not be updated due to a primary key conflict."""
+    def __init__(self, model: DAOModel):
+        super().__init__(model, f'{model.__class__.doc_name()} {model} already exists')
 
 
 Model = TypeVar('Model', bound=DAOModel)
@@ -100,7 +100,7 @@ class DAO(TransactionMixin):
 
         :param pk_values: Primary key values to represent the Model (in the order defined in the model)
         :return: The DAOModel entry that was newly added to the database
-        :raises Conflict: if an entry already exists for the primary key
+        :raises PrimaryKeyConflict: if an entry already exists for the primary key
         :raises InvalidArgumentCount: if the provided values do not align with the model's primary key
         """
         return self.create_with(**self._check_pk_arguments(pk_values))
@@ -111,7 +111,7 @@ class DAO(TransactionMixin):
         :param insert: False to avoid adding the model to the database
         :param values: The values to assign to the model
         :return: The new DAOModel
-        :raises Conflict: if an entry already exists for the primary key (does not apply if insert=False)
+        :raises PrimaryKeyConflict: if an entry already exists for the primary key (does not apply if insert=False)
         """
         model = self.model_class(**retain_in_dict(values, *self.model_class.get_pk_names()))
         model.set_values(ignore_pk=True, **values)
@@ -123,10 +123,10 @@ class DAO(TransactionMixin):
         """Adds the given model to the database.
 
         :param model: The DAOModel entry to add
-        :raises Conflict: if an entry already exists for the primary key
+        :raises PrimaryKeyConflict: if an entry already exists for the primary key
         """
         if self.exists(model):
-            raise Conflict(model)
+            raise PrimaryKeyConflict(model)
         self.db.add(model)
         if self._auto_commit:
             self.commit()
@@ -148,10 +148,10 @@ class DAO(TransactionMixin):
 
         :param existing: The model to rename
         :param new_pk_values: The new primary key values for the model
-        :raises Conflict: if an entry already exists for the new primary key
+        :raises PrimaryKeyConflict: if an entry already exists for the new primary key
         """
         try:
-            raise Conflict(self.get(*new_pk_values))
+            raise PrimaryKeyConflict(self.get(*new_pk_values))
         except NotFound:
             for k, v in zip(existing.get_pk_names(), new_pk_values):
                 setattr(existing, k, v)

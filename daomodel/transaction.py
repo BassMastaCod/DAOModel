@@ -1,4 +1,14 @@
+from typing import Optional
+
+from sqlalchemy.exc import IntegrityError
 from daomodel import DAOModel
+
+
+class Conflict(Exception):
+    """Indicates that the store could not be updated due to an existing conflict."""
+    def __init__(self, model: Optional[DAOModel] = None, msg: Optional[str] = None, error: Optional[Exception] = None):
+        self.detail = msg if msg else f'Conflict for {model.__class__.doc_name()} {model}'
+        self.original_error = error
 
 
 class TransactionMixin:
@@ -45,11 +55,19 @@ class TransactionMixin:
         If this DAO was in transaction mode, it will be reset to auto-commit mode after committing.
 
         :param models_to_refresh: The DAOModels to refresh after committing
+        :raises Conflict: if a unique constraint is violated
+        :raises IntegrityError: if a database constraint is violated (e.g., NOT NULL, foreign key)
         """
-        self.db.commit()
-        for model in models_to_refresh:
-            self.db.refresh(model)
-        self._end_transaction()
+        try:
+            self.db.commit()
+            for model in models_to_refresh:
+                self.db.refresh(model)
+            self._end_transaction()
+        except IntegrityError as e:
+            error_msg = str(e).lower()
+            if any(text in error_msg for text in ('unique constraint', 'unique violation', 'duplicate key')):
+                raise Conflict(msg=f"Unique constraint violation: {str(e)}", error=e)
+            raise
 
     def rollback(self) -> None:
         """Reverts all pending database changes of a transaction.

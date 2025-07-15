@@ -1,7 +1,7 @@
 import pytest
 from sqlalchemy.exc import InvalidRequestError
 
-from daomodel.dao import DAO, NotFound, Conflict
+from daomodel.dao import DAO, NotFound, Conflict, PrimaryKeyConflict
 from daomodel.util import MissingInput, InvalidArgumentCount, next_id
 from tests.conftest import TestDAOFactory
 from tests.school_models import Student, Person, Book
@@ -74,8 +74,15 @@ def test_insert__conflict(daos: TestDAOFactory):
     dao = daos[Student]
     dao.insert(Student(id=100))
     daos.assert_in_db(Student, 100)
-    with pytest.raises(Conflict):
+    with pytest.raises(PrimaryKeyConflict):
         dao.insert(Student(id=100))
+
+
+def test_insert__unique_constraint_violation(daos: TestDAOFactory):
+    dao = daos[Person]
+    dao.create_with(name='John', age=23, ssn='123-45-6789')
+    with pytest.raises(Conflict):
+        dao.create_with(name='Bob', age=32, ssn='123-45-6789')
 
 
 def test_upsert__new(daos: TestDAOFactory):
@@ -157,7 +164,7 @@ def test_rename__already_exists(daos: TestDAOFactory):
     dao.create(200)
     daos.assert_in_db(Student, 100)
     daos.assert_in_db(Student, 200)
-    with pytest.raises(Conflict):
+    with pytest.raises(PrimaryKeyConflict):
         dao.rename(model, 200)
 
 
@@ -318,7 +325,7 @@ def transaction_setup(daos: TestDAOFactory) -> tuple[DAO, DAO]:
     student_dao.create_with(id=103, name='Charlene')
     student_dao.db.flush()
     book_dao.create_with(name='Physics', subject='Science', owner=103)
-    
+
     return student_dao, book_dao
 
 
