@@ -42,7 +42,7 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
         return Case.TITLE_CASE.format(cls.__name__)
 
     @classmethod
-    def get_pk(cls) -> list[Column]:
+    def get_pk(cls) -> Iterable[Column]:
         """Returns the Columns that comprise the Primary Key for this Model.
 
         :return: A list of primary key columns
