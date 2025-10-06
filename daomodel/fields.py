@@ -74,6 +74,11 @@ class ReferenceTo(FieldInfo):
         super().__init__(**kwargs)
 
 
+class no_case_str(str):
+    """Marker type for a case-insensitive string column."""
+    pass
+
+
 def utc_now():
     """Returns the current UTC time with timezone information."""
     return datetime.now(timezone.utc)
