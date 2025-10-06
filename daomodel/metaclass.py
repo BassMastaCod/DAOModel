@@ -2,10 +2,10 @@ from typing import Dict, Any, Tuple, Type, get_origin, get_args, Union, Optional
 import inspect
 import uuid
 from sqlmodel.main import SQLModelMetaclass, Field, FieldInfo, RelationshipInfo
-from sqlalchemy import ForeignKey, JSON
+from sqlalchemy import ForeignKey, JSON, String
 
 from daomodel.util import reference_of, UnsupportedFeatureError
-from daomodel.fields import Identifier, Unsearchable, Protected, ReferenceTo
+from daomodel.fields import no_case_str, Identifier, Unsearchable, Protected, ReferenceTo
 
 
 class Annotation:
@@ -123,6 +123,9 @@ class DAOModelMetaclass(SQLModelMetaclass):
             field['default_factory'] = uuid.uuid4
         elif field.type is dict:
             field['sa_type'] = JSON
+        elif field.type is no_case_str:
+            field.type = str
+            field['sa_type'] = String(collation='NOCASE')
         elif model.is_reference(field) or field.is_dao_model():
             cls._process_reference_field(field, model)
 

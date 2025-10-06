@@ -122,7 +122,7 @@ class Song(SQLModel, table=True):
 
 class User(SQLModel, table=True):
     __tablename__ = 'user'
-    username: str = Field(primary_key=True)
+    username: str = Field(primary_key=True, sa_type=String(collation='NOCASE'))
     email: str = Field(unique=True)
     favorite_song: Optional[int] = Field(
         sa_column=Column(
@@ -258,6 +258,20 @@ class Song(DAOModel, table=True):
 > **Note:** SQLModel has many more great QoL features over SQLAlchemy.
 > If you were unaware of this one, I recommend you read up on its [Features](https://sqlmodel.tiangolo.com/features/).
 
+### Case-Insensitive Strings
+```diff
+- username: str = Field(primary_key=True, sa_type=String(collation='NOCASE'))
++ username: no_case_str = Field(primary_key=True)
+```
+
+DAOModel supports automatic collation for case-insensitive string matching using the no_case_str marker type.
+Whenever DAOModel sees a field type of no_case_str, it automatically configures the database column to use
+COLLATE NOCASE (or the equivalent collation clause for your database).
+This allows you to query string fields without worrying about case sensitivity.
+```python
+class User(DAOModel, table=True):
+    username: no_case_str = Field(primary_key=True)
+```
 
 ### Model References
 ```diff
@@ -446,7 +460,7 @@ from enum import Enum
 from typing import Optional
 from uuid import UUID
 from daomodel import DAOModel
-from daomodel.fields import Identifier, Protected, CurrentTimestampField, AutoUpdatingTimestampField, Field, ReferenceTo
+from daomodel.fields import no_case_str, Identifier, Protected, CurrentTimestampField, AutoUpdatingTimestampField, Field, ReferenceTo
 
 class SubscriptionTier(Enum):
     BASIC = 'basic'
@@ -475,7 +489,7 @@ class Song(DAOModel, table=True):
     track_details: dict = {}
 
 class User(DAOModel, table=True):
-    username: Identifier[str]
+    username: Identifier[no_case_str]
     email: str = Field(unique=True)
     favorite_song: Optional[Song]
     date_joined: datetime = CurrentTimestampField
@@ -679,7 +693,6 @@ This functionality will be documented in a future page dedicated to model compar
 
 ## Next Steps
 
-**WORK IN PROGRESS**
-
-Now that you understand how to use DAOModel methods, check out the [advanced features](advanced_features.md)
-such as [Search](search.md) to learn more about what DAOModel can do.
+You now understand how to define [Models](model.md) as well as create a [DAO](dao.md) layer for said models.
+The next logical step is to create a [Service Layer](service.md) which will provide methods for interacting with your models.
+Continue to the next page to learn all about the BaseService offered by DAOModel.

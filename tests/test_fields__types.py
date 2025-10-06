@@ -1,12 +1,8 @@
 from typing import Optional, Any
 from uuid import UUID
 
-import pytest
-from sqlalchemy.exc import IntegrityError
-from sqlmodel import Field
-
 from daomodel import DAOModel
-from daomodel.fields import Protected, Identifier
+from daomodel.fields import Identifier
 from tests.conftest import TestDAOFactory
 from tests.labeled_tests import labeled_tests
 from tests.model_factory import create_test_model
@@ -93,3 +89,17 @@ def test_reference__uuid(daos: TestDAOFactory):
 def test_reference__uuid__optional(daos: TestDAOFactory):
     daos[UUIDOptionalReferenceModel].create(1)
     daos.assert_in_db(UUIDOptionalReferenceModel, 1, other_id=None)
+
+
+@labeled_tests(get_test_cases('no_case_str', exclude='unsearchable'))
+def test_no_case_str(annotation: Any):
+    model_type = create_test_model(annotation)
+    with TestDAOFactory() as daos:
+        dao = daos[model_type]
+        dao.create_with(id=1, value='TeStVaLuE')
+
+        assert dao.find(value='testvalue').only().id == 1
+        assert dao.find(value='TESTVALUE').only().id == 1
+        assert dao.find(value='testValue').only().id == 1
+
+        assert dao.find(id=1).only().value == 'TeStVaLuE'
