@@ -68,7 +68,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 from uuid import UUID, uuid4
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import JSON, ForeignKey, Column
 
 def utc_now():
@@ -83,6 +83,7 @@ class Artist(SQLModel, table=True):
     __tablename__ = 'artist'
     name: str = Field(primary_key=True)
     bio: Optional[str]
+    albums: list['Album'] = Relationship()
 
 class LivePerformanceEvent(SQLModel, table=True):
     __tablename__ = 'live_performance_event'
@@ -103,6 +104,7 @@ class Album(SQLModel, table=True):
             ForeignKey('artist.name', onupdate='CASCADE', ondelete='RESTRICT')
         )
     )
+    songs: list['Song'] = Relationship()
 
 class Song(SQLModel, table=True):
     __tablename__ = 'song'
@@ -402,6 +404,17 @@ favorite_song: Optional[int] = ReferenceTo(Song.id)
 
 ReferenceTo will help cover most of your relationship scenarios,
 but as always, you can use Field or Relationship if you'd rather.
+Although, in some cases, even that is unnecessary.
+
+#### Reference Collections
+```diff
+- albums: list['Album'] = Relationship()
++ albums: list['Album']
+```
+
+A subtle difference, but DAOModel detects collections of references for you.
+SQLModel requires the Relationship be explicitly defined.
+This feature can reduce line length as well as eliminate an additional import.
 
 Now let's move on to discuss Optional fields more.
 
@@ -470,6 +483,7 @@ class SubscriptionTier(Enum):
 class Artist(DAOModel, table=True):
     name: Identifier[str]
     bio: Optional[str]
+    albums: list['Album']
 
 class LivePerformanceEvent(DAOModel, table=True):
     venue: Identifier[str]
@@ -480,6 +494,7 @@ class Album(DAOModel, table=True):
     id: Identifier[UUID]
     title: str
     artist: Protected[Artist]
+    songs: list['Song']
 
 class Song(DAOModel, table=True):
     id: Identifier[int]

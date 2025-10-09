@@ -1,7 +1,7 @@
-from typing import Dict, Any, Tuple, Type, get_origin, get_args, Union, Optional
+from typing import Dict, Any, Tuple, Type, get_origin, get_args, Union, Optional, List, ForwardRef
 import inspect
 import uuid
-from sqlmodel.main import SQLModelMetaclass, Field, FieldInfo, RelationshipInfo
+from sqlmodel.main import SQLModelMetaclass, Field, FieldInfo, RelationshipInfo, Relationship
 from sqlalchemy import ForeignKey, JSON, String
 
 from daomodel.util import reference_of, UnsupportedFeatureError
@@ -38,6 +38,14 @@ class Annotation:
         :return: True if the annotation has the modifier
         """
         return modifier in self.modifiers
+
+    def is_relationship(self) -> bool:
+        """Check whether the annotation is a defined relationship to another model"""
+        origin = get_origin(self.type)
+        if origin not in (list, List):
+            return False
+        args = get_args(self.type)
+        return args and len(args) == 1 and (isinstance(args[0], (str, ForwardRef)) or inspect.isclass(args[0]))
 
     def is_dao_model(self) -> bool:
         """Check whether the annotation is a DAOModel."""
@@ -100,6 +108,9 @@ class DAOModelMetaclass(SQLModelMetaclass):
         model = ClassDictHelper(class_dict)
 
         for field in model.fields:
+            if field.is_relationship():
+                model[field] = Relationship()
+                continue
             cls._process_field_modifiers(field, model)
             cls._process_field_type(field, model)
             model.set_annotation(field)
