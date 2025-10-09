@@ -140,8 +140,7 @@ class DAO(TransactionMixin):
         try:
             self.insert(model)
         except Conflict:
-            self.commit()
-        return model
+            self._commit_if_not_transaction()
 
     def rename(self, existing: Model, *new_pk_values: Any) -> None:
         """Updates the given model with new primary key values.
