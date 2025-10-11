@@ -336,7 +336,7 @@ In SQLAlchemy, that would be done by setting `ondelete='SET NULL'`.
 ```
 
 With DAOModel, the `SET NULL` behavior is assumed when you mark the reference as `Optional`.
-> **Note:** `Optional` will be covered more [below](model.md#optional)
+> **Note:** `Optional` will be covered more [below](model.md#required-vs-optional)
 
 #### Custom Behavior
 ```diff
@@ -708,6 +708,6 @@ This functionality will be documented in a future page dedicated to model compar
 
 ## Next Steps
 
-You now understand how to define [Models](model.md) as well as create a [DAO](dao.md) layer for said models.
+You now understand how to define Models as well as create a [DAO](dao.md) layer for said models.
 The next logical step is to create a [Service Layer](service.md) to provide methods for interacting with your models.
 Continue to the next page to learn all about the BaseService offered by DAOModel.
