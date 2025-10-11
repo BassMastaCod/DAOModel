@@ -4,8 +4,10 @@ docs_dir: .
 nav:
 - Home: README.md
 - Getting Started: docs/getting_started.md
-- DAO: docs/usage/dao.md
-- Model: docs/usage/model.md
+- Usage:
+  - DAO: docs/usage/dao.md
+  - Model: docs/usage/model.md
+  - Service: docs/usage/service.md
 
 theme: readthedocs
 extra_css:
