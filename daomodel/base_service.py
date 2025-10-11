@@ -73,7 +73,7 @@ class BaseService:
 
 
 class SingleModelService(BaseService):
-    """A service layer specifically designed around a single DAOModel.
+    """A service layer specifically designed around a single DAOModel type.
 
     This service extends BaseService and provides access to the DAO for the primary model 
     through the `dao` property, allowing direct access to all DAO methods without creating 

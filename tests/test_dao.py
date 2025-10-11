@@ -2,9 +2,9 @@ import pytest
 from sqlalchemy.exc import InvalidRequestError
 
 from daomodel.dao import DAO, NotFound, Conflict, PrimaryKeyConflict
-from daomodel.util import MissingInput, InvalidArgumentCount, next_id
+from daomodel.util import MissingInput, InvalidArgumentCount, next_id, UnsupportedFeatureError
 from tests.conftest import TestDAOFactory
-from tests.school_models import Student, Person, Book
+from tests.school_models import Student, Person, Book, Hall, Locker
 
 
 def test_create__single_column(daos: TestDAOFactory):
@@ -42,6 +42,19 @@ def test_create_with(daos: TestDAOFactory):
     model = daos[Student].create_with(id=100, name='Bob', active=False)
     assert model == Student(id=100, name='Bob', active=False)
     daos.assert_in_db(Student, 100, name='Bob', active=False)
+
+
+def test_create_with__model_arg(daos: TestDAOFactory):
+    student = daos[Student].create_with(id=100, name='Bob', active=False)
+    daos[Book].create_with(name='Algebra I', subject='Math', owner=student)
+    daos.assert_in_db(Book, 'Algebra I', subject='Math', owner=100)
+
+
+def test_create_with__model_arg__composite_key(daos: TestDAOFactory):
+    daos[Student].create_with(id=100, name='Bob', active=False)
+    hall = daos[Hall].create_with(location='EAST', floor=1, color='green')
+    with pytest.raises(UnsupportedFeatureError):
+        daos[Locker].create_with(number=808, owner=100, location=hall, floor=hall)
 
 
 def test_create_with__no_insert(daos: TestDAOFactory):

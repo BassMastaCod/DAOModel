@@ -709,5 +709,5 @@ This functionality will be documented in a future page dedicated to model compar
 ## Next Steps
 
 You now understand how to define [Models](model.md) as well as create a [DAO](dao.md) layer for said models.
-The next logical step is to create a [Service Layer](service.md) which will provide methods for interacting with your models.
+The next logical step is to create a [Service Layer](service.md) to provide methods for interacting with your models.
 Continue to the next page to learn all about the BaseService offered by DAOModel.

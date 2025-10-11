@@ -6,7 +6,8 @@ from sqlalchemy import func, Column, text, UnaryExpression
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
-from daomodel.util import values_from_dict, retain_in_dict, MissingInput, InvalidArgumentCount, ensure_iter, dedupe, ConditionOperator
+from daomodel.util import values_from_dict, retain_in_dict, MissingInput, InvalidArgumentCount, ensure_iter, dedupe, \
+    ConditionOperator, UnsupportedFeatureError
 from daomodel.transaction import TransactionMixin, Conflict
 
 from daomodel import DAOModel
@@ -108,11 +109,20 @@ class DAO(TransactionMixin):
     def create_with(self, insert: bool = True, **values: Any) -> Model:
         """Creates a new entry for the given primary key and property values.
 
+        Providing a DAOModel as a value extracts the object's primary key value.
+
         :param insert: False to avoid adding the model to the database
         :param values: The values to assign to the model
         :return: The new DAOModel
         :raises PrimaryKeyConflict: if an entry already exists for the primary key (does not apply if insert=False)
+        :raises UnsupportedFeatureError: if a DAOModel value has a composite primary key
         """
+        for key, value in list(values.items()):
+            if isinstance(value, DAOModel):
+                pk = value.get_pk_values()
+                if len(pk) > 1:
+                    raise UnsupportedFeatureError(f'Cannot map to composite key of {value.doc_name()}.')
+                values[key] = pk[0]
         model = self.model_class(**retain_in_dict(values, *self.model_class.get_pk_names()))
         model.set_values(ignore_pk=True, **values)
         if insert:

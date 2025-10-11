@@ -2,7 +2,8 @@ from datetime import date
 from typing import Optional
 
 import pytest
-from sqlalchemy import ForeignKeyConstraint, UniqueConstraint
+from sqlalchemy import ForeignKeyConstraint
+from sqlmodel import Field
 
 from daomodel import DAOModel
 from daomodel.dao import DAO
@@ -14,11 +15,7 @@ from tests.conftest import TestDAOFactory
 class Person(DAOModel, table=True):
     name: Identifier[str]
     age: Identifier[int]
-    ssn: Unsearchable[Optional[str]]
-
-    __table_args__ = (
-        UniqueConstraint('ssn', name='uq_person_ssn'),
-    )
+    ssn: Unsearchable[Optional[str]] = Field(unique=True)
 
 
 class Book(DAOModel, table=True):
