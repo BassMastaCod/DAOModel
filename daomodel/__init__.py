@@ -1,7 +1,7 @@
 from typing import Any, Iterable, Optional
 
 from sqlmodel import SQLModel
-from sqlalchemy import Column, Engine, MetaData, Connection
+from sqlalchemy import Column, Engine, MetaData, Connection, ForeignKey
 from str_case_util import Case
 from sqlalchemy.ext.declarative import declared_attr
 
@@ -90,12 +90,12 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
         return {fk.parent for fk in cls.__table__.foreign_keys}
 
     @classmethod
-    def get_references_of(cls, model: type['DAOModel']) -> set[Column]:
+    def get_references_of(cls, model: type['DAOModel']) -> set[ForeignKey]:
         """Returns the Columns of this Model that represent Foreign Keys of the specified Model.
 
         :return: An unordered set of foreign key columns
         """
-        return {fk.parent for fk in cls.__table__.foreign_keys if model.has_column(fk.column)}
+        return {fk for fk in cls.__table__.foreign_keys if model.has_column(fk.column)}
 
     @classmethod
     def get_properties(cls) -> Iterable[Column]:

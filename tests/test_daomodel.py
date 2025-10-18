@@ -225,7 +225,7 @@ def to_str(columns: Iterable[Column]):
         (MultiForeignKEYModel, ComplicatedModel, {MultiForeignKEYModel.fkC, MultiForeignKEYModel.fkD})
 })
 def test_get_references_of(model: type[DAOModel], reference: type[DAOModel], expected: set[Column]):
-    assert to_str(model.get_references_of(reference)) == to_str(expected)
+    assert to_str([fk.parent for fk in model.get_references_of(reference)]) == to_str(expected)
 
 
 @labeled_tests({

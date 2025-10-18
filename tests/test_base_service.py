@@ -4,7 +4,7 @@ import pytest
 
 from daomodel.base_service import SingleModelService, SOURCE_VALUE, DESTINATION_VALUE, BaseService
 from tests.conftest import TestDAOFactory
-from tests.school_models import Staff, Student
+from tests.school_models import Staff, Student, Book
 
 
 def longest(values: list[str]) -> str:
@@ -42,6 +42,16 @@ def test_merge__mismatched_model_type(daos: TestDAOFactory):
         service.merge(student, 1)
 
 
+def test_merge__redirect(daos: TestDAOFactory):
+    dao = daos[Student]
+    tim = dao.create_with(id=1, name='Tim')
+    timothy = dao.create_with(id=2, name='Timothy')
+    daos[Book].create_with(name='Biology 101', subject='Science', owner=tim.id)
+
+    SingleModelService(daos, Student).merge(tim, 2, name=longest)
+    daos.assert_in_db(Book, 'Biology 101', subject='Science', owner=timothy.id)
+
+
 def test_dao(daos: TestDAOFactory):
     service = SingleModelService(daos, Staff)
     staff = service.dao.create_with(id=3, name='Alice', hire_date=date(2023, 1, 15))
@@ -55,76 +65,81 @@ def test_dao(daos: TestDAOFactory):
 
 
 def test_bulk_update(daos: TestDAOFactory):
-    # Create multiple staff members
-    dao = daos[Staff]
-    staff1 = dao.create_with(id=10, name='Staff1', hire_date=date(2023, 1, 15))
-    staff2 = dao.create_with(id=11, name='Staff2', hire_date=date(2023, 2, 20))
-    staff3 = dao.create_with(id=12, name='Staff3', hire_date=date(2023, 3, 25))
+    service = SingleModelService(daos, Student)
+    fee = service.dao.create_with(id=1, name='Fee')
+    fi = service.dao.create_with(id=2, name='Fi')
+    fo = service.dao.create_with(id=3, name='Fo')
+    fum = service.dao.create_with(id=4, name='Fum')
 
-    # Update all staff members with the same values
-    service = SingleModelService(daos, Staff)
-    service.bulk_update([staff1, staff2, staff3], hire_date=date(2024, 1, 1))
+    daos.assert_in_db(Student, 1, name='Fee', active=True)
+    daos.assert_in_db(Student, 2, name='Fi', active=True)
+    daos.assert_in_db(Student, 3, name='Fo', active=True)
+    daos.assert_in_db(Student, 4, name='Fum', active=True)
 
-    # Verify all staff members were updated
-    daos.assert_in_db(Staff, 10, name='Staff1', hire_date=date(2024, 1, 1))
-    daos.assert_in_db(Staff, 11, name='Staff2', hire_date=date(2024, 1, 1))
-    daos.assert_in_db(Staff, 12, name='Staff3', hire_date=date(2024, 1, 1))
+    service.bulk_update([fee, fi, fo, fum], active=False)
 
-
-def test_bulk_update__no_model_class(daos: TestDAOFactory):
-    # Create multiple staff members
-    dao = daos[Staff]
-    staff1 = dao.create_with(id=20, name='Staff1', hire_date=date(2023, 1, 15))
-    staff2 = dao.create_with(id=21, name='Staff2', hire_date=date(2023, 2, 20))
-
-    # Update staff members without specifying model_class
-    service = BaseService(daos)
-    service.bulk_update([staff1, staff2], name='Updated Staff')
-
-    # Verify all staff members were updated
-    daos.assert_in_db(Staff, 20, name='Updated Staff', hire_date=date(2023, 1, 15))
-    daos.assert_in_db(Staff, 21, name='Updated Staff', hire_date=date(2023, 2, 20))
+    daos.assert_in_db(Student, 1, name='Fee', active=False)
+    daos.assert_in_db(Student, 2, name='Fi', active=False)
+    daos.assert_in_db(Student, 3, name='Fo', active=False)
+    daos.assert_in_db(Student, 4, name='Fum', active=False)
 
 
-def test_bulk_update__empty_list(daos: TestDAOFactory):
-    # Should not raise an error when the list is empty
+def test_bulk_update__multiple_fields(daos: TestDAOFactory):
+    dao = daos[Student]
+    tim = dao.create_with(id=1, name='Tim')
+    tom = dao.create_with(id=2, name='Tom')
+    tam = dao.create_with(id=3, name='Tam', gender='f')
+
+    BaseService(daos).bulk_update([tim, tom], gender='m', active=False)
+
+    daos.assert_in_db(Student, 1, name='Tim', gender='m', active=False)
+    daos.assert_in_db(Student, 2, name='Tom', gender='m', active=False)
+    daos.assert_in_db(Student, 3, name='Tam', gender='f', active=True)
+
+
+def test_bulk_update__multiple_models(daos: TestDAOFactory):
+    staff = daos[Staff].create_with(id=1, name='Mr. Staff', hire_date=date(2020, 2, 20))
+    student = daos[Student].create_with(id=2, name='Ms. Student')
+
+    BaseService(daos).bulk_update([staff, student], name='Pending Removal')
+
+    daos.assert_in_db(Staff, 1, name='Pending Removal')
+    daos.assert_in_db(Student, 2, name='Pending Removal')
+
+
+def test_bulk_update__empty(daos: TestDAOFactory):
     service = SingleModelService(daos, Staff)
     service.bulk_update([], name='Should not be applied')
 
 
-def test_bulk_update__mixed_model_types(daos: TestDAOFactory):
-    # Create staff and student
-    staff = daos[Staff].create_with(id=30, name='Staff', hire_date=date(2023, 1, 15))
-    student = daos[Student].create_with(id=200, name='Student', gender='m')
+def test_bulk_update__non_applicable_fields(daos: TestDAOFactory):
+    staff1 = daos[Staff].create_with(id=1, name='Mr. Staff', hire_date=date(2020, 2, 20))
+    student1 = daos[Student].create_with(id=2, name='Ms. Student')
+    staff2 = daos[Staff].create_with(id=3, name='Sir Staff', hire_date=date(2024, 2, 20))
+    student2 = daos[Student].create_with(id=4, name='Mr. Student')
 
-    # Update models of different types
-    service = BaseService(daos)
-    service.bulk_update([staff, student], name='Updated Name')
+    BaseService(daos).bulk_update(
+        [staff1, staff2, student1, student2],
+        active=False,
+        hire_date=date(2024, 2, 20)
+    )
 
-    # Verify both models were updated
-    daos.assert_in_db(Staff, 30, name='Updated Name', hire_date=date(2023, 1, 15))
-    daos.assert_in_db(Student, 200, name='Updated Name', gender='m')
+    daos.assert_in_db(Staff, 1, hire_date=date(2024, 2, 20))
+    daos.assert_in_db(Staff, 3, hire_date=date(2024, 2, 20))
+    daos.assert_in_db(Student, 2, active=False)
+    daos.assert_in_db(Student, 4, active=False)
 
 
-def test_bulk_update__multiple_mixed_models(daos: TestDAOFactory):
-    # Create multiple staff and student models
-    staff_dao = daos[Staff]
-    student_dao = daos[Student]
+def test_bulk_update__rollback(daos: TestDAOFactory):
+    staff1 = daos[Staff].create_with(id=1, name='Mr. Staff', hire_date=date(2020, 2, 20))
+    staff2 = daos[Staff].create_with(id=3, name='Sir Staff', hire_date=date(2024, 2, 20))
 
-    staff1 = staff_dao.create_with(id=40, name='Staff1', hire_date=date(2023, 1, 15))
-    staff2 = staff_dao.create_with(id=41, name='Staff2', hire_date=date(2023, 2, 20))
-    student1 = student_dao.create_with(id=300, name='Student1', gender='m')
-    student2 = student_dao.create_with(id=301, name='Student2', gender='f')
+    with pytest.raises(Exception):
+        BaseService(daos).bulk_update(
+            [staff1, staff2],
+            hire_date='Feb. 20th'
+        )
 
-    # Mix the models in a single list
-    mixed_models = [staff1, student1, staff2, student2]
+    daos.assert_in_db(Staff, 1, hire_date=date(2020, 2, 20))
+    daos.assert_in_db(Staff, 3, hire_date=date(2024, 2, 20))
 
-    # Update all models with a common field they inherit from BasePerson
-    service = BaseService(daos)
-    service.bulk_update(mixed_models, name='Common Name')
-
-    # Verify all models were updated correctly
-    daos.assert_in_db(Staff, 40, name='Common Name', hire_date=date(2023, 1, 15))
-    daos.assert_in_db(Staff, 41, name='Common Name', hire_date=date(2023, 2, 20))
-    daos.assert_in_db(Student, 300, name='Common Name', gender='m')
-    daos.assert_in_db(Student, 301, name='Common Name', gender='f')
