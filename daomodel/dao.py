@@ -99,7 +99,7 @@ class DAO(TransactionMixin):
     def create(self, *pk_values: Any) -> Model:
         """Creates a new entry for the given primary key.
 
-        :param pk_values: Primary key values to represent the Model (in the order defined in the model)
+        :param pk_values: Primary key values to represent the record (in the order defined in the model)
         :return: The DAOModel entry that was newly added to the database
         :raises PrimaryKeyConflict: if an entry already exists for the primary key
         :raises InvalidArgumentCount: if the provided values do not align with the model's primary key
@@ -111,8 +111,8 @@ class DAO(TransactionMixin):
 
         Providing a DAOModel as a value extracts the object's primary key value.
 
-        :param insert: False to avoid adding the model to the database
-        :param values: The values to assign to the model
+        :param insert: False to avoid adding the record to the database
+        :param values: The values to assign to the new record
         :return: The new DAOModel
         :raises PrimaryKeyConflict: if an entry already exists for the primary key (does not apply if insert=False)
         :raises UnsupportedFeatureError: if a DAOModel value has a composite primary key
@@ -130,7 +130,7 @@ class DAO(TransactionMixin):
         return model
 
     def insert(self, model: Model) -> None:
-        """Adds the given model to the database.
+        """Adds the given model record to the database.
 
         :param model: The DAOModel entry to add
         :raises PrimaryKeyConflict: if an entry already exists for the primary key
@@ -143,7 +143,7 @@ class DAO(TransactionMixin):
             self.db.refresh(model)
 
     def upsert(self, model: Model) -> None:
-        """Updates the given model in the database or creates it if it does not exist.
+        """Updates the given model record in the database or creates it if it does not exist.
 
         :param model: The DAOModel entry which may or may not exist
         """
@@ -153,10 +153,10 @@ class DAO(TransactionMixin):
             self._commit_if_not_transaction()
 
     def rename(self, existing: Model, *new_pk_values: Any) -> None:
-        """Updates the given model with new primary key values.
+        """Updates the given model record with new primary key values.
 
-        :param existing: The model to rename
-        :param new_pk_values: The new primary key values for the model
+        :param existing: The record to rename
+        :param new_pk_values: The new primary key values for the record
         :raises PrimaryKeyConflict: if an entry already exists for the new primary key
         """
         try:
@@ -167,19 +167,19 @@ class DAO(TransactionMixin):
             self._commit_if_not_transaction()
 
     def exists(self, model: Model) -> bool:
-        """Determines if a model exists in the database.
+        """Determines if a record exists in the database.
 
         :param model: The DAOModel entry in question
-        :return: True if the model exists in the database, False otherwise
+        :return: True if the entry exists in the database, False otherwise
         """
         return bool(self.query.filter_by(**model.get_pk_dict()).count())
 
     def get(self, *pk_values: Any) -> Model:
         """Retrieves an entry from the database by its primary key.
 
-        :param pk_values: The primary key values of the Model to fetch (in the order defined in the model)
+        :param pk_values: The primary key values of the record to fetch (in the order defined in the model)
         :return: The DAOModel entry that was retrieved
-        :raises NotFound: if the model does not exist in the database
+        :raises NotFound: if the entry does not exist in the database
         :raises InvalidArgumentCount: if the provided values do not align with the model's primary key
         """
         return self.get_with(**self._check_pk_arguments(pk_values))
@@ -189,9 +189,9 @@ class DAO(TransactionMixin):
 
         These changes are not committed to the database. Call commit() to do so.
 
-        :param values: A dictionary containing the pk values of the requested model along with additional values to set
+        :param values: A dictionary containing the pk values of the requested entry along with additional values to set
         :return: The DAOModel entry with the additional properties updated
-        :raises NotFound: if the model does not exist in the database
+        :raises NotFound: if the entry does not exist in the database
         """
         pk = values_from_dict(*self.model_class.get_pk_names(), **values)
         model = self.query.get(pk)

@@ -36,7 +36,7 @@ class ModelDiff(dict[str, tuple[Any, Any]]):
         self.update(left.compare(right, include_pk=include_pk))
 
     def get_left(self, field: str) -> Any:
-        """Fetches the value of the left model.
+        """Fetches the value of the left object.
 
         :param field: The name of the field to fetch
         :return: The left value for the specified field
@@ -47,7 +47,7 @@ class ModelDiff(dict[str, tuple[Any, Any]]):
         return self.get(field)[0]
 
     def get_right(self, field: str) -> Any:
-        """Fetches the value of the right model.
+        """Fetches the value of the right object.
 
         :param field: The name of the field to fetch
         :return: The right value for the specified field
@@ -82,9 +82,8 @@ class Unresolved:
 
     def __hash__(self) -> int:
         return hash(self.target)
-    
+
     def __repr__(self) -> str:
-        """Provide a meaningful string representation of the Unresolved instance."""
         return f'Unresolved(target={repr(self.target)})'
 
 
@@ -106,7 +105,6 @@ class Resolved:
         return hash((self.target, self.resolution))
 
     def __repr__(self) -> str:
-        """Provide a meaningful string representation of the Unresolved instance."""
         return f'Resolved(target={repr(self.target)}, resolution={repr(self.resolution)})'
 
 
@@ -114,46 +112,46 @@ class ChangeSet(ModelDiff):
     """A directional model diff with the left being the baseline and the right being the target.
 
     Unlike the standard ModelDiff, PK is excluded by default.
-    
+
     The `conflict_resolution` argument allows users to define specific conflict resolution rules
-    for handling differences between the baseline and target models. This parameter can 
+    for handling differences between the baseline and target models. This parameter can
     accept field-specific resolution methods or a default resolution method for all fields.
     If no resolution can be determined, a `Conflict` exception is raised. Note: This resolution
     is only applicable for a Preference of `BOTH` as determined by `get_preferred()`.
-    
+
     Examples:
     1. Field-Specific Resolution:
        ```
        def prefer_longer_name(values: list[str]):
            return max(values, key=len)
-    
+
        ChangeSet(baseline, target, name=prefer_longer_name)
        ```
-    
+
     2. Default Resolution:
        ```
        def conflict_str(values: list[Any]):
-           return f'Unresolved conflict: {values}' 
-       
+           return f'Unresolved conflict: {values}'
+
        ChangeSet(baseline, target, default=conflict_str)
        ```
-    
+
     3. Mixed Resolution:
        ```
        ChangeSet(baseline, target, default=conflict_str, amount=sum)
        ```
-    
+
     4. Using a Preference for Conflict Resolution:
        ```
        from model_diff import Preference
-       
+
        ChangeSet(baseline, target, default=Preference.LEFT, status=Preference.RIGHT)
        ```
-       
+
        or use the helper constants:
        ```
        from model_diff import BASELINE_VALUE, TARGET_VALUE
-       
+
        ChangeSet(baseline, target, default=BASELINE_VALUE, status=TARGET_VALUE)
        ```
 
@@ -161,14 +159,14 @@ class ChangeSet(ModelDiff):
        ```
        ChangeSet(baseline, target, name='Static Name', default='Default Value')
        ```
-    
+
     View the test code for more examples.
     """
     def __init__(self,
                  baseline: DAOModel,
                  target: DAOModel,
                  include_pk: Optional[bool] = False,
-                 **conflict_resolution: Preference|Callable|Any):
+                 **conflict_resolution: Preference | Callable | Any):
         super().__init__(baseline, target, include_pk)
         self.modified_in_baseline = self.left.get_property_names(~DEFAULT)
         self.modified_in_target = self.right.get_property_names(~DEFAULT)
@@ -220,7 +218,7 @@ class ChangeSet(ModelDiff):
             Preference.NEITHER
         )
 
-    def resolve_conflict(self, field: str) -> Preference|Any:
+    def resolve_conflict(self, field: str) -> Preference | Any:
         """Defines how to handle conflicts between preferred values.
 
         A conflict occurs when both the baseline and target have unique meaningful values for a field.
@@ -287,7 +285,7 @@ class MergeSet(ChangeSet):
 
     For more details regarding initialization, see ChangeSet.
     """
-    def __init__(self, baseline: DAOModel, *targets: DAOModel, **conflict_resolution: Preference|Callable|Any):
+    def __init__(self, baseline: DAOModel, *targets: DAOModel, **conflict_resolution: Preference | Callable | Any):
         super().__init__(baseline, targets[0], **conflict_resolution)
         self.left = baseline
         self.right = targets
@@ -310,7 +308,7 @@ class MergeSet(ChangeSet):
         """Returns a list containing the baseline value followed by all target values for the specified field."""
         return [self.get_baseline(field)] + self.get_target(field)
 
-    def resolve_conflict(self, field: str) -> tuple[Preference.RIGHT, int]|Any:
+    def resolve_conflict(self, field: str) -> tuple[Preference.RIGHT, int] | Any:
         resolution = super().resolve_conflict(field)
         if resolution is Preference.NEITHER:
             resolution = None

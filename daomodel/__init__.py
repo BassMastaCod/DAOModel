@@ -109,7 +109,7 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
         return cls.__table__.c
 
     def get_property_names(self, *filters: PropertyFilter) -> list[str]:
-        """Returns the names of the specified properties for this Model.
+        """Returns the names of the specified properties for this record.
 
         Requested property categories may be refined through filters:
 
@@ -213,7 +213,7 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
         return in_order(result, names_of(self.get_properties()))
 
     def get_property_values(self, *filters: PropertyFilter) -> dict[str, Any]:
-        """Reads values of the specified properties for this Model.
+        """Reads values of the specified properties for this record.
 
         :param filters: Property filter expressions (see `get_property_names`)
         :return: A dict of property names and their values
@@ -329,7 +329,7 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
         self.set_values(**values)
 
     def set_values(self, ignore_pk: Optional[bool] = False, **values: Any) -> None:
-        """Copies property values to this Model.
+        """Copies property values to this model instance.
 
         By default, Primary Key values are set if present within the values.
 

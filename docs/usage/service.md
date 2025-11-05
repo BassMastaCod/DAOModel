@@ -90,7 +90,7 @@ The `bulk_update` function is used to modify multiple entries/models at once wit
 
 ### Merging Models
 
-The `SingleModelService` class provides a `merge` method for combining two models:
+The `SingleModelService` class provides a `merge` method for combining two records:
 
 ::: daomodel.base_service.SingleModelService.merge
 ```python
@@ -104,7 +104,7 @@ This is particularly useful for scenarios such as:
 - Combining two classes into one
 - Consolidating notes from different sources
 
-When merging models, you may need to resolve conflicts between the source and destination.
+When merging items, you may need to resolve conflicts between the source and destination.
 See [Conflict Resolution](TODO) for more information.
 
 ### Extending the Services
