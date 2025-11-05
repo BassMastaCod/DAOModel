@@ -1,4 +1,3 @@
-import warnings
 from typing import Iterable, Any, OrderedDict
 
 from sqlalchemy import Column, ColumnElement
