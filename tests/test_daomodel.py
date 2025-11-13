@@ -240,6 +240,36 @@ def test_get_properties(model: type[DAOModel], expected: list[str]):
     assert names_of(model.get_properties()) == expected
 
 
+class ModelWithDefaults(DAOModel, table=True):
+    default_of_abc: Identifier[str] = 'abc'
+    default_of_123: int = 123
+    default_of_false: bool = False
+    default_of_none: str = None
+
+
+@labeled_tests({
+    'by column': [
+        (ModelWithDefaults.default_of_abc, 'abc'),
+        (ModelWithDefaults.default_of_123, 123),
+        (ModelWithDefaults.default_of_false, False)
+    ],
+    'by column name':[
+        ('default_of_abc', 'abc'),
+        ('default_of_123', 123),
+        ('default_of_false', False)
+    ],
+    'optional column (default=None)':
+        (ModelWithDefaults.default_of_none, None)
+})
+def test_get_default(column: Column|str, expected: Any):
+    assert ModelWithDefaults.get_default(column) == expected
+
+
+def test_get_default__no_default():
+    with pytest.raises(ValueError):
+        SimpleModel.get_default(SimpleModel.pkA)
+
+
 @labeled_tests({
     'primary key': [
         (simple_instance, SimpleModel.pkA, 23),
@@ -257,7 +287,7 @@ def test_get_properties(model: type[DAOModel], expected: list[str]):
     'by str':
         (complicated_instance, 'prop2', 'erty')
 })
-def test_get_value_of(model: DAOModel, column: Column, expected: Any):
+def test_get_value_of(model: DAOModel, column: Column|str, expected: Any):
     assert model.get_value_of(column) == expected
 
 

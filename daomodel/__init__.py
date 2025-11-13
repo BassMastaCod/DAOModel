@@ -1,5 +1,6 @@
 from typing import Any, Iterable, Optional
 
+from pydantic_core import PydanticUndefined
 from sqlmodel import SQLModel
 from sqlalchemy import Column, Engine, MetaData, Connection, ForeignKey
 from str_case_util import Case
@@ -219,6 +220,22 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
         :return: A dict of property names and their values
         """
         return self.get_values_of(self.get_property_names(*filters))
+
+    @classmethod
+    def get_default(cls, column: Column|str):
+        """Returns the default value for a given column
+
+        :param column: The Column, or column name
+        :return: The default value for the column
+        :raises ValueError: if the column has no default value set
+        """
+        if not isinstance(column, str):
+            column = column.name
+        field = cls.model_fields.get(column)
+        default = field.get_default()
+        if default == PydanticUndefined:
+            raise ValueError(f'No default is set for {field}.')
+        return default
 
     def get_value_of(self, column: Column|str) -> Any:
         """Shortcut function to return the value for the specified Column.
