@@ -263,8 +263,8 @@ class ChangeSet(ModelDiff):
     View the test code for more examples.
     """
     def __init__(self,
-                 baseline: DAOModel,
-                 target: DAOModel,
+                 baseline: T,
+                 target: T,
                  include_pk: Optional[bool] = False,
                  **rules: PreferenceRule):
         self.conflict_resolution = {
@@ -364,7 +364,7 @@ class ChangeSet(ModelDiff):
                     self[field] = (self.get_baseline(field), Resolved(self.get_target(field), preferred))
         return self
 
-    def apply(self) -> DAOModel:
+    def apply(self) -> T:
         """Enacts these changes upon the baseline.
 
         You will typically want to call resolve_preferences prior to this.
@@ -385,7 +385,7 @@ class MergeSet(ChangeSet):
 
     For more details regarding initialization, see ChangeSet.
     """
-    def __init__(self, baseline: DAOModel, *targets: DAOModel, **rules: Preference | Callable | Any):
+    def __init__(self, baseline: T, *targets: T, **rules: PreferenceRule):
         super().__init__(baseline, targets[0], **rules)
         self.left = baseline
         self.right = targets
