@@ -36,7 +36,7 @@ from tests.test_daomodel import SimpleModel, ComplicatedModel, simple_instance, 
     ]
 })
 def test_model_diff__init(model: DAOModel, other: DAOModel, expected: dict[str, tuple[Any, Any]]):
-    assert ModelDiff(model, other) == expected
+    assert ModelDiff(model, other, include_pk=True) == expected
 
 
 @labeled_tests({
