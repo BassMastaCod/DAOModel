@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Optional, Callable
+from typing import Any, Optional, Callable, TypeVar
 
 from daomodel import DAOModel
 from daomodel.dao import Conflict
@@ -30,6 +30,9 @@ PreferenceRuleFunction = Callable[[list], Preference] | Callable[[Any, Any, ...]
 PreferenceRule = PreferenceRuleFunction | Preference
 
 
+T = TypeVar('T', bound=DAOModel)
+
+
 class ModelDiff(dict[str, tuple[Any, Any]]):
     """A dictionary wrapper of differing property values between two DAOModel instances.
 
@@ -44,13 +47,13 @@ class ModelDiff(dict[str, tuple[Any, Any]]):
     :param preference_rules: Dictionary of field names to rules that define value preferences (see `execute_rule`)
     """
     def __init__(self,
-                 left: DAOModel,
-                 right: DAOModel,
+                 left: T,
+                 right: T,
                  include_pk: Optional[bool] = True,
                  **preference_rules: PreferenceRule):
         super().__init__()
-        self.left = left
-        self.right = right
+        self.left: T = left
+        self.right: T = right
         self.preference_rules = preference_rules
 
         filter_expr = [] if include_pk else [~PK]
