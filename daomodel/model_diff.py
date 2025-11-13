@@ -49,7 +49,7 @@ class ModelDiff(dict[str, tuple[Any, Any]]):
     def __init__(self,
                  left: T,
                  right: T,
-                 include_pk: Optional[bool] = True,
+                 include_pk: Optional[bool] = False,
                  **preference_rules: PreferenceRule):
         super().__init__()
         self.left: T = left

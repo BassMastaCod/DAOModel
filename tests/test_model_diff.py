@@ -237,7 +237,7 @@ RENTAL_PREFERENCE_RULES = {
         (apartment, apartment_two, {})
 })
 def test_model_diff(left: Rental, right: Rental, expected: dict[str, tuple[Any, Any]]):
-    assert ModelDiff(left, right, include_pk=False) == expected
+    assert ModelDiff(left, right) == expected
 
 
 @labeled_tests({
@@ -261,7 +261,7 @@ def test_model_diff(left: Rental, right: Rental, expected: dict[str, tuple[Any, 
         })
 })
 def test_model_diff__pk(left: Rental, right: Rental, expected: dict[str, tuple[Any, Any]]):
-    diff = ModelDiff(left, right)
+    diff = ModelDiff(left, right, include_pk=True)
     pk_diff = {key: diff[key] for key in ['address', 'apt'] if key in diff}
     assert pk_diff == expected
 
