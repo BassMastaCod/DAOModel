@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from enum import Enum
 from typing import Any, Optional, Callable
 
@@ -27,6 +26,10 @@ BASELINE_VALUE = Preference.LEFT
 TARGET_VALUE = Preference.RIGHT
 
 
+PreferenceRuleFunction = Callable[[list], Preference] | Callable[[Any, Any, ...], Preference]
+PreferenceRule = PreferenceRuleFunction | Preference
+
+
 class ModelDiff(dict[str, tuple[Any, Any]]):
     """A dictionary wrapper of differing property values between two DAOModel instances.
 
@@ -38,11 +41,17 @@ class ModelDiff(dict[str, tuple[Any, Any]]):
     :param left: The left model instance used for comparison
     :param right: The right model instance used for comparison
     :param include_pk: True to include primary key values in the diff (False by default)
+    :param preference_rules: Dictionary of field names to rules that define value preferences (see `execute_rule`)
     """
-    def __init__(self, left: DAOModel, right: DAOModel, include_pk: Optional[bool] = True):
+    def __init__(self,
+                 left: DAOModel,
+                 right: DAOModel,
+                 include_pk: Optional[bool] = True,
+                 **preference_rules: PreferenceRule):
         super().__init__()
         self.left = left
         self.right = right
+        self.preference_rules = preference_rules
 
         filter_expr = [] if include_pk else [~PK]
         left_values = left.get_property_values(*filter_expr)
@@ -51,6 +60,10 @@ class ModelDiff(dict[str, tuple[Any, Any]]):
         for k, v in left_values.items():
             if right_values[k] != v:
                 self[k] = (v, right_values[k])
+
+    def has_left_value(self, field: str) -> bool:
+        """Returns True if the left value for the specified field exists"""
+        return self.get_right(field) is not None
 
     def get_left(self, field: str) -> Any:
         """Fetches the value of the left object.
@@ -63,6 +76,10 @@ class ModelDiff(dict[str, tuple[Any, Any]]):
             raise KeyError(f'{field} not found in diff.')
         return self.get(field)[0]
 
+    def has_right_value(self, field: str) -> bool:
+        """Returns True if the right value for the specified field exists"""
+        return self.get_right(field) is not None
+
     def get_right(self, field: str) -> Any:
         """Fetches the value of the right object.
 
@@ -74,16 +91,79 @@ class ModelDiff(dict[str, tuple[Any, Any]]):
             raise KeyError(f'{field} not found in diff.')
         return self.get(field)[1]
 
-    @abstractmethod
+    def all_values(self, field: str) -> list[Any]:
+        """Returns a list containing the values for the specified field, ordered from left to right."""
+        return [self.get_left(field), self.get_right(field)]
+
     def get_preferred(self, field: str) -> Preference:
-        """Defines which of the varying values is preferred.
+        """Determines which of the differing values is preferred.
 
         :param field: The name of the field
         :return: The Preference between the possible values
         :raises KeyError: if the field is invalid or otherwise not included in this diff
+        :raises NotImplementedError: if there is no applicable preference rule provided for the field
         """
-        raise NotImplementedError(f'Cannot determine which value is preferred for {field}: '
-                                  f'{self.get_left(field)} -> {self.get_right(field)}')
+        if field not in self:
+            raise KeyError(f'{field} not found in diff.')
+
+        rule = self._find_rule(field)
+        resolution = self.execute_rule(rule, self.all_values(field))
+        preference = self.map_resolution_to_preference(resolution, field)
+
+        return preference
+
+    def _find_rule(self, field: str) -> Callable:
+        """Finds the rule for determining the preferred value for the specified field."""
+        def raise_error(*_) -> Any:
+            raise NotImplementedError(f'No rule is defined to determine preference for {field}')
+        return self.preference_rules.get(field, self.preference_rules.get('default', raise_error))
+
+    @staticmethod
+    def execute_rule(rule: PreferenceRule, values: list) -> Preference | Optional[Any]:
+        """Conducts the rule for the specified field to determine the preferred value.
+
+        A PreferenceRule may be a function or a static Preference i.e. LEFT, RIGHT, BOTH, NEITHER, or NOT_APPLICABLE.
+        In the case of a function, it must accept multiple arguments, in the format of multiple args, *args, or a list.
+        The return value of the function must be a Preference, one of the field values, or None.
+
+        For example:
+            def prefer_longer_name(values: list[str]) -> str:
+                return max(values, key=len)
+
+            def prefer_true(left: bool, right: bool) -> Preference:
+                if left:
+                    return Preference.LEFT
+                elif right:
+                    return Preference.RIGHT
+                else
+                    return Preference.NEITHER
+
+        :param rule: The rule to execute
+        :param values: The field values to apply the rule against
+        :return: The resolved Preference or value based on the rule
+        """
+        if callable(rule):
+            try:
+                return rule(*values)
+            except TypeError:
+                return rule(values)
+        return rule
+
+    def map_resolution_to_preference(self, resolution: Preference | Optional[Any], field: str) -> Preference:
+        """Converts a given resolution to its corresponding Preference
+
+        :param resolution: The resolved value of Preference for the field
+        :param field: The name of the field the resolution applies to
+        :return: The appropriate Preference for the resolution
+        """
+        if isinstance(resolution, Preference):
+            return resolution
+        elif resolution == self.get_left(field):
+            return Preference.LEFT
+        elif resolution == self.get_right(field):
+            return Preference.RIGHT
+        else:
+            return Preference.NEITHER
 
 
 class Unresolved:
@@ -183,11 +263,15 @@ class ChangeSet(ModelDiff):
                  baseline: DAOModel,
                  target: DAOModel,
                  include_pk: Optional[bool] = False,
-                 **conflict_resolution: Preference | Callable | Any):
-        super().__init__(baseline, target, include_pk)
+                 **rules: PreferenceRule):
+        self.conflict_resolution = {
+            k[:-9]: rules.pop(k)
+            for k in list(rules)
+            if k.endswith('_conflict')
+        }
+        super().__init__(baseline, target, include_pk, **rules)
         self.modified_in_baseline = self.left.get_property_names(~DEFAULT)
         self.modified_in_target = self.right.get_property_names(~DEFAULT)
-        self.conflict_resolution = conflict_resolution
 
     def get_baseline(self, field: str) -> Any:
         """Fetches the value of the baseline model.
@@ -211,10 +295,6 @@ class ChangeSet(ModelDiff):
         """Returns True if the target value for the specified field exists"""
         return self.get_target(field) is not None
 
-    def all_values(self, field: str) -> list[Any]:
-        """Returns a list containing the baseline value followed by the target value for the specified field."""
-        return [self.get_left(field), self.get_right(field)]
-
     def get_resolution(self, field: str) -> Any:
         """Returns the resolved value for the specified field.
 
@@ -227,13 +307,15 @@ class ChangeSet(ModelDiff):
         return target.resolution if isinstance(target, Resolved) else target
 
     def get_preferred(self, field: str) -> Preference:
-        return (
-            Preference.LEFT if not self.has_target_value(field) else
-            Preference.BOTH if field in self.modified_in_baseline and field in self.modified_in_target else
-            Preference.LEFT if field in self.modified_in_baseline else
-            Preference.RIGHT if field in self.modified_in_target else
-            Preference.NEITHER
-        )
+        try:
+            return super().get_preferred(field)
+        except NotImplementedError:
+            if field in self.modified_in_baseline and field in self.modified_in_target:
+                return Preference.BOTH
+            elif field in self.modified_in_baseline:
+                return Preference.LEFT
+            else:
+                return Preference.RIGHT
 
     def resolve_conflict(self, field: str) -> Preference | Any:
         """Defines how to handle conflicts between preferred values.
@@ -253,12 +335,10 @@ class ChangeSet(ModelDiff):
         resolution_method = self.conflict_resolution.get(field, default)
         resolution = resolution_method(self.all_values(field)) if callable(resolution_method) else resolution_method
 
-        return (
-            Preference.LEFT if resolution == self.get_baseline(field) else
-            Preference.RIGHT if resolution == self.get_target(field) else
-            Preference.NEITHER if resolution is None else
-            resolution
-        )
+        preference = self.map_resolution_to_preference(resolution, field)
+        if preference == Preference.NEITHER:
+            preference = resolution
+        return preference
 
     def resolve_preferences(self) -> 'ChangeSet':
         """Removes unwanted changes, preserving the meaningful values, regardless of them being from baseline or target
@@ -271,7 +351,7 @@ class ChangeSet(ModelDiff):
             if preferred == Preference.BOTH:
                 preferred = self.resolve_conflict(field)
             match preferred:
-                case Preference.NOT_APPLICABLE | Preference.NEITHER:
+                case Preference.NOT_APPLICABLE | Preference.NEITHER | Preference.BOTH:
                     self[field] = (self.get_baseline(field), Unresolved(self.get_target(field)))
                 case Preference.LEFT:
                     del self[field]
@@ -302,8 +382,8 @@ class MergeSet(ChangeSet):
 
     For more details regarding initialization, see ChangeSet.
     """
-    def __init__(self, baseline: DAOModel, *targets: DAOModel, **conflict_resolution: Preference | Callable | Any):
-        super().__init__(baseline, targets[0], **conflict_resolution)
+    def __init__(self, baseline: DAOModel, *targets: DAOModel, **rules: Preference | Callable | Any):
+        super().__init__(baseline, targets[0], **rules)
         self.left = baseline
         self.right = targets
         for model in targets:
