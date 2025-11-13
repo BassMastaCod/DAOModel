@@ -153,7 +153,8 @@ class Subscription(SQLModel, table=True):
     )
     tier: SubscriptionTier = SubscriptionTier.BASIC
 ```
-</details></br>
+</details>
+</br>
 Now let's look at how DAOModel improves the code with its field shortcuts and other features:
 
 ### Table Naming
@@ -700,11 +701,6 @@ str(user)  # Returns 'cod'
 # For composite keys
 str(subscription)  # Returns '('cod', None)'
 ```
-
-### Model Comparison
-
-For comparing models and tracking changes, DAOModel will provide a separate module.
-This functionality will be documented in a future page dedicated to model comparison and change tracking.
 
 ## Next Steps
 

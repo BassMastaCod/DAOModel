@@ -7,7 +7,7 @@ from sqlalchemy.ext.declarative import declared_attr
 
 from daomodel.metaclass import DAOModelMetaclass
 from daomodel.util import reference_of, names_of, in_order, retain_in_dict, remove_from_dict
-from daomodel.property_filter import PropertyFilter, ALL, PK
+from daomodel.property_filter import PropertyFilter, ALL
 
 
 ColumnBreadcrumbs = tuple[type['DAOModel'], ..., Column]
@@ -237,26 +237,6 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
         :return: A dict of the column names and their values
         """
         return {column: self.get_value_of(column) for column in columns}
-
-    def compare(self, other: 'DAOModel', include_pk: Optional[bool] = False) -> dict[str, tuple[Any, Any]]:
-        """Compares this model to another, producing a diff.
-
-        By default, primary keys are excluded in the diff.
-        While designed to compare like models, it should work between different model types. Though that is untested.
-
-        :param other: The model to compare to this one
-        :param include_pk: True if you want to include the primary key in the diff
-        :return: A dictionary of property names with a tuple of this instance's value and the other value respectively
-        """
-        filter_expr = None if include_pk else ~PK
-        source_values = self.get_property_values(filter_expr) if filter_expr else self.get_property_values()
-        other_values = other.get_property_values(filter_expr) if filter_expr else other.get_property_values()
-
-        diff = {}
-        for k, v in source_values.items():
-            if other_values[k] != v:
-                diff[k] = (v, other_values[k])
-        return diff
 
     @classmethod
     def get_searchable_properties(cls) -> Iterable[Column | ColumnBreadcrumbs]:

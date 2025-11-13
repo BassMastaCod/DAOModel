@@ -4,7 +4,7 @@ from typing import Any, Optional, Callable
 
 from daomodel import DAOModel
 from daomodel.dao import Conflict
-from daomodel.property_filter import DEFAULT
+from daomodel.property_filter import DEFAULT, PK
 
 
 class Preference(Enum):
@@ -28,12 +28,29 @@ TARGET_VALUE = Preference.RIGHT
 
 
 class ModelDiff(dict[str, tuple[Any, Any]]):
-    """A dictionary wrapper to provide extended functionality for model comparisons."""
+    """A dictionary wrapper of differing property values between two DAOModel instances.
+
+    While designed to compare like models, it should work between different model types. Though that is untested.
+
+    The keys in the dictionary represent the property names, and the value for the key contains each object value.
+    Properties that share the same value across the objects are excluded.
+
+    :param left: The left model instance used for comparison
+    :param right: The right model instance used for comparison
+    :param include_pk: True to include primary key values in the diff (False by default)
+    """
     def __init__(self, left: DAOModel, right: DAOModel, include_pk: Optional[bool] = True):
         super().__init__()
         self.left = left
         self.right = right
-        self.update(left.compare(right, include_pk=include_pk))
+
+        filter_expr = [] if include_pk else [~PK]
+        left_values = left.get_property_values(*filter_expr)
+        right_values = right.get_property_values(*filter_expr)
+
+        for k, v in left_values.items():
+            if right_values[k] != v:
+                self[k] = (v, right_values[k])
 
     def get_left(self, field: str) -> Any:
         """Fetches the value of the left object.
@@ -293,7 +310,7 @@ class MergeSet(ChangeSet):
             self.modified_in_target += model.get_property_names(~DEFAULT)
 
         for model in targets:
-            for k, v in baseline.compare(model).items():
+            for k, v in ModelDiff(baseline, model).items():
                 self[k] = (v[0], [None] * len(targets))
 
         for index, model in enumerate(targets):
