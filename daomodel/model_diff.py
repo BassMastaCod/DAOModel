@@ -387,7 +387,6 @@ class MergeSet(ChangeSet):
     """
     def __init__(self, baseline: T, *targets: T, **rules: PreferenceRule):
         super().__init__(baseline, targets[0], **rules)
-        self.left = baseline
         self.right = targets
         for model in targets:
             self.modified_in_target += model.get_property_names(~DEFAULT)
