@@ -1,13 +1,14 @@
 from typing import Any, Iterable, Optional
 
+from pydantic_core import PydanticUndefined
 from sqlmodel import SQLModel
-from sqlalchemy import Column, Engine, MetaData, Connection
+from sqlalchemy import Column, Engine, MetaData, Connection, ForeignKey
 from str_case_util import Case
 from sqlalchemy.ext.declarative import declared_attr
 
 from daomodel.metaclass import DAOModelMetaclass
 from daomodel.util import reference_of, names_of, in_order, retain_in_dict, remove_from_dict
-from daomodel.property_filter import PropertyFilter, ALL, PK
+from daomodel.property_filter import PropertyFilter, ALL
 
 
 ColumnBreadcrumbs = tuple[type['DAOModel'], ..., Column]
@@ -90,12 +91,12 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
         return {fk.parent for fk in cls.__table__.foreign_keys}
 
     @classmethod
-    def get_references_of(cls, model: type['DAOModel']) -> set[Column]:
+    def get_references_of(cls, model: type['DAOModel']) -> set[ForeignKey]:
         """Returns the Columns of this Model that represent Foreign Keys of the specified Model.
 
         :return: An unordered set of foreign key columns
         """
-        return {fk.parent for fk in cls.__table__.foreign_keys if model.has_column(fk.column)}
+        return {fk for fk in cls.__table__.foreign_keys if model.has_column(fk.column)}
 
     @classmethod
     def get_properties(cls) -> Iterable[Column]:
@@ -109,7 +110,7 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
         return cls.__table__.c
 
     def get_property_names(self, *filters: PropertyFilter) -> list[str]:
-        """Returns the names of the specified properties for this Model.
+        """Returns the names of the specified properties for this record.
 
         Requested property categories may be refined through filters:
 
@@ -213,12 +214,28 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
         return in_order(result, names_of(self.get_properties()))
 
     def get_property_values(self, *filters: PropertyFilter) -> dict[str, Any]:
-        """Reads values of the specified properties for this Model.
+        """Reads values of the specified properties for this record.
 
         :param filters: Property filter expressions (see `get_property_names`)
         :return: A dict of property names and their values
         """
         return self.get_values_of(self.get_property_names(*filters))
+
+    @classmethod
+    def get_default(cls, column: Column|str):
+        """Returns the default value for a given column
+
+        :param column: The Column, or column name
+        :return: The default value for the column
+        :raises ValueError: if the column has no default value set
+        """
+        if not isinstance(column, str):
+            column = column.name
+        field = cls.model_fields.get(column)
+        default = field.get_default()
+        if default == PydanticUndefined:
+            raise ValueError(f'No default is set for {field}.')
+        return default
 
     def get_value_of(self, column: Column|str) -> Any:
         """Shortcut function to return the value for the specified Column.
@@ -237,26 +254,6 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
         :return: A dict of the column names and their values
         """
         return {column: self.get_value_of(column) for column in columns}
-
-    def compare(self, other: 'DAOModel', include_pk: Optional[bool] = False) -> dict[str, tuple[Any, Any]]:
-        """Compares this model to another, producing a diff.
-
-        By default, primary keys are excluded in the diff.
-        While designed to compare like models, it should work between different model types. Though that is untested.
-
-        :param other: The model to compare to this one
-        :param include_pk: True if you want to include the primary key in the diff
-        :return: A dictionary of property names with a tuple of this instance's value and the other value respectively
-        """
-        filter_expr = None if include_pk else ~PK
-        source_values = self.get_property_values(filter_expr) if filter_expr else self.get_property_values()
-        other_values = other.get_property_values(filter_expr) if filter_expr else other.get_property_values()
-
-        diff = {}
-        for k, v in source_values.items():
-            if other_values[k] != v:
-                diff[k] = (v, other_values[k])
-        return diff
 
     @classmethod
     def get_searchable_properties(cls) -> Iterable[Column | ColumnBreadcrumbs]:
@@ -329,7 +326,7 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
         self.set_values(**values)
 
     def set_values(self, ignore_pk: Optional[bool] = False, **values: Any) -> None:
-        """Copies property values to this Model.
+        """Copies property values to this model instance.
 
         By default, Primary Key values are set if present within the values.
 

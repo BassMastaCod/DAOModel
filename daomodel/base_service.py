@@ -26,21 +26,17 @@ class BaseService:
         service.bulk_update(overdue_accounts, status='suspended')
         ```
 
-        The method supports updating models of different types in a single operation,
-        as long as the fields being updated are present in all model types.
+        The method supports updating models of different types in a single operation.
         ```python
         no_longer_at_school = (school_service.daos[Student].find(graduated=True) +
                                school_service.daos[Staff].find(retired=True))
         service.bulk_update(no_longer_at_school, status='inactive', door_code=None)
         ```
+        Non-applicable fields will be ignored. i.e. it doesn't matter that Students do not have a `door_code` column.
 
         :param models: List of models to update (can be of different types)
         :param common_values: Values to set on all models
         """
-        if not models:
-            return
-
-        # Group models by type
         models_by_type = {}
         for model in models:
             model_type = type(model)
@@ -48,27 +44,18 @@ class BaseService:
                 models_by_type[model_type] = []
             models_by_type[model_type].append(model)
 
-        # Start a transaction on the first model type's DAO
-        # This will be used for all model types
-        if not models_by_type:
-            return
-
-        first_model_type = next(iter(models_by_type.keys()))
-        transaction_dao = self.daos[first_model_type]
-        transaction_dao.start_transaction()
+        self.daos.start_transaction()
 
         try:
-            # Process each model type
             for model_type, model_list in models_by_type.items():
                 model_dao = self.daos[model_type]
                 for model in model_list:
                     model.set_values(**common_values)
                     model_dao.db.add(model)
 
-            # Commit the transaction
-            transaction_dao.commit()
+            self.daos.commit()
         except Exception as e:
-            transaction_dao.rollback()
+            self.daos.rollback()
             raise e
 
 
@@ -110,7 +97,7 @@ class SingleModelService(BaseService):
     def _redirect_fks(self, source: DAOModel, destination: DAOModel) -> None:
         for model in all_models(self.daos.db.get_bind()):
             model_dao = self.daos[model]
-            for column in model.get_references_of(source):
-                old_value = source.get_value_of(column)
-                new_value = destination.get_value_of(column)
-                model_dao.query.where(column == old_value).update({column: new_value})
+            for fk in model.get_references_of(self.dao.model_class):
+                old_value = source.get_value_of(fk.column)
+                new_value = destination.get_value_of(fk.column)
+                model_dao.query.where(fk.parent == old_value).update({fk.parent: new_value})

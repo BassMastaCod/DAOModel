@@ -53,7 +53,7 @@ customer = dao.create_with(id=3, name='John Smith', email='john@example.com')
 ```
 > **Note:** The `create_with` method requires the primary key values to be provided as keyword arguments.
 
-If you wish to create a model without adding it to the database, you can set the `insert` parameter to False.
+If you wish to create an instance without adding it to the database, you can set the `insert` parameter to False.
 
 ```python
 customer = dao.create_with(id=4, name='Guest User', insert=False)
@@ -63,7 +63,7 @@ If using `insert=False` you will then need to explicitly call `insert` if you wi
 
 ::: daomodel.dao.DAO.insert
 ```python
-# Create a model without inserting it
+# Create a customer without inserting it
 customer = dao.create_with(id=5, name='Alice Brown', email='alice@example.com', insert=False)
 
 # Insert it into the database
@@ -99,7 +99,7 @@ If you do not know the primary key values, you can search for a record based on 
 ::: daomodel.dao.DAO.find
 Searching is covered in more detail on the [Search](../advanced/search.md) page.
 
-If you only need to know if a model is in the DB, the `exists` method can help with that.
+If you only need to know if an object is in the DB, the `exists` method can help with that.
 
 ::: daomodel.dao.DAO.exists
 ```python
@@ -123,7 +123,7 @@ dao.commit()  # Save changes
 
 # Or use get_with to update in less steps
 customer = dao.get_with(id=1, name='Another Name')
-# Save changes and refresh the model reference to continue using it
+# Save changes and refresh the customer reference to continue using it
 dao.commit(customer)
 print(customer.name)  # prints 'Another Name'
 ```
@@ -132,7 +132,7 @@ Alternatively, you can use the `upsert` method to store the updated record regar
 
 ::: daomodel.dao.DAO.upsert
 ```python
-# Create a model that may or may not exist
+# Create a customer that may or may not exist
 customer = Customer(id=10, name='Maybe New', email='maybe@example.com')
 
 # Create row if id=10 doesn't exist, or update row if already present

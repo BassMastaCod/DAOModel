@@ -153,7 +153,8 @@ class Subscription(SQLModel, table=True):
     )
     tier: SubscriptionTier = SubscriptionTier.BASIC
 ```
-</details></br>
+</details>
+</br>
 Now let's look at how DAOModel improves the code with its field shortcuts and other features:
 
 ### Table Naming
@@ -336,7 +337,7 @@ In SQLAlchemy, that would be done by setting `ondelete='SET NULL'`.
 ```
 
 With DAOModel, the `SET NULL` behavior is assumed when you mark the reference as `Optional`.
-> **Note:** `Optional` will be covered more [below](model.md#optional)
+> **Note:** `Optional` will be covered more [below](model.md#required-vs-optional)
 
 #### Custom Behavior
 ```diff
@@ -701,13 +702,8 @@ str(user)  # Returns 'cod'
 str(subscription)  # Returns '('cod', None)'
 ```
 
-### Model Comparison
-
-For comparing models and tracking changes, DAOModel will provide a separate module.
-This functionality will be documented in a future page dedicated to model comparison and change tracking.
-
 ## Next Steps
 
-You now understand how to define [Models](model.md) as well as create a [DAO](dao.md) layer for said models.
+You now understand how to define Models as well as create a [DAO](dao.md) layer for said models.
 The next logical step is to create a [Service Layer](service.md) to provide methods for interacting with your models.
 Continue to the next page to learn all about the BaseService offered by DAOModel.

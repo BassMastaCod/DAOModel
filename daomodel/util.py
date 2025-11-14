@@ -1,5 +1,4 @@
-import warnings
-from typing import Iterable, Any, OrderedDict
+from typing import Iterable, Any, OrderedDict, Optional
 
 from sqlalchemy import Column, ColumnElement
 from sqlmodel import or_, and_
@@ -116,13 +115,61 @@ def ensure_iter(elements: Any):
     return elements
 
 
-def dedupe(original: list) -> list:
+def strip_whitespace(values: list):
+    """Trim leading and trailing whitespace from strings in a list."""
+    return [value.strip() for value in values]
+
+
+def exclude_falsy(values: list) -> list:
+    """Returns a list of only the truthy values (excluding None, '', 0, False, etc)."""
+    return [v for v in values if v]
+
+
+def dedupe(original: list, keep_last=False) -> list:
     """Creates a filtered copy of a list that does not include duplicates.
 
     :param original: The list to filter
+    :param keep_last: True to keep the last occurrence of a duplicate, otherwise the first occurrence will be kept
     :return: a new list that maintains order but is guaranteed to have no duplicates
     """
-    return list(OrderedDict.fromkeys(original))
+    if keep_last:
+        return dedupe(original[::-1])[::-1]
+    else:
+        return list(OrderedDict.fromkeys(original))
+
+
+def first_str_with(substring: str, strings: list[str]) -> Optional[str]:
+    """Returns the first str that contains the given substring.
+
+    :param substring: The substring to search for.
+    :param strings: One or more strings to check.
+    :return: The first string (if any) that contains the substring.
+    """
+    for s in strings:
+        if substring in s:
+            return s
+    return None
+
+
+def first(values: list) -> Optional[Any]:
+    """Returns the first truthy value.
+
+    :param values: Values to evaluate
+    :return: First truthy value found, or None if no truthy values exist
+    """
+    for value in values:
+        if value:
+            return value
+    return None
+
+
+def last(values: list) -> Optional[Any]:
+    """Returns the last truthy value.
+
+    :param values: Values to evaluate
+    :return: Last truthy value found, or None if no truthy values exist
+    """
+    return first(values[::-1])
 
 
 def in_order(original: Iterable, order: list) -> list:

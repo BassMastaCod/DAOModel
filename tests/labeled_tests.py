@@ -47,7 +47,10 @@ def labeled_tests(tests: dict[str, TestCases]):
 
             for test_case in test_cases if isinstance(test_cases, list) else [test_cases]:
                 if found_expected:
-                    test_case = (test_case, expected)
+                    if isinstance(test_case, tuple):
+                        test_case = (*test_case, expected)
+                    else:
+                        test_case = (test_case, expected)
                 _validate_parameters(param_count, test_case)
                 labels.append(group_label)
                 test_data.append(test_case)

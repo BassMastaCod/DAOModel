@@ -8,6 +8,8 @@ nav:
   - DAO: docs/usage/dao.md
   - Model: docs/usage/model.md
   - Service: docs/usage/service.md
+- Advanced:
+  - Model Diff: docs/advanced/model_diff.md
 
 theme: readthedocs
 extra_css:
@@ -31,3 +33,6 @@ plugins:
           list_style: spacy
           show_root_members_full_path: false
           members_order: source
+
+markdown_extensions:
+  - admonition

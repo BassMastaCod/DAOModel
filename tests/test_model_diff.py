@@ -6,8 +6,8 @@ import pytest
 
 from daomodel import DAOModel
 from daomodel.fields import Identifier
-from daomodel.model_diff import ModelDiff, Preference
-from tests.labeled_tests import labeled_tests
+from daomodel.model_diff import ModelDiff, Preference, PreferenceRule
+from tests.labeled_tests import labeled_tests, Expected
 
 
 class LaundryStatus(Enum):
@@ -97,39 +97,44 @@ single_family = Rental(
 )
 
 
-class RentalDiff(ModelDiff):
-    def get_preferred(self, field: str) -> Preference:
-        match field:
-            case 'address'|'apt':
-                return Preference.NOT_APPLICABLE
-            case 'sqft'|'bedrooms'|'bathrooms'|'garage_parking':
-                return Preference.LEFT if self.get_left(field) > self.get_right(field) else Preference.RIGHT
-            case 'cost':
-                return Preference.LEFT if self.get_left(field) < self.get_right(field) else Preference.RIGHT
-            case 'dwelling_type':
-                bad = ['Apartment', 'Multi-family House']
-                good = ['Town home', 'House']
-                def get_value(dwelling_type: str):
-                    if dwelling_type in bad:
-                        return -1
-                    elif dwelling_type in good:
-                        return 1
-                    else:
-                        return 0
-                left_value = get_value(self.get_left(field))
-                right_value = get_value(self.get_right(field))
-                return(
-                    Preference.LEFT if left_value > right_value else
-                    Preference.RIGHT if right_value > left_value else
-                    Preference.BOTH if left_value > 0 else
-                    Preference.NEITHER
-                )
-            case 'laundry':
-                left_value = 0 if self.get_left(field) is None else self.get_left(field).value
-                right_value = 0 if self.get_right(field) is None else self.get_right(field).value
-                return Preference.LEFT if left_value > right_value else Preference.RIGHT
-            case _:
-                raise NotImplementedError(f'The field {field} is not supported')
+def prefer_better_dwelling_type(values: list[str]) -> Preference:
+    """Prefer better dwelling types based on predefined categories."""
+    left, right = values
+    bad = ['Apartment', 'Multi-family House']
+    good = ['Town home', 'House']
+
+    def get_value(dwelling_type: str):
+        if dwelling_type in bad:
+            return -1
+        elif dwelling_type in good:
+            return 1
+        else:
+            return 0
+
+    left_value = get_value(left)
+    right_value = get_value(right)
+
+    return (
+        Preference.LEFT if left_value > right_value else
+        Preference.RIGHT if right_value > left_value else
+        Preference.BOTH if left_value > 0 else
+        Preference.NEITHER
+    )
+
+def prefer_more_private(values: list[LaundryStatus]) -> Preference:
+    left, right = values
+    left_value = 0 if left is None else left.value
+    right_value = 0 if right is None else right.value
+    return Preference.LEFT if left_value > right_value else Preference.RIGHT
+
+RENTAL_PREFERENCE_RULES = {
+    'address': Preference.NOT_APPLICABLE,
+    'apt': Preference.NOT_APPLICABLE,
+    'default': max,
+    'cost': min,
+    'dwelling_type': prefer_better_dwelling_type,
+    'laundry': prefer_more_private
+}
 
 
 @labeled_tests({
@@ -232,7 +237,7 @@ class RentalDiff(ModelDiff):
         (apartment, apartment_two, {})
 })
 def test_model_diff(left: Rental, right: Rental, expected: dict[str, tuple[Any, Any]]):
-    assert ModelDiff(left, right, include_pk=False) == expected
+    assert ModelDiff(left, right) == expected
 
 
 @labeled_tests({
@@ -256,15 +261,21 @@ def test_model_diff(left: Rental, right: Rental, expected: dict[str, tuple[Any, 
         })
 })
 def test_model_diff__pk(left: Rental, right: Rental, expected: dict[str, tuple[Any, Any]]):
-    diff = ModelDiff(left, right)
+    diff = ModelDiff(left, right, include_pk=True)
     pk_diff = {key: diff[key] for key in ['address', 'apt'] if key in diff}
     assert pk_diff == expected
 
 
+def test_has_left_value_has_right_value():
+    diff = ModelDiff(dorm, apartment)
+    assert diff.has_left_value('sqft')
+    assert diff.has_right_value('sqft')
+
+
 def test_get_left_get_right():
-    diff = ModelDiff(apartment, apartment_two)
-    assert diff.get_left('apt') == '101'
-    assert diff.get_right('apt') == '102'
+    diff = ModelDiff(dorm, apartment)
+    assert diff.get_left('sqft') == 200
+    assert diff.get_right('sqft') == 850
 
 
 def test_get_left_get_right__missing():
@@ -282,6 +293,129 @@ def test_get_left_get_right__invalid():
     with pytest.raises(KeyError):
         diff.get_right('invalid')
 
+
+def test_find_rule():
+    assert ModelDiff(apartment, apartment_two, **RENTAL_PREFERENCE_RULES)._find_rule('apt') == Preference.NOT_APPLICABLE
+
+
+@labeled_tests({
+    'Preference': [
+        Preference.LEFT,
+        Preference.RIGHT,
+        Preference.BOTH,
+        Preference.NEITHER,
+        Preference.NOT_APPLICABLE
+    ]
+})
+def test_execute_rule__preference(rule: PreferenceRule):
+    assert ModelDiff.execute_rule(rule, ['left', 'right']) == rule
+
+
+def named_args_rule(left: str, right: str) -> Preference:
+    if left == 'good':
+        return Preference.LEFT
+    elif right == 'good':
+        return Preference.RIGHT
+    else:
+        return Preference.NEITHER
+
+
+def var_args_rule(*args: str) -> Preference:
+    return named_args_rule(args[0], args[1])
+
+
+def list_arg_rule(values: list[str]) -> Preference:
+    return named_args_rule(values[0], values[1])
+
+
+@labeled_tests({
+    'named args': named_args_rule,
+    'var args': var_args_rule,
+    'list': list_arg_rule,
+    'lambda named args': lambda left, right: (
+        Preference.LEFT if left == 'good'
+        else Preference.RIGHT if right == 'good'
+        else Preference.NEITHER
+    ),
+    'lambda var args': lambda *args: (
+        Preference.LEFT if args[0] == 'good'
+        else Preference.RIGHT if args[1] == 'good'
+        else Preference.NEITHER
+    ),
+    'lambda list': lambda values: (
+        Preference.LEFT if values[0] == 'good'
+        else Preference.RIGHT if values[1] == 'good'
+        else Preference.NEITHER
+    )
+})
+def test_execute_rule(rule: PreferenceRule):
+    assert ModelDiff.execute_rule(rule, ['bad', 'good']) == Preference.RIGHT
+
+
+@labeled_tests({
+    'number': [-1, 0, 1000, 0.5],
+    'str': ['a', 'b', 'c', 'left', 'right'],
+    'bool': [True, False],
+    'none': [None]
+})
+def test_execute_rule__return_non_preference(value: Any | None):
+    assert ModelDiff.execute_rule(lambda _: value, ['left', 'right']) == value
+
+
+@labeled_tests({
+    'already preference': [
+        (Preference.LEFT, 'dwelling_type', Preference.LEFT),
+        (Preference.RIGHT, 'dwelling_type', Preference.RIGHT),
+        (Preference.NEITHER, 'dwelling_type', Preference.NEITHER),
+        (Preference.BOTH, 'dwelling_type', Preference.BOTH),
+        (Preference.NOT_APPLICABLE, 'dwelling_type', Preference.NOT_APPLICABLE)
+    ],
+    'equals left value': [Expected(Preference.LEFT),
+        ('Dormitory', 'dwelling_type'),
+        (200, 'sqft'),
+        (1, 'bedrooms'),
+        (0, 'garage_parking'),
+        (LaundryStatus.Public, 'laundry')
+    ],
+    'equals right value': [Expected(Preference.RIGHT),
+        ('House', 'dwelling_type'),
+        (1800, 'sqft'),
+        (4, 'bedrooms'),
+        (2, 'garage_parking'),
+        (LaundryStatus.Private, 'laundry')
+    ],
+    'equals neither value': [Expected(Preference.NEITHER),
+        ('unknown', 'dwelling_type'),
+        (1000, 'sqft'),
+        (2, 'bedrooms'),
+        (3, 'garage_parking'),
+        (LaundryStatus.Shared, 'laundry'),
+        (None, 'dwelling_type')
+    ]
+})
+def test_map_resolution_to_preference(resolution: Preference | Any | None, field: str, expected: Preference):
+    assert ModelDiff(dorm, single_family).map_resolution_to_preference(resolution, field) == expected
+
+
+def test_get_preferred__not_applicable():
+    diff = ModelDiff(multi_family, single_family, include_pk=True, **RENTAL_PREFERENCE_RULES)
+    assert diff.get_preferred('address') == Preference.NOT_APPLICABLE
+    assert diff.get_preferred('apt') == Preference.NOT_APPLICABLE
+
+
+def test_get_preferred__not_implemented():
+    with pytest.raises(NotImplementedError):
+        ModelDiff(apartment, multi_family).get_preferred('cost')
+
+
+def test_get_preferred__missing():
+    with pytest.raises(KeyError):
+        ModelDiff(single_family, town_home).get_preferred('laundry')
+
+
+class RentalDiff(ModelDiff[Rental]):
+    def __init__(self, left: Rental, right: Rental):
+        super().__init__(left, right, **RENTAL_PREFERENCE_RULES)
 
 @labeled_tests({
     'dorm vs apartment': [
@@ -368,21 +502,7 @@ def test_get_left_get_right__invalid():
         (town_home, single_family, 'bathrooms', Preference.RIGHT),
         (town_home, single_family, 'garage_parking', Preference.RIGHT),
         (town_home, single_family, 'cost', Preference.LEFT)
-    ],
-    'n/a': [
-        (multi_family, single_family, 'address', Preference.NOT_APPLICABLE),
-        (multi_family, single_family, 'apt', Preference.NOT_APPLICABLE),
-    ],
+    ]
 })
-def test_get_preferred(left: Rental, right: Rental, field: str, expected: Preference):
+def test_get_preferred__custom_diff(left: Rental, right: Rental, field: str, expected: Preference):
     assert RentalDiff(left, right).get_preferred(field) == expected
-
-
-def test_get_preferred__not_implemented():
-    with pytest.raises(NotImplementedError):
-        ModelDiff(apartment, multi_family).get_preferred('cost')
-
-
-def test_get_preferred__missing():
-    with pytest.raises(KeyError):
-        RentalDiff(single_family, town_home).get_preferred('laundry')

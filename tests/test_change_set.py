@@ -51,14 +51,14 @@ unrelated_entry = CalendarEvent(
 )
 
 
-conflict_resolution = {
+rules = {
     'title': Preference.NOT_APPLICABLE,
     'day': max,
     'time': min,
-    'location': Preference.LEFT,
-    'description': '\n\n'.join
+    'location_conflict': Preference.LEFT,
+    'description_conflict': '\n\n'.join
 }
-merge_conflict_resolution = {**conflict_resolution, 'location': mode, 'description': Preference.LEFT}
+merge_rules = {**rules, 'location_conflict': mode, 'description_conflict': Preference.LEFT}
 
 
 def test_change_set():
@@ -140,11 +140,11 @@ def test_all_values(change_set: ChangeSet, field: str, expected: list[Any]):
 
 
 def test_get_resolution():
-    change_set = ChangeSet(dads_entry, moms_entry, **conflict_resolution)
+    change_set = ChangeSet(dads_entry, moms_entry, **rules)
     change_set.resolve_preferences()
     assert (change_set.get_resolution('description') ==
             'Annual family picnic with games and BBQ.\n\nPicnic with family and friends, do not forget the salads!')
-    change_set = ChangeSet(moms_entry, dads_entry, **conflict_resolution)
+    change_set = ChangeSet(moms_entry, dads_entry, **rules)
     change_set.resolve_preferences()
     assert (change_set.get_resolution('description') ==
             'Picnic with family and friends, do not forget the salads!\n\nAnnual family picnic with games and BBQ.')
@@ -182,58 +182,57 @@ def test_get_preferred(baseline: CalendarEvent, target: CalendarEvent, field: st
 
 @labeled_tests({
     'resolve by preference': [
-        (ChangeSet(dads_entry, daughters_entry, location=Preference.LEFT), 'location', Preference.LEFT),
-        (ChangeSet(dads_entry, daughters_entry, location=Preference.RIGHT), 'location', Preference.RIGHT),
-        (ChangeSet(dads_entry, moms_entry, description=Preference.NOT_APPLICABLE), 'description', Preference.NOT_APPLICABLE),
-        (MergeSet(dads_entry, daughters_entry, location=Preference.LEFT), 'location', Preference.LEFT),
-        (MergeSet(dads_entry, moms_entry, sons_entry, day=Preference.RIGHT), 'day', Preference.RIGHT)
+        (ChangeSet(dads_entry, daughters_entry, location_conflict=Preference.LEFT), 'location', Preference.LEFT),
+        (ChangeSet(dads_entry, daughters_entry, location_conflict=Preference.RIGHT), 'location', Preference.RIGHT),
+        (ChangeSet(dads_entry, moms_entry, description_conflict=Preference.NOT_APPLICABLE), 'description', Preference.NOT_APPLICABLE),
+        (ChangeSet(dads_entry, moms_entry, description_conflict=Preference.NEITHER), 'description', Preference.NEITHER),
+        (MergeSet(dads_entry, daughters_entry, location_conflict=Preference.LEFT), 'location', Preference.LEFT),
+        (MergeSet(dads_entry, moms_entry, sons_entry, day_conflict=Preference.RIGHT), 'day', Preference.RIGHT),
+        (MergeSet(dads_entry, moms_entry, description_conflict=Preference.NEITHER), 'description', Preference.NEITHER)
     ],
     'resolve by comparison': [
-        (ChangeSet(dads_entry, sons_entry, day=max), 'day', Preference.LEFT),
-        (ChangeSet(dads_entry, sons_entry, day=min), 'day', Preference.RIGHT)
+        (ChangeSet(dads_entry, sons_entry, day_conflict=max), 'day', Preference.LEFT),
+        (ChangeSet(dads_entry, sons_entry, day_conflict=min), 'day', Preference.RIGHT)
     ],
     'static resolve': [
-        (ChangeSet(dads_entry, moms_entry, time='11:00 AM'), 'time', Preference.LEFT),
-        (ChangeSet(dads_entry, moms_entry, time='12:00 PM'), 'time', Preference.RIGHT),
-        (ChangeSet(dads_entry, moms_entry, time='11:30 AM'), 'time', '11:30 AM')
-    ],
-    'neither': [
-        (ChangeSet(dads_entry, moms_entry, description=None), 'description', Preference.NEITHER),
-        (MergeSet(dads_entry, moms_entry, description=None), 'description', Preference.NEITHER)
+        (ChangeSet(dads_entry, moms_entry, time_conflict='11:00 AM'), 'time', Preference.LEFT),
+        (ChangeSet(dads_entry, moms_entry, time_conflict='12:00 PM'), 'time', Preference.RIGHT),
+        (ChangeSet(dads_entry, moms_entry, time_conflict='11:30 AM'), 'time', '11:30 AM'),
+        (ChangeSet(dads_entry, moms_entry, time_conflict=None), 'time', None)
     ],
     'none value preferred':
-        (MergeSet(dads_entry, sons_entry, daughters_entry, description=None), 'description', (Preference.RIGHT, 1)),
+        (MergeSet(dads_entry, sons_entry, daughters_entry, description_conflict=None), 'description', (Preference.RIGHT, 1)),
     'both': [
-        (ChangeSet(dads_entry, moms_entry, description='\n\n'.join), 'description',
+        (ChangeSet(dads_entry, moms_entry, description_conflict='\n\n'.join), 'description',
          'Annual family picnic with games and BBQ.\n\nPicnic with family and friends, do not forget the salads!'),
-        (MergeSet(dads_entry, moms_entry, description='\n\n'.join), 'description',
+        (MergeSet(dads_entry, moms_entry, description_conflict='\n\n'.join), 'description',
          'Annual family picnic with games and BBQ.\n\nPicnic with family and friends, do not forget the salads!'),
-        (MergeSet(dads_entry, moms_entry, sons_entry, description='\n\n'.join), 'description',
+        (MergeSet(dads_entry, moms_entry, sons_entry, description_conflict='\n\n'.join), 'description',
          'Annual family picnic with games and BBQ.\n\nPicnic with family and friends, do not forget the salads!\n\nBring your football and frisbee!')
     ],
     'default conflict resolution': [
-        (ChangeSet(dads_entry, moms_entry, default=Preference.LEFT), 'time', Preference.LEFT),
-        (MergeSet(dads_entry, moms_entry, default=Preference.LEFT), 'time', Preference.LEFT),
-        (MergeSet(dads_entry, moms_entry, sons_entry, default=Preference.LEFT), 'time', Preference.LEFT)
+        (ChangeSet(dads_entry, moms_entry, default_conflict=Preference.LEFT), 'time', Preference.LEFT),
+        (MergeSet(dads_entry, moms_entry, default_conflict=Preference.LEFT), 'time', Preference.LEFT),
+        (MergeSet(dads_entry, moms_entry, sons_entry, default_conflict=Preference.LEFT), 'time', Preference.LEFT)
     ],
     'MergeSet resolve by comparison': [
-        (MergeSet(dads_entry, sons_entry, day=max), 'day', Preference.LEFT),
-        (MergeSet(dads_entry, sons_entry, day=min), 'day', Preference.RIGHT),
-        (MergeSet(dads_entry, moms_entry, sons_entry, daughters_entry, day=max), 'day', Preference.LEFT),
-        (MergeSet(dads_entry, moms_entry, sons_entry, daughters_entry, day=mode), 'day', Preference.LEFT),
-        (MergeSet(dads_entry, moms_entry, sons_entry, daughters_entry, time=mode), 'time', (Preference.RIGHT, 0))
+        (MergeSet(dads_entry, sons_entry, day_conflict=max), 'day', Preference.LEFT),
+        (MergeSet(dads_entry, sons_entry, day_conflict=min), 'day', Preference.RIGHT),
+        (MergeSet(dads_entry, moms_entry, sons_entry, daughters_entry, day_conflict=max), 'day', Preference.LEFT),
+        (MergeSet(dads_entry, moms_entry, sons_entry, daughters_entry, day_conflict=mode), 'day', Preference.LEFT),
+        (MergeSet(dads_entry, moms_entry, sons_entry, daughters_entry, time_conflict=mode), 'time', (Preference.RIGHT, 0))
     ],
     'MergeSet static resolve': [
-        (MergeSet(dads_entry, moms_entry, time='11:00 AM'), 'time', Preference.LEFT),
-        (MergeSet(dads_entry, sons_entry, daughters_entry, time='11:00 AM'), 'time', Preference.LEFT),
-        (MergeSet(dads_entry, moms_entry, time='12:00 PM'), 'time', Preference.RIGHT),
-        (MergeSet(dads_entry, moms_entry, daughters_entry, time='All Day'), 'time', (Preference.RIGHT, 1)),
-        (MergeSet(dads_entry, moms_entry, sons_entry, time='11:30 AM'), 'time', '11:30 AM')
+        (MergeSet(dads_entry, moms_entry, time_conflict='11:00 AM'), 'time', Preference.LEFT),
+        (MergeSet(dads_entry, sons_entry, daughters_entry, time_conflict='11:00 AM'), 'time', Preference.LEFT),
+        (MergeSet(dads_entry, moms_entry, time_conflict='12:00 PM'), 'time', Preference.RIGHT),
+        (MergeSet(dads_entry, moms_entry, daughters_entry, time_conflict='All Day'), 'time', (Preference.RIGHT, 1)),
+        (MergeSet(dads_entry, moms_entry, sons_entry, time_conflict='11:30 AM'), 'time', '11:30 AM')
     ],
     'multiple target matches':
-        (MergeSet(dads_entry, moms_entry, sons_entry, time='12:00 PM'), 'time', (Preference.RIGHT, 0)),
+        (MergeSet(dads_entry, moms_entry, sons_entry, time_conflict='12:00 PM'), 'time', (Preference.RIGHT, 0)),
     'matches left and right':
-        (MergeSet(sons_entry, dads_entry, moms_entry, daughters_entry, time='12:00 PM'), 'time', Preference.LEFT)
+        (MergeSet(sons_entry, dads_entry, moms_entry, daughters_entry, time_conflict='12:00 PM'), 'time', Preference.LEFT)
 })
 def test_resolve_conflict(change_set: ChangeSet, field: str, expected: Preference|tuple[Preference.RIGHT, int]|Any):
     assert change_set.resolve_conflict(field) == expected
@@ -325,19 +324,19 @@ def test_resolve_conflict__missing():
         })
 })
 def test_resolve_preferences(baseline: CalendarEvent, target: CalendarEvent, expected: dict[str, tuple[Any, Any|Resolved]]):
-    change_set = ChangeSet(baseline, target, **conflict_resolution)
+    change_set = ChangeSet(baseline, target, **rules)
     change_set.resolve_preferences()
     assert change_set == expected
 
 
 def test_resolve_preferences__unresolved():
-    change_set = ChangeSet(dads_entry, unrelated_entry, include_pk=True, **conflict_resolution)
+    change_set = ChangeSet(dads_entry, unrelated_entry, include_pk=True, **rules)
     change_set.resolve_preferences()
     assert change_set['title'] == ('Family Picnic', Unresolved('Dentist Appointment'))
 
 
 def test_resolve_preferences__chained():
-    assert ChangeSet(moms_entry, dads_entry, **conflict_resolution).resolve_preferences().get_baseline('time') == '12:00 PM'
+    assert ChangeSet(moms_entry, dads_entry, **rules).resolve_preferences().get_baseline('time') == '12:00 PM'
 
 
 def test_resolve_preferences__conflict():
@@ -444,7 +443,7 @@ def test_resolve_preferences__conflict():
         )),
 })
 def test_apply(baseline: CalendarEvent, target: CalendarEvent, expected: CalendarEvent):
-    change_set = ChangeSet(baseline.model_copy(), target, **conflict_resolution)
+    change_set = ChangeSet(baseline.model_copy(), target, **rules)
     change_set.resolve_preferences()
     assert change_set.apply() == expected
 
@@ -484,7 +483,7 @@ def test_apply(baseline: CalendarEvent, target: CalendarEvent, expected: Calenda
         )),
 })
 def test_apply__merge_set(baseline: CalendarEvent, target: list[CalendarEvent], expected: CalendarEvent):
-    change_set = MergeSet(baseline.model_copy(), *target, **merge_conflict_resolution)
+    change_set = MergeSet(baseline.model_copy(), *target, **merge_rules)
     change_set.resolve_preferences()
     assert change_set.apply() == expected
 

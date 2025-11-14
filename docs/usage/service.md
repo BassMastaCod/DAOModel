@@ -3,8 +3,6 @@
 On the [previous page](model.md), we've learned about DAOModel methods,
 now let's explore how to build a service layer on top of your DAOs.
 
-## Overview
-
 The [service layer](https://medium.com/@navroops38/understanding-the-service-layer-in-software-architecture-df9b676b3a16)
 of a codebase provides functionality beyond basic [CRUD](dao.md#crud-operations).
 Though less useful for straightforward applications, this layer keeps your code organized and [DRY](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself). 
@@ -90,7 +88,7 @@ The `bulk_update` function is used to modify multiple entries/models at once wit
 
 ### Merging Models
 
-The `SingleModelService` class provides a `merge` method for combining two models:
+The `SingleModelService` class provides a `merge` method for combining two records:
 
 ::: daomodel.base_service.SingleModelService.merge
 ```python
@@ -104,8 +102,8 @@ This is particularly useful for scenarios such as:
 - Combining two classes into one
 - Consolidating notes from different sources
 
-When merging models, you may need to resolve conflicts between the source and destination.
-See [Conflict Resolution](TODO) for more information.
+When merging items, you may need to resolve conflicts between the source and destination.
+See [Preference Rules](../advanced/model_diff.md#preference-rules)[Conflict Resolution](../advanced/model_diff.md#conflict-resolution) for more information.
 
 ### Extending the Services
 
@@ -136,7 +134,8 @@ or available to a frontend such as a website/mobile app.
 
 Otherwise, feel free to explore the advanced features of DAOModel:
 
-- [DAOFactory](../advanced/dao_factory.md) for managing multiple DAOs
-- [Model Comparison and Diffing](../advanced/model_diff.md) for more details on how model merging works
-- [Search](../advanced/search.md) for advanced search capabilities
-- [Testing](../advanced/testing.md) for utilities to make testing your code a breeze
+- The [DAOFactory](../advanced/dao_factory.md) class provides a convenient way to create and manage all of your Data Access Objects.
+- The [Model Comparison and Diffing](../advanced/model_diff.md) feature allows you to compare models, track changes, and resolve conflicts.
+- The [Advanced Search](../advanced/search.md) features provide powerful search functionality beyond simple equality checks.
+- The [Testing Utilities](../advanced/testing.md) makes testing your DAOModel-based applications a breeze.
+
