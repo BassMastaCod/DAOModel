@@ -103,7 +103,7 @@ This is particularly useful for scenarios such as:
 - Consolidating notes from different sources
 
 When merging items, you may need to resolve conflicts between the source and destination.
-See [Conflict Resolution](TODO) for more information.
+See [Preference Rules](../advanced/model_diff.md#preference-rules)[Conflict Resolution](../advanced/model_diff.md#conflict-resolution) for more information.
 
 ### Extending the Services
 
