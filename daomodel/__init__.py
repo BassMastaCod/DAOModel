@@ -6,8 +6,9 @@ from sqlalchemy import Column, Engine, MetaData, Connection, ForeignKey
 from str_case_util import Case
 from sqlalchemy.ext.declarative import declared_attr
 
+from daomodel.list_util import in_order
 from daomodel.metaclass import DAOModelMetaclass
-from daomodel.util import reference_of, names_of, in_order, retain_in_dict, remove_from_dict
+from daomodel.util import reference_of, names_of, retain_in_dict, remove_from_dict
 from daomodel.property_filter import PropertyFilter, ALL
 
 
