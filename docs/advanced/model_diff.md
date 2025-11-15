@@ -512,7 +512,7 @@ i.e. `ChangeSet(baseline, target).resolve_preferences().apply()`
 The `resolve_preferences()` function uses [get_preferred()](#daomodel.model_diff.ModelDiff.get_preferred)
 to decide which values are worth keeping.
 
-::: daomodel.model_diff.ChangeSet.resolve_preferences
+::: daomodel.change_set.ChangeSet.resolve_preferences
 ```python
 change_set.resolve_preferences()
 ```
