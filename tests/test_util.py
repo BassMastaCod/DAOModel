@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy.testing.schema import Column
 
 from daomodel import reference_of
-from daomodel.util import names_of, values_from_dict, retain_in_dict, remove_from_dict
+from daomodel.util import names_of, values_from_dict, retain_in_dict, remove_from_dict, MissingInput
 from tests.school_models import Person, Book
 
 
@@ -32,6 +32,11 @@ def test_names_of(columns: list[Column], expected:  list[str]):
 ])
 def test_values_from_dict(keys: tuple[str, ...], expected: tuple):
     assert values_from_dict(*keys, a=1, b=2, c=3) == expected
+
+
+def test_values_from_dict__missing():
+    with pytest.raises(MissingInput):
+        values_from_dict('a', 'b', 'd', a=1, b=2, c=3)
 
 
 @pytest.mark.parametrize('keys, expected', [
