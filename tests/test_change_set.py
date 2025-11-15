@@ -8,7 +8,7 @@ from daomodel.change_set import Preference, ChangeSet, MergeSet, Resolved, Unres
 from daomodel.dao import Conflict
 from daomodel.fields import Identifier
 from daomodel.list_util import most_frequent
-from tests.labeled_tests import labeled_tests
+from daomodel.testing import labeled_tests
 
 
 class CalendarEvent(DAOModel, table=True):

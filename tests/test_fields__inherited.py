@@ -6,9 +6,8 @@ from sqlalchemy.exc import IntegrityError
 
 from daomodel.fields import Protected, Identifier, Unsearchable, no_case_str
 from daomodel.list_util import ensure_iter
+from daomodel.testing import labeled_tests, TestDAOFactory
 from daomodel.util import names_of
-from tests.conftest import TestDAOFactory
-from tests.labeled_tests import labeled_tests
 from tests.model_factory import create_test_model
 from tests.test_fields import BasicModel
 

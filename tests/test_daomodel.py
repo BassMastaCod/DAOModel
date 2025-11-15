@@ -6,7 +6,7 @@ from sqlmodel import Field
 
 from daomodel import DAOModel, names_of, UnsearchableError, reference_of, ColumnBreadcrumbs
 from daomodel.fields import Identifier, Unsearchable
-from tests.labeled_tests import labeled_tests, Expected
+from daomodel.testing import labeled_tests, Expected
 
 
 class Model(DAOModel):

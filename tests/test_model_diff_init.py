@@ -2,7 +2,7 @@ from typing import Any
 
 from daomodel import DAOModel
 from daomodel.model_diff import ModelDiff
-from tests.labeled_tests import labeled_tests
+from daomodel.testing import labeled_tests
 from tests.test_daomodel import SimpleModel, ComplicatedModel, simple_instance, complicated_instance
 
 

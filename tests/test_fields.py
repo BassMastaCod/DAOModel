@@ -6,7 +6,7 @@ import pytest
 from daomodel import DAOModel
 from daomodel.dao import DAO
 from daomodel.fields import utc_now, Identifier, CurrentTimestampField, AutoUpdatingTimestampField
-from tests.conftest import TestDAOFactory
+from daomodel.testing import TestDAOFactory
 
 ZERO_TIMESTAMP = datetime(1970, 1, 1)
 

@@ -61,10 +61,25 @@ def most_frequent(values: list[T]) -> T:
     In the case of a tie (multiple values with the same highest frequency),
     the function returns the first value encountered with that frequency.
 
-    :param values: An iterable containing values to evaluate
+    :param values: A list containing values to evaluate
     :return: The most common value from the provided iterable
     """
     return max(values, key=values.count)
+
+
+def longest(values: list[str]) -> Optional[str]:
+    """Finds the longest string in a list of strings.
+
+    In the case of a tie (multiple values of the same length),
+    the function returns the first value encountered with that length.
+
+    :param values: A list containing strings to check
+    :return: The longest string from the provided list.
+    """
+    try:
+        return max(values, key=len)
+    except ValueError:
+        return None
 
 
 def first_str_with(substring: str, strings: list[str]) -> Optional[str]:

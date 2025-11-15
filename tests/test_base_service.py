@@ -3,12 +3,9 @@ from datetime import date
 import pytest
 
 from daomodel.base_service import SingleModelService, SOURCE_VALUE, DESTINATION_VALUE, BaseService
-from tests.conftest import TestDAOFactory
+from daomodel.list_util import longest
+from daomodel.testing import TestDAOFactory
 from tests.school_models import Staff, Student, Book
-
-
-def longest(values: list[str]) -> str:
-    return max(values, key=len)
 
 
 def setup_staff(daos: TestDAOFactory) -> tuple[Staff, Staff]:

@@ -3,8 +3,7 @@ from uuid import UUID
 
 from daomodel import DAOModel
 from daomodel.fields import Identifier
-from tests.conftest import TestDAOFactory
-from tests.labeled_tests import labeled_tests
+from daomodel.testing import labeled_tests, TestDAOFactory
 from tests.model_factory import create_test_model
 from tests.test_fields import BasicModel
 from tests.test_fields__inherited import get_test_cases

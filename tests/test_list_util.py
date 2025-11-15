@@ -3,9 +3,9 @@ from typing import Any, Iterable, Optional
 import pytest
 
 from daomodel.list_util import (
-    most_frequent, ensure_iter, dedupe, in_order, strip_whitespace, exclude_falsy, first_str_with, first, last
+    most_frequent, ensure_iter, dedupe, in_order, strip_whitespace, exclude_falsy, first_str_with, first, last, longest
 )
-from tests.labeled_tests import labeled_tests
+from daomodel.testing import labeled_tests
 
 
 @labeled_tests({
@@ -106,6 +106,18 @@ def test_strip_whitespace(elements: list, expected: list):
 ])
 def test_most_frequent(elements: list, expected: Any):
     assert most_frequent(elements) == expected
+
+
+@pytest.mark.parametrize('elements, expected', [
+    (['apple', 'banana', 'cherry'], 'banana'),
+    (['a', 'ab', 'abc', 'abcd'], 'abcd'),
+    (['same', 'size', 'test'], 'same'),
+    ([], None),
+    (['one'], 'one'),
+    (['long', 'longer', 'longest', 'tiny'], 'longest')
+])
+def test_longest(elements: list, expected: Any):
+    assert longest(elements) == expected
 
 
 @labeled_tests({

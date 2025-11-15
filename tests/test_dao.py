@@ -2,8 +2,8 @@ import pytest
 from sqlalchemy.exc import InvalidRequestError
 
 from daomodel.dao import DAO, NotFound, Conflict, PrimaryKeyConflict
+from daomodel.testing import TestDAOFactory
 from daomodel.util import MissingInput, InvalidArgumentCount, next_id, UnsupportedFeatureError
-from tests.conftest import TestDAOFactory
 from tests.school_models import Student, Person, Book, Hall, Locker
 
 

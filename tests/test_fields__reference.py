@@ -6,8 +6,7 @@ from sqlmodel import Field
 
 from daomodel import DAOModel
 from daomodel.fields import Identifier, Protected, ReferenceTo
-from tests.conftest import TestDAOFactory
-from tests.labeled_tests import labeled_tests
+from daomodel.testing import labeled_tests, TestDAOFactory
 from tests.test_fields__types import OtherModel
 
 
