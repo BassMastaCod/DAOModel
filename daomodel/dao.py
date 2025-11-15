@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
 from daomodel.list_util import dedupe, ensure_iter
-from daomodel.util import values_from_dict, retain_in_dict, MissingInput, InvalidArgumentCount, ConditionOperator, UnsupportedFeatureError
+from daomodel.search_util import ConditionOperator
+from daomodel.util import values_from_dict, retain_in_dict, MissingInput, InvalidArgumentCount, UnsupportedFeatureError
 from daomodel.transaction import TransactionMixin, Conflict
 
 from daomodel import DAOModel
