@@ -10,8 +10,9 @@ nav:
   - Service: docs/usage/service.md
 - Advanced:
   - Model Diff: docs/advanced/model_diff.md
-- GitHub Repo: https://github.com/BassMastaCod/DAOModel
-- PyPi Project: https://pypi.org/project/DAOModel/
+- Additional Links:
+  - GitHub Repo: https://github.com/BassMastaCod/DAOModel
+  - PyPi Project: https://pypi.org/project/DAOModel/
 
 theme: readthedocs
 extra_css:
