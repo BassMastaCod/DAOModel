@@ -2,7 +2,7 @@ from typing import List
 
 from daomodel import DAOModel
 from daomodel.fields import Identifier
-from tests.conftest import TestDAOFactory
+from daomodel.testing import TestDAOFactory
 
 
 class Album(DAOModel, table=True):

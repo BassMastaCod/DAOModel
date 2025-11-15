@@ -2,7 +2,7 @@ from typing import Any, Callable, List
 
 from daomodel import DAOModel, all_models
 from daomodel.db import DAOFactory
-from daomodel.model_diff import ChangeSet, Preference
+from daomodel.change_set import ChangeSet, Preference
 
 
 SOURCE_VALUE = Preference.RIGHT

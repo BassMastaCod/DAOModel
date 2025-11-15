@@ -7,7 +7,7 @@ import pytest
 from daomodel import DAOModel
 from daomodel.fields import Identifier
 from daomodel.model_diff import ModelDiff, Preference, PreferenceRule
-from tests.labeled_tests import labeled_tests, Expected
+from daomodel.testing import labeled_tests, Expected
 
 
 class LaundryStatus(Enum):

@@ -8,8 +8,8 @@ from sqlmodel import Field
 from daomodel import DAOModel
 from daomodel.dao import DAO
 from daomodel.fields import Identifier, Unsearchable, ReferenceTo
+from daomodel.testing import TestDAOFactory
 from daomodel.util import next_id
-from tests.conftest import TestDAOFactory
 
 
 class Person(DAOModel, table=True):

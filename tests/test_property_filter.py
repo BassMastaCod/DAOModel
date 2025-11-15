@@ -5,7 +5,7 @@ import pytest
 from daomodel import DAOModel
 from daomodel.fields import Identifier
 from daomodel.property_filter import PropertyFilter, BasicPropertyFilter, AndFilter, ALL, PK, FK, DEFAULT, NONE
-from tests.labeled_tests import labeled_tests
+from daomodel.testing import labeled_tests
 
 
 class ForeignModel(DAOModel, table=True):

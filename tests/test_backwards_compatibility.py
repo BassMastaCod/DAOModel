@@ -3,7 +3,7 @@ from typing import Optional
 from sqlmodel import Field, Relationship
 
 from daomodel.backwards_compatibility import DAOModel
-from tests.conftest import TestDAOFactory
+from daomodel.testing import TestDAOFactory
 
 
 class ParentModel(DAOModel, table=True):

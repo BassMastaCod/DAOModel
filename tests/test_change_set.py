@@ -4,11 +4,11 @@ from typing import Optional, Any
 import pytest
 
 from daomodel import DAOModel
+from daomodel.change_set import Preference, ChangeSet, MergeSet, Resolved, Unresolved
 from daomodel.dao import Conflict
 from daomodel.fields import Identifier
-from daomodel.model_diff import ChangeSet, Preference, Resolved, Unresolved, MergeSet
-from daomodel.util import mode
-from tests.labeled_tests import labeled_tests
+from daomodel.list_util import most_frequent
+from daomodel.testing import labeled_tests
 
 
 class CalendarEvent(DAOModel, table=True):
@@ -58,7 +58,7 @@ rules = {
     'location_conflict': Preference.LEFT,
     'description_conflict': '\n\n'.join
 }
-merge_rules = {**rules, 'location_conflict': mode, 'description_conflict': Preference.LEFT}
+merge_rules = {**rules, 'location_conflict': most_frequent, 'description_conflict': Preference.LEFT}
 
 
 def test_change_set():
@@ -219,8 +219,8 @@ def test_get_preferred(baseline: CalendarEvent, target: CalendarEvent, field: st
         (MergeSet(dads_entry, sons_entry, day_conflict=max), 'day', Preference.LEFT),
         (MergeSet(dads_entry, sons_entry, day_conflict=min), 'day', Preference.RIGHT),
         (MergeSet(dads_entry, moms_entry, sons_entry, daughters_entry, day_conflict=max), 'day', Preference.LEFT),
-        (MergeSet(dads_entry, moms_entry, sons_entry, daughters_entry, day_conflict=mode), 'day', Preference.LEFT),
-        (MergeSet(dads_entry, moms_entry, sons_entry, daughters_entry, time_conflict=mode), 'time', (Preference.RIGHT, 0))
+        (MergeSet(dads_entry, moms_entry, sons_entry, daughters_entry, day_conflict=most_frequent), 'day', Preference.LEFT),
+        (MergeSet(dads_entry, moms_entry, sons_entry, daughters_entry, time_conflict=most_frequent), 'time', (Preference.RIGHT, 0))
     ],
     'MergeSet static resolve': [
         (MergeSet(dads_entry, moms_entry, time_conflict='11:00 AM'), 'time', Preference.LEFT),

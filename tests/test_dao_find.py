@@ -2,8 +2,9 @@ from sqlmodel import desc
 
 from daomodel import UnsearchableError
 from daomodel.dao import SearchResults
-from daomodel.util import MissingInput, LessThan, GreaterThan, GreaterThanEqualTo, LessThanEqualTo, Between, \
+from daomodel.search_util import LessThan, GreaterThan, GreaterThanEqualTo, LessThanEqualTo, Between, \
     AnyOf, NoneOf, IsSet, is_set, NotSet, not_set
+from daomodel.util import MissingInput
 from tests.school_models import *
 
 
