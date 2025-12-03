@@ -281,7 +281,7 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
         return searchable
 
     @classmethod
-    def find_searchable_column(cls, prop: [str|Column], foreign_tables: list[type['DAOModel']]) -> Column:
+    def find_searchable_column(cls, prop: str|Column, foreign_tables: list[type['DAOModel']]) -> Column:
         """Returns the specified searchable Column.
 
         :param prop: str type reference of the Column or the Column itself
