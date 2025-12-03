@@ -34,9 +34,10 @@ plugins:
           show_signature_annotations: true
           docstring_style: sphinx
           docstring_section_style: list
-          list_style: spacy
           show_root_members_full_path: false
           members_order: source
+          extra:
+            list_style: spacy
 
 markdown_extensions:
   - admonition
