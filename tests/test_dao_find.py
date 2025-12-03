@@ -8,6 +8,26 @@ from daomodel.util import MissingInput
 from tests.school_models import *
 
 
+first_page = SearchResults(page_one, total=len(all_students), page=1, per_page=5)
+subsequent_page = SearchResults(page_two, total=len(all_students), page=2, per_page=5)
+last_page = SearchResults(page_three, total=len(all_students), page=3, per_page=5)
+large_page = SearchResults(all_students, total=len(all_students), page=1, per_page=15)
+no_page = SearchResults(all_students)
+
+
+@pytest.mark.parametrize('results, expected_start, expected_end, expected_total_pages', [
+    (first_page, 1, 5, 3),
+    (large_page, 1, 13, 1),
+    (subsequent_page, 6, 10, 3),
+    (last_page, 11, 13, 3),
+    (no_page, 1, 13, 1)
+])
+def test_page_start_end_total(results: SearchResults, expected_start: int, expected_end: int, expected_total_pages: int):
+    assert results.page_start == expected_start
+    assert results.page_end == expected_end
+    assert results.total_pages == expected_total_pages
+
+
 def test_find__all(student_dao: DAO):
     assert student_dao.find() == SearchResults(all_students)
 
@@ -53,24 +73,24 @@ def test_only__no_results(daos: TestDAOFactory):
 
 
 def test_find__limit(student_dao: DAO):
-    assert student_dao.find(per_page=5) == SearchResults(page_one, total=len(all_students), page=1, per_page=5)
+    assert student_dao.find(_per_page=5) == first_page
 
 
 def test_find__fewer_results_than_limit(student_dao: DAO):
-    assert student_dao.find(per_page=15) == SearchResults(all_students, page=1, per_page=15)
+    assert student_dao.find(_per_page=15) == large_page
 
 
 def test_find__subsequent_page(student_dao: DAO):
-    assert student_dao.find(per_page=5, page=2) == SearchResults(page_two, total=len(all_students), page=2, per_page=5)
+    assert student_dao.find(_per_page=5, _page=2) == subsequent_page
 
 
 def test_find__last_page(student_dao: DAO):
-    assert student_dao.find(per_page=5, page=3) == SearchResults(page_three, total=len(all_students), page=3, per_page=5)
+    assert student_dao.find(_per_page=5, _page=3) == last_page
 
 
 def test_find__undefined_page_size(daos: TestDAOFactory):
     with pytest.raises(MissingInput):
-        daos[Student].find(page=1)
+        daos[Student].find(_page=1)
 
 
 def test_find__filter_by_single_property(student_dao: DAO):
@@ -200,15 +220,15 @@ def test_find__default_order(person_dao: DAO):
 
 
 def test_find__specified_order(person_dao: DAO):
-    assert person_dao.find(order=Person.age) == SearchResults(age_ordered)
+    assert person_dao.find(_order=Person.age) == SearchResults(age_ordered)
 
 
 def test_find__reverse_order(student_dao: DAO):
-    assert student_dao.find(order=desc(Student.id)) == SearchResults(list(reversed(all_students)))
+    assert student_dao.find(_order=desc(Student.id)) == SearchResults(list(reversed(all_students)))
 
 
 def test_find__order_without_table(person_dao: DAO):
-    assert person_dao.find(order='age') == SearchResults(age_ordered)
+    assert person_dao.find(_order='age') == SearchResults(age_ordered)
 
 
 def test_find__order_by_multiple_properties(student_dao: DAO):
@@ -228,12 +248,12 @@ def test_find__order_by_multiple_properties(student_dao: DAO):
         Student(id=100)
     ]
     order = (Student.active, Student.gender, desc(Student.name))
-    assert student_dao.find(order=order) == SearchResults(ordered)
+    assert student_dao.find(_order=order) == SearchResults(ordered)
 
 
 def test_find__order_by_foreign_property(school_dao: DAO):
     ordered = [Student(id=101), Student(id=100), Student(id=103), Student(id=102)]
-    assert school_dao.find(order=Book.name) == SearchResults(ordered)
+    assert school_dao.find(_order=Book.name) == SearchResults(ordered)
 
 
 def test_find__order_by_nested_foreign_property(school_dao: DAO):
@@ -251,38 +271,38 @@ def test_find__order_by_nested_foreign_property(school_dao: DAO):
         Student(id=111),
         Student(id=105)
     ]
-    assert school_dao.find(order=Hall.color) == SearchResults(ordered)
+    assert school_dao.find(_order=Hall.color) == SearchResults(ordered)
 
 
 def test_find__order_by_unsearchable(daos: TestDAOFactory):
     with pytest.raises(UnsearchableError):
-        daos[Person].find(order=Person.ssn)
+        daos[Person].find(_order=Person.ssn)
 
 
 def test_find__duplicate(person_dao: DAO):
-    assert person_dao.find(duplicate=Person.name) == SearchResults(duplicated_names)
+    assert person_dao.find(_duplicate=Person.name) == SearchResults(duplicated_names)
 
 
 def test_find__duplicate_foreign_property(school_dao: DAO):
-    assert school_dao.find(duplicate=Book.subject) == SearchResults([Student(id=102), Student(id=103)])
+    assert school_dao.find(_duplicate=Book.subject) == SearchResults([Student(id=102), Student(id=103)])
 
 
 def test_find__duplicate_unsearchable(daos: TestDAOFactory):
     with pytest.raises(UnsearchableError):
-        daos[Person].find(duplicate=Person.ssn)
+        daos[Person].find(_duplicate=Person.ssn)
 
 
 def test_find__unique(person_dao: DAO):
-    assert person_dao.find(unique=Person.name) == SearchResults(unique_names)
+    assert person_dao.find(_unique=Person.name) == SearchResults(unique_names)
 
 
 def test_find__unique_foreign_property(school_dao: DAO):
-    assert school_dao.find(unique=Book.subject) == SearchResults([Student(id=100), Student(id=101)])
+    assert school_dao.find(_unique=Book.subject) == SearchResults([Student(id=100), Student(id=101)])
 
 
 def test_find__unique_unsearchable(daos: TestDAOFactory):
     with pytest.raises(UnsearchableError):
-        daos[Person].find(unique=Person.ssn)
+        daos[Person].find(_unique=Person.ssn)
 
 
 def test_find__duplicate_and_unique(person_dao: DAO):
@@ -291,7 +311,7 @@ def test_find__duplicate_and_unique(person_dao: DAO):
         Person(name='John', age=45),
         Person(name='Mike', age=18)
     ]
-    assert person_dao.find(duplicate=Person.name, unique=Person.age) == SearchResults(expected)
+    assert person_dao.find(_duplicate=Person.name, _unique=Person.age) == SearchResults(expected)
 
 
 def test_search_results__iter(student_dao: DAO):
@@ -309,8 +329,8 @@ def test_search_results__eq_hash(student_dao: DAO):
 
 
 def test_search_results__eq_hash__different_order(student_dao: DAO):
-    first = student_dao.find(order=Student.name)
-    second = student_dao.find(order=desc(Student.name))
+    first = student_dao.find(_order=Student.name)
+    second = student_dao.find(_order=desc(Student.name))
     assert first != second
     assert hash(first) != hash(second)
 
@@ -321,5 +341,5 @@ def test_search_results__str(student_dao: DAO):
 
 
 def test_search_results__str__page(student_dao: DAO):
-    result = str(student_dao.find(page=2, per_page=5))
-    assert result.split('[')[0] == 'Page 2; 5 of 13 results '
+    result = str(student_dao.find(_page=2, _per_page=5))
+    assert result.split('[')[0] == 'Page 2 of 3; 6-10 of 13 results '

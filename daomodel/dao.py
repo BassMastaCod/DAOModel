@@ -49,10 +49,24 @@ class SearchResults(list[Model]):
     def __hash__(self) -> int:
         return hash((tuple(self.results), self.total, self.page, self.per_page))
 
+    @property
+    def page_start(self):
+        return ((self.page - 1) * self.per_page) + 1 if self.page else 1
+
+    @property
+    def page_end(self):
+        return min(self.page * self.per_page if self.page else self.total, self.total)
+
+    @property
+    def total_pages(self):
+        if not self.page:
+            return 1
+        return -(-self.total // self.per_page)
+
     def __str__(self) -> str:
         string = str(self.results)
         if self.page:
-            string = f'Page {self.page}; {self.per_page} of {self.total} results {string}'
+            string = f'Page {self.page} of {self.total_pages}; {self.page_start}-{self.page_end} of {self.total} results {string}'
         return string
 
     def first(self) -> Optional[Model]:
@@ -202,30 +216,37 @@ class DAO(TransactionMixin):
         return model
 
     def find(self,
-             page: Optional[int] = None,
-             per_page: Optional[int] = None,
+             _page: Optional[int] = None,
+             _per_page: Optional[int] = None,
+             _order: Optional[str|Column|UnaryExpression|Iterable[str|Column|UnaryExpression]] = None,
+             _duplicate: Optional[str] = None,
+             _unique: Optional[str] = None,
              **filters: Any) -> SearchResults[Model]:
         """Searches all the DAOModel entries to return results.
 
-        :param page: The number of the page to fetch
-        :param per_page: How many results are on each page
+        :param _page: The number of the page to fetch
+        :param _per_page: How many results are on each page
+        :param _order: How to sort the results
+        :param _duplicate: Filter the results to only duplicate values of a column
+        :param _unique: Filter the results to only unique values of a column
         :param filters: Criteria to filter down the number of results
         :return: The SearchResults for the provided filters
         """
         query = self.query
-        order = self.model_class.get_pk()
         foreign_tables = []
+        if _order is None:
+            order = self.model_class.get_pk()
+        else:
+            order = self._order(_order, foreign_tables)
+        if _duplicate:
+            query = self._count(query, _duplicate, foreign_tables, 'dupe').where(text(f'dupe.count > 1'))
+        if _unique:
+            query = self._count(query, _unique, foreign_tables, 'uniq').where(text(f'uniq.count <= 1'))
 
         # TODO: Add support for checking for specific values within foreign tables
         for key, value in filters.items():
-            if key == 'order':  # TODO: rename to avoid collisions with actual column names
-                order = self._order(value, foreign_tables)
-            elif key == 'duplicate':
-                query = self._count(query, value, foreign_tables, 'dupe').where(text(f'dupe.count > 1'))
-            elif key == 'unique':
-                query = self._count(query, value, foreign_tables, 'uniq').where(text(f'uniq.count <= 1'))
-            else:  # TODO: Add logic for is_set and not_set that works for foreign values
-                query = self._filter(query, key, value, foreign_tables)
+            # TODO: Add logic for is_set and not_set that works for foreign values
+            query = self._filter(query, key, value, foreign_tables)
 
         for table in dedupe(foreign_tables):
             query = query.join(table)
@@ -234,14 +255,14 @@ class DAO(TransactionMixin):
         query = self.filter_find(query, **filters)
 
         total = query.count()
-        if per_page:
-            if not page or page < 1:
-                page = 1
-            query = query.offset((page - 1) * per_page).limit(per_page)
-        elif page:
+        if _per_page:
+            if not _page or _page < 1:
+                _page = 1
+            query = query.offset((_page - 1) * _per_page).limit(_per_page)
+        elif _page:
             raise MissingInput('Must specify how many results per page')
 
-        return SearchResults(query.all(), total, page, per_page)
+        return SearchResults(query.all(), total, _page, _per_page)
 
     def _order(self,
                value: str|Column|UnaryExpression|Iterable[str|Column|UnaryExpression],
@@ -265,7 +286,7 @@ class DAO(TransactionMixin):
                     .alias(alias))
         return query.join(subquery, column == text(f'{alias}.{column.name}'))
 
-    def _filter(self, query: Query, key: [str|Column], value: Any, foreign_tables: list[type[DAOModel]]) -> Query:
+    def _filter(self, query: Query, key: str|Column, value: Any, foreign_tables: list[type[DAOModel]]) -> Query:
         column = self.model_class.find_searchable_column(key, foreign_tables)
         return query.filter(value.get_expression(column) if isinstance(value, ConditionOperator) else column == value)
 
