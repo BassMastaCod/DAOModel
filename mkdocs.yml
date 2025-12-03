@@ -9,6 +9,7 @@ nav:
   - Model: docs/usage/model.md
   - Service: docs/usage/service.md
 - Advanced:
+  - Search: docs/advanced/search.md
   - Model Diff: docs/advanced/model_diff.md
 - Additional Links:
   - GitHub Repo: https://github.com/BassMastaCod/DAOModel
