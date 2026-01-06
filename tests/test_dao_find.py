@@ -227,6 +227,10 @@ def test_find__reverse_order(student_dao: DAO):
     assert student_dao.find(_order=desc(Student.id)) == SearchResults(list(reversed(all_students)))
 
 
+def test_find__reverse_order__text_only(student_dao: DAO):
+    assert student_dao.find(_order='!id') == SearchResults(list(reversed(all_students)))
+
+
 def test_find__order_without_table(person_dao: DAO):
     assert person_dao.find(_order='age') == SearchResults(age_ordered)
 

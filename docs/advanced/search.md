@@ -179,6 +179,12 @@ books_ordered = book_dao.find(_order=(desc(Book.available), Book.pages))
 borrowers_ordered = borrower_dao.find(_order=('name', desc('active'), desc('join_date')))
 ```
 
+To support CLI and other _text only_ interfaces, `desc` can also be specified by prepending `!` to the column name.
+
+```python
+borrowers_ordered = borrower_dao.find(_order=('name', '!active', '!join_date'))
+```
+
 That is only the tip of the iceberg for searching, next we'll introduce **ConditionOperators**.
 
 ## Advanced Filtering
