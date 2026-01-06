@@ -1,3 +1,5 @@
+from daomodel.search_util import AnyOf
+
 # Searching Models
 
 A Model [DAO](../usage/dao.md) includes powerful, built-in search capabilities that make it easy to find and filter data.
@@ -228,6 +230,45 @@ scifi_fantasy = book_dao.find(genre=AnyOf('Fantasy', 'Science Fiction'))
 
 # Find books that are not Romance or Biography
 not_romance_bio = book_dao.find(genre=NoneOf('Romance', 'Biography'))
+```
+
+TODO - Introduce And() and Or()
+
+#### Matching on Parts
+
+Earlier, we searched based on the publication year of a book,
+but what if we have a more specific date within the database?
+
+Each **Borrower** record has a `join_date` field, which is a full timestamp.
+With the `_part` argument, we can narrow our search down to a portion of the date.
+This can be very powerful as seen in the following examples:
+
+```python
+from daomodel.util import Equals, GreaterThan, LessThan, Between, AnyOf, NoneOf, And, Or
+
+# Find borrowers who joined in 2025
+joined_last_year = borrower_dao.find(join_date=Equals(2025, _part='year'))
+
+# Find borrowers who joined in June of any year
+new_in_june = borrower_dao.find(join_date=Equals(6, _part='month'))
+
+# Find borrowers who joined on even days
+even_borrowers = borrower_dao.find(join_date=AnyOf(*range(2, 32, 2), _part='day'))
+
+# Find borrowers who didn't join during the summer
+school_year_borrowers = borrower_dao.find(join_date=NoneOf(7, 8, _part='day'))
+
+# Find borrowers who joined during a specific event
+eclipse_signups = borrower_dao.find(join_date=And(
+    Equals(2024, _part='year'),
+    Equals(4, _part='month'),
+    Equals(2024, _part='day'),
+    Between(15, 16, _part='hour')))
+
+# Find borrowers who joined outside of regular hours
+abnormal_signups = borrower_dao.find(join_date=Or(
+    LessThan(8, _part='hour'),
+    GreaterThan(20, _part='hour')))
 ```
 
 ### Existence Operators
