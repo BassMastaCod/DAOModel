@@ -271,11 +271,11 @@ class DAO(TransactionMixin):
         if type(value) is str:
             value = value.split(', ')
         for column in ensure_iter(value):
-            if type(column) is UnaryExpression:
+            if isinstance(column, UnaryExpression):
                 if self.model_class.find_searchable_column(column.element, foreign_tables) is not None:
                     order.append(column)
             else:
-                if column.startswith('!'):
+                if type(column) is str and column.startswith('!'):
                     direction = desc
                     column = column[1:]
                 else:
