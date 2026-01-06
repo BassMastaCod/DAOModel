@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional, Any, TypeVar, Iterable, Iterator
 
-from sqlalchemy import func, Column, text, UnaryExpression
+from sqlalchemy import func, Column, text, UnaryExpression, desc, asc
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 
@@ -275,7 +275,12 @@ class DAO(TransactionMixin):
                 if self.model_class.find_searchable_column(column.element, foreign_tables) is not None:
                     order.append(column)
             else:
-                order.append(self.model_class.find_searchable_column(column, foreign_tables))
+                if column.startswith('!'):
+                    direction = desc
+                    column = column[1:]
+                else:
+                    direction = asc
+                order.append(direction(self.model_class.find_searchable_column(column, foreign_tables)))
         return order
 
     def _count(self, query: Query, prop: str, foreign_tables: list[DAOModel], alias: str) -> Query:
