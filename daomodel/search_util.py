@@ -1,12 +1,24 @@
-from typing import Any, Optional
+from typing import Optional, TypeVar, Generic
 
+from pydantic_core import core_schema
 from sqlalchemy import ColumnElement
 from sqlmodel import or_, and_, extract
 
 
-class ConditionOperator:
+T = TypeVar('T')
+
+class ConditionOperator(Generic[T]):
+    target_type: type | None = None
+
+    def __class_getitem__(cls, item: type[T]):
+        return type(
+            f'{cls.__name__}[{item.__name__}]',
+            (cls,),
+            {'target_type': item}
+        )
+
     """A utility class to easily generate common expressions"""
-    def __init__(self, *values: Any, _part: Optional[str] = None):
+    def __init__(self, *values: T, _part: Optional[str] = None):
         self.values = values
         self.part = _part  # e.g. "year", "month", "day", "hour"
 
@@ -23,6 +35,78 @@ class ConditionOperator:
         :return: the expression
         """
         raise NotImplementedError('Must implement `get_expression` in subclass')
+
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source, _handler):
+        target_type = cls.target_type or str
+
+        def validate(value):
+            if isinstance(value, str):
+                return cls.from_str(value)
+            elif isinstance(value, target_type):
+                return Equals(value)
+            else:
+                raise ValueError(f'Invalid value for {source}: {value}')
+
+        return core_schema.json_or_python_schema(
+            json_schema=(
+                core_schema.int_schema() if target_type is int else
+                core_schema.float_schema() if target_type is float else
+                core_schema.bool_schema() if target_type is bool else
+                core_schema.str_schema() if target_type is str else
+                core_schema.str_schema() if target_type.__name__ in ('datetime', 'date') else
+                core_schema.str_schema() if target_type.__name__ == 'UUID' else
+                core_schema.str_schema()
+            ),
+            python_schema=core_schema.no_info_plain_validator_function(validate)
+        )
+
+    @classmethod
+    def from_str(cls, value: str) -> 'ConditionOperator':
+        """Maps a value with a potential operator prefix (e.g. 'lt:', 'contains:') to a ConditionOperator.
+
+        :param value: The query value with optional operator prefix
+        :return: The ConditionOperator defined by the prefix
+        """
+        target_type = cls.target_type or str
+        op, part = None, None
+
+        if ':' in value:
+            op, value = value.split(':', 1)
+            if '_' in op:
+                part, op = op.split('_', 1)
+
+        def cast(v):
+            return int(v) if part else target_type(v)
+
+        match op:  # TODO: support contains, starts, and ends
+            case 'lt':
+                return LessThan(cast(value), _part=part)
+            case 'le':
+                return LessThanEqualTo(cast(value), _part=part)
+            case 'gt':
+                return GreaterThan(cast(value), _part=part)
+            case 'ge':
+                return GreaterThanEqualTo(cast(value), _part=part)
+            case 'between':
+                values = [cast(value) for value in value.split('|', 1)]
+                return Between(*values, _part=part)
+            case 'anyof':
+                values = [cast(value) for value in value.split('|')]
+                return AnyOf(*values, _part=part)
+            case 'noneof':
+                values = [cast(value) for value in value.split('|')]
+                return NoneOf(*values, _part=part)
+            case 'is':
+                match value:
+                    case 'set':
+                        return IsSet()
+                    case 'notset':
+                        return NotSet()
+                    case _:
+                        return Equals(cast(value), _part=part)
+            case _:
+                return Equals(cast(value), _part=part)
 
 
 class And(ConditionOperator):
