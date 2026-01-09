@@ -382,3 +382,4 @@ def all_models(bind: [Engine|Connection]) -> set[type[DAOModel]]:
     metadata.reflect(bind=bind)
     db_tables = metadata.tables.keys()
     return {model for model in daomodel_subclasses(DAOModel) if model.__tablename__ in db_tables}
+
