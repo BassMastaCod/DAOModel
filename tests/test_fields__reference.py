@@ -65,14 +65,27 @@ class NoTargetReferenceToModel(DAOModel, table=True):
     other_id: Optional[OtherModel] = ReferenceTo(ondelete='CASCADE')
 
 
-class ModelWithUniqueField(DAOModel, table=True):
+class ModelWithUniqueFieldBase(DAOModel):
     id: Identifier[int]
     unique: str = Field(unique=True)
+
+
+class ModelWithUniqueField(ModelWithUniqueFieldBase, table=True):
+    pass
 
 
 class ReferenceToFieldModel(DAOModel, table=True):
     id: Identifier[int]
     ref: str = ReferenceTo(ModelWithUniqueField.unique)
+
+
+class ModelWithInheritedUniqueField(ModelWithUniqueFieldBase, table=True):
+    other: Optional[str]
+
+
+class ReferenceToInheritedFieldModel(DAOModel, table=True):
+    id: Identifier[int]
+    ref: str = ReferenceTo(ModelWithInheritedUniqueField.unique)
 
 
 def test_reference_to(daos: TestDAOFactory):
@@ -183,3 +196,9 @@ def test_reference_to__unique_field(daos: TestDAOFactory):
     daos[ModelWithUniqueField].create_with(id=0, unique='value')
     daos[ReferenceToFieldModel].create_with(id=1, ref='value')
     daos.assert_in_db(ReferenceToFieldModel, 1, ref='value')
+
+
+def test_reference_to__inherited_unique_field(daos: TestDAOFactory):
+    daos[ModelWithInheritedUniqueField].create_with(id=0, unique='value')
+    daos[ReferenceToInheritedFieldModel].create_with(id=1, ref='value')
+    daos.assert_in_db(ReferenceToInheritedFieldModel, 1, ref='value')
