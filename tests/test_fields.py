@@ -15,6 +15,14 @@ class BasicModel(DAOModel, table=True):
     id: Identifier[int]
 
 
+class ExpandedModel(BasicModel, table=True):
+    name: str
+
+
+class InheritedModel(ExpandedModel, table=True):
+    pass
+
+
 class TimestampsModel(DAOModel, table=True):
     id: Identifier[int]
     name: Optional[str]

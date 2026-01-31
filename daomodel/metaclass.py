@@ -167,7 +167,17 @@ class DAOModelMetaclass(SQLModelMetaclass):
                 f'Cannot auto map to composite key of {field.type.__name__}. Use '
                 f'Reference(str) instead. i.e. field: int = Reference("{first_pk}")'
             )
-        field.type = field.type.__annotations__[first_pk.name]
+
+        pk_type = None
+        for base in inspect.getmro(field.type):
+            if hasattr(base, '__annotations__') and first_pk.name in base.__annotations__:
+                pk_type = base.__annotations__[first_pk.name]
+                break
+
+        if pk_type is None:
+            raise KeyError(f'Could not find type annotation for primary key "{first_pk.name}" in {field.type.__name__} or its parent classes')
+
+        field.type = pk_type
         field['foreign_key'] = reference_of(first_pk)
 
     @classmethod
