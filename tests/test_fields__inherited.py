@@ -9,56 +9,63 @@ from daomodel.list_util import ensure_iter
 from daomodel.testing import labeled_tests, TestDAOFactory
 from daomodel.util import names_of
 from tests.model_factory import create_test_model
-from tests.test_fields import BasicModel
-
+from tests.test_fields import BasicModel, InheritedModel
 
 all_test_cases = {
     'standard field': str,
     'uuid': UUID,
     'dict': dict,
     'reference': BasicModel,
+    'reference inherited': InheritedModel,
     'protected reference': Protected[BasicModel],
     'no_case_str': no_case_str,
     'identifier field': Identifier[str],
     'identifier uuid': Identifier[UUID],
     # Note: dict cannot be an Identifier as it is not hashable
     'identifier reference': Identifier[BasicModel],
+    'identifier reference inherited': Identifier[InheritedModel],
     'identifier protected reference': Identifier[Protected[BasicModel]],
     'identifier no_case_str': Identifier[no_case_str],
     'optional field': Optional[str],
     'optional uuid': Optional[UUID],
     'optional dict': Optional[dict],
     'optional reference': Optional[BasicModel],
+    'optional reference inherited': Optional[InheritedModel],
     'optional protected reference': Protected[Optional[BasicModel]],
     'optional no_case_str': Optional[no_case_str],
     'unsearchable field': Unsearchable[str],
     'unsearchable uuid': Unsearchable[UUID],
     'unsearchable dict': Unsearchable[dict],
     'unsearchable reference': Unsearchable[BasicModel],
+    'unsearchable reference inherited': Unsearchable[InheritedModel],
     'unsearchable protected reference': Unsearchable[Protected[BasicModel]],
     'unsearchable no_case_str': Unsearchable[no_case_str],
     'identifier + optional field': Identifier[Optional[str]],
     'identifier + optional uuid': Identifier[Optional[UUID]],
     # Note: dict cannot be an Identifier as it is not hashable
     'identifier + optional reference': Identifier[Optional[BasicModel]],
+    'identifier + optional reference inherited': Identifier[Optional[InheritedModel]],
     'identifier + optional protected reference': Identifier[Protected[Optional[BasicModel]]],
     'identifier + optional no_case_str': Identifier[Optional[no_case_str]],
     'unsearchable + identifier field': Unsearchable[Identifier[str]],
     'unsearchable + identifier uuid': Unsearchable[Identifier[UUID]],
     # Note: dict cannot be an Identifier as it is not hashable
     'unsearchable + identifier reference': Unsearchable[Identifier[BasicModel]],
+    'unsearchable + identifier reference inherited': Unsearchable[Identifier[InheritedModel]],
     'unsearchable + identifier protected reference': Unsearchable[Identifier[Protected[BasicModel]]],
     'unsearchable + identifier no_case_str': Unsearchable[Identifier[no_case_str]],
     'unsearchable + optional field': Unsearchable[Optional[str]],
     'unsearchable + optional uuid': Unsearchable[Optional[UUID]],
     'unsearchable + optional dict': Unsearchable[Optional[dict]],
     'unsearchable + optional reference': Unsearchable[Optional[BasicModel]],
+    'unsearchable + optional reference inherited': Unsearchable[Optional[InheritedModel]],
     'unsearchable + optional protected reference': Unsearchable[Protected[Optional[BasicModel]]],
     'unsearchable + optional no_case_str': Unsearchable[Optional[no_case_str]],
     'unsearchable + identifier + optional field': Unsearchable[Identifier[Optional[str]]],
     'unsearchable + identifier + optional uuid': Unsearchable[Identifier[Optional[UUID]]],
     # Note: dict cannot be an Identifier as it is not hashable
     'unsearchable + identifier + optional reference': Unsearchable[Identifier[Optional[BasicModel]]],
+    'unsearchable + identifier + optional reference inherited': Unsearchable[Identifier[Optional[InheritedModel]]],
     'unsearchable + identifier + optional protected reference': Unsearchable[Identifier[Protected[Optional[BasicModel]]]],
     'unsearchable + identifier + optional no_case_str': Unsearchable[Identifier[Optional[no_case_str]]]
 }
