@@ -354,6 +354,7 @@ In the above example, we wish to make the column Optional but have ondelete _CAS
 > **Note:** The `foreign_key` argument here is actually redundant but is required to set `ondelete='CASCADE'`
 > so we just set it to _'auto'_ to indicate that the mapping is automatically taken care of.
 > Regardless of this value, DAOModel will set the foreign_key based on the typing.
+> **WARNING** the use of `foreign_key='auto'` has stopped working in recent versions of SQLAlchemy
 
 Another option is to use the `ReferenceTo` class which provides
 a clean way to specify the target column and any additional configuration options.

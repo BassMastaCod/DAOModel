@@ -59,7 +59,7 @@ class Student(BasePerson, table=True):
 
     class Meta:
         searchable_relations = {
-            Book.name, Book.subject, Locker.number,
+            Book.owner, Book.name, Book.subject, Locker.number,
             (Locker, Hall.color)
         }
 
@@ -132,8 +132,7 @@ def student_dao_fixture(daos: TestDAOFactory) -> DAO:
 
 
 @pytest.fixture(name='school_dao')
-def school_dao_fixture(daos: TestDAOFactory) -> DAO:
-    dao = setup_students(daos)
+def school_dao_fixture(student_dao: DAO, daos: TestDAOFactory) -> DAO:
     book_dao = daos[Book]
     book_dao.create_with(name='Biology 101', subject='Science', owner=100)
     book_dao.create_with(name='Art of the World', subject='Art', owner=101)
@@ -157,7 +156,22 @@ def school_dao_fixture(daos: TestDAOFactory) -> DAO:
     locker_dao.create_with(number=1204, owner=106, location='WEST', floor=2)
     locker_dao.create_with(number=1205, owner=111, location='WEST', floor=2)
     locker_dao.create_with(number=1206, owner=105, location='WEST', floor=2)
-    return dao
+    return student_dao
+
+
+@pytest.fixture(name='multi_course_dao')
+def test_find__having_number_of_relations(student_dao: DAO, daos: TestDAOFactory):
+    book_dao = daos[Book]
+    book_dao.create_with(name='Biology 101', subject='Science', owner=100)
+    book_dao.create_with(name='Physics Fundamentals', subject='Science', owner=100)
+    book_dao.create_with(name='Art of the World', subject='Art', owner=101)
+    book_dao.create_with(name='Modern Art', subject='Art', owner=101)
+    book_dao.create_with(name='Chemistry 101', subject='Science', owner=101)
+    book_dao.create_with(name='Statistics Basics', subject='Math', owner=101)
+    book_dao.create_with(name='Pre-Calculus', subject='Math', owner=102)
+    book_dao.create_with(name='Calculus', subject='Math', owner=103)
+    book_dao.create_with(name='Advanced Algebra', subject='Math', owner=103)
+    return student_dao
 
 
 def split(to_split: list, target_size: int) -> tuple[list, ...]:

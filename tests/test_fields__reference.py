@@ -42,7 +42,7 @@ class ProtectedReferenceToModel(DAOModel, table=True):
 
 class CustomReferenceModel(DAOModel, table=True):
     id: Identifier[int]
-    other_id: Optional[OtherModel] = Field(foreign_key='auto', ondelete='CASCADE')
+    other_id: Optional[OtherModel] = Field(foreign_key='other_model.id', ondelete='CASCADE')
 
 
 class CustomReferenceToModel(DAOModel, table=True):

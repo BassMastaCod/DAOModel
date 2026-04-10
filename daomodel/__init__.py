@@ -296,7 +296,7 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
             if type(column) is tuple:
                 tables = column[:-1]
                 column = column[-1]
-            if reference_of(column) in [prop, f'{cls.normalized_name()}.{prop}']:
+            if reference_of(column) in [prop, f'{cls.normalized_name()}.{prop}', f'{cls.normalized_name()}_{prop}']:
                 foreign_tables.extend([t.__table__ for t in tables])
                 if column.table is not cls.__table__:
                     foreign_tables.append(column.table)

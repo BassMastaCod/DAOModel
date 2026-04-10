@@ -316,6 +316,46 @@ single_book_authors = author_dao.find(_unique=Book.author_id)
 authors_on_shelf = author_dao.find(_duplicate='book.available')
 ```
 
+### Filtering by Relationship Count
+
+The `_having` parameter allows you to filter records based on the count of their related entities. This is particularly useful when you need to find records that have a specific number of relationships.
+
+The `_having` parameter accepts a dictionary where:
+- **Keys** are the related model properties or column names
+- **Values** are either exact counts (integers) or `ConditionOperator` instances for more complex comparisons
+
+```python
+from daomodel.search_util import GreaterThan, LessThan, GreaterThanEqualTo, LessThanEqualTo
+
+# Find authors who have written exactly 3 books
+prolific_authors = author_dao.find(_having={Book.author_id: 3})
+
+# Find authors who have written more than 5 books
+very_prolific = author_dao.find(_having={Book.author_id: GreaterThan(5)})
+
+# Find authors who have written at least 2 books
+established_authors = author_dao.find(_having={Book.author_id: GreaterThanEqualTo(2)})
+
+# Find authors who have written fewer than 2 books
+new_authors = author_dao.find(_having={Book.author_id: LessThan(2)})
+```
+
+You can also combine `_having` with other search parameters:
+
+```python
+# Find active borrowers who have borrowed at least 10 books
+active_frequent_borrowers = borrower_dao.find(
+    active=True,
+    _having={Book.borrower_id: GreaterThanEqualTo(10)}
+)
+
+# Find Canadian authors who have written exactly 1 book
+single_book_canadians = author_dao.find(
+    nationality='Canadian',
+    _having={Book.author_id: 1}
+)
+```
+
 That mostly covers the `find` functionality of a DAO, but there is still some customization that can be done.
 
 ## Excluding Fields from Search

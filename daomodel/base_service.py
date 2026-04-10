@@ -91,8 +91,8 @@ class SingleModelService(BaseService):
 
         ChangeSet(destination, source, **conflict_resolution).resolve_preferences().apply()
         self._redirect_fks(source, destination)
-        model_dao.remove(source)
         model_dao.commit(destination)
+        model_dao.remove(source)
 
     def _redirect_fks(self, source: DAOModel, destination: DAOModel) -> None:
         for model in all_models(self.daos.db.get_bind()):

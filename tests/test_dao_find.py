@@ -318,6 +318,22 @@ def test_find__duplicate_and_unique(person_dao: DAO):
     assert person_dao.find(_duplicate=Person.name, _unique=Person.age) == SearchResults(expected)
 
 
+@pytest.mark.parametrize('op,expected_ids',
+    [
+        (GreaterThanEqualTo(3), {101}),
+        (GreaterThanEqualTo(2), {100, 101, 103}),
+        (2, {100, 103}),
+        (GreaterThan(2), {101}),
+        (GreaterThanEqualTo(5), set()),
+        (LessThan(2), {102}),
+        (LessThanEqualTo(2), {100, 102, 103}),
+    ]
+)
+def test_having_param(multi_course_dao, op, expected_ids):
+    results = multi_course_dao.find(_having={Book.owner: op})
+    assert {s.id for s in results} == expected_ids
+
+
 def test_search_results__iter(student_dao: DAO):
     student_id = 100
     for student in student_dao.find():
