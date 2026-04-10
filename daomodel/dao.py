@@ -221,6 +221,7 @@ class DAO(TransactionMixin):
              _order: Optional[str|Column|UnaryExpression|Iterable[str|Column|UnaryExpression]] = None,
              _duplicate: Optional[str] = None,
              _unique: Optional[str] = None,
+             _having: Optional[dict[str, tuple[str, Any]]] = None,
              **filters: Any) -> SearchResults[Model]:
         """Searches all the DAOModel entries to return results.
 
@@ -229,6 +230,7 @@ class DAO(TransactionMixin):
         :param _order: How to sort the results
         :param _duplicate: Filter the results to only duplicate values of a column
         :param _unique: Filter the results to only unique values of a column
+        :param _having: Filter the results to only values having a specified number of relationships
         :param filters: Criteria to filter down the number of results
         :return: The SearchResults for the provided filters
         """
@@ -242,6 +244,9 @@ class DAO(TransactionMixin):
             query = self._count(query, _duplicate, foreign_tables, 'dupe').where(text(f'dupe.count > 1'))
         if _unique:
             query = self._count(query, _unique, foreign_tables, 'uniq').where(text(f'uniq.count <= 1'))
+        if _having:
+            for prop, op in _having.items():
+                query = self._having_count(query, prop, op, foreign_tables)
 
         # TODO: Add support for checking for specific values within foreign tables
         for key, value in filters.items():
@@ -266,7 +271,7 @@ class DAO(TransactionMixin):
 
     def _order(self,
                value: str|Column|UnaryExpression|Iterable[str|Column|UnaryExpression],
-               foreign_tables: list[DAOModel]) -> list[Column|UnaryExpression]:
+               foreign_tables: list[type[DAOModel]]) -> list[Column|UnaryExpression]:
         order = []
         if type(value) is str:
             value = value.split(', ')
@@ -283,13 +288,20 @@ class DAO(TransactionMixin):
                 order.append(direction(self.model_class.find_searchable_column(column, foreign_tables)))
         return order
 
-    def _count(self, query: Query, prop: str, foreign_tables: list[DAOModel], alias: str) -> Query:
+    def _count(self, query: Query, prop: str, foreign_tables: list[type[DAOModel]], alias: str) -> Query:
         column = self.model_class.find_searchable_column(prop, foreign_tables)
         subquery = (self.db.query(column, func.count(column).label('count'))
                     .group_by(column)
                     .subquery()
                     .alias(alias))
         return query.join(subquery, column == text(f'{alias}.{column.name}'))
+
+    def _having_count(self, query: Query, prop: str, op: ConditionOperator|Any, foreign_tables: list[type[DAOModel]]):
+        column = self.model_class.find_searchable_column(prop, foreign_tables)
+        count = func.count(column)
+        expr = op.get_expression(count) if isinstance(op, ConditionOperator) else count == op
+        pk = self.model_class.get_pk().columns
+        return query.group_by(*pk).having(expr)
 
     def _filter(self, query: Query, key: str|Column, value: Any, foreign_tables: list[type[DAOModel]]) -> Query:
         column = self.model_class.find_searchable_column(key, foreign_tables)
