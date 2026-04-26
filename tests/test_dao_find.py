@@ -1,9 +1,10 @@
+from sqlalchemy.sql.functions import count
 from sqlmodel import desc
 
 from daomodel import UnsearchableError
 from daomodel.dao import SearchResults
 from daomodel.search_util import LessThan, GreaterThan, GreaterThanEqualTo, LessThanEqualTo, Between, \
-    AnyOf, NoneOf, IsSet, is_set, NotSet, not_set
+    AnyOf, NoneOf, IsSet, is_set, NotSet, not_set, ConditionOperator
 from daomodel.util import MissingInput
 from tests.school_models import *
 
@@ -260,6 +261,11 @@ def test_find__order_by_foreign_property(school_dao: DAO):
     assert school_dao.find(_order=Book.name) == SearchResults(ordered)
 
 
+def test_find__order_by_foreign_property__text_only(school_dao: DAO):
+    ordered = [Student(id=101), Student(id=100), Student(id=103), Student(id=102)]
+    assert school_dao.find(_order='book.name') == SearchResults(ordered)
+
+
 def test_find__order_by_nested_foreign_property(school_dao: DAO):
     ordered = [
         Student(id=107),
@@ -276,6 +282,46 @@ def test_find__order_by_nested_foreign_property(school_dao: DAO):
         Student(id=105)
     ]
     assert school_dao.find(_order=Hall.color) == SearchResults(ordered)
+
+
+def test_find__order_by_related_item_count(multi_course_dao: DAO):
+    ordered = [
+        Student(id=102),
+        Student(id=100),
+        Student(id=103),
+        Student(id=101)
+    ]
+    assert multi_course_dao.find(_order=count(Book.name)) == SearchResults(ordered)
+
+
+def test_find__order_by_related_item_count__text_only(multi_course_dao: DAO):
+    ordered = [
+        Student(id=102),
+        Student(id=100),
+        Student(id=103),
+        Student(id=101)
+    ]
+    assert multi_course_dao.find(_order='#book.name') == SearchResults(ordered)
+
+
+def test_find__order_by_related_item_count__reverse_order(multi_course_dao: DAO):
+    ordered = [
+        Student(id=101),
+        Student(id=103),
+        Student(id=100),
+        Student(id=102)
+    ]
+    assert multi_course_dao.find(_order=desc(count(Book.name))) == SearchResults(ordered)
+
+
+def test_find__order_by_related_item_count__reverse_order__text_only(multi_course_dao: DAO):
+    ordered = [
+        Student(id=101),
+        Student(id=103),
+        Student(id=100),
+        Student(id=102)
+    ]
+    assert multi_course_dao.find(_order='!#book.name') == SearchResults(ordered)
 
 
 def test_find__order_by_unsearchable(daos: TestDAOFactory):
@@ -329,7 +375,7 @@ def test_find__duplicate_and_unique(person_dao: DAO):
         (LessThanEqualTo(2), {100, 102, 103}),
     ]
 )
-def test_having_param(multi_course_dao, op, expected_ids):
+def test_having_param(multi_course_dao: DAO, op: ConditionOperator|int, expected_ids: set):
     results = multi_course_dao.find(_having={Book.owner: op})
     assert {s.id for s in results} == expected_ids
 

@@ -1,5 +1,7 @@
+from datetime import datetime, date
 from typing import Optional, TypeVar, Generic
 
+from pydantic.v1.datetime_parse import parse_datetime
 from pydantic_core import core_schema
 from sqlalchemy import ColumnElement
 from sqlmodel import or_, and_, extract
@@ -75,9 +77,14 @@ class ConditionOperator(Generic[T]):
             op, value = value.split(':', 1)
             if '_' in op:
                 part, op = op.split('_', 1)
+                target_type = int
 
         def cast(v):
-            return int(v) if part else target_type(v)
+            if target_type is datetime:
+                return parse_datetime(v)
+            elif target_type is date:
+                return parse_datetime(v).date()
+            return target_type(v)
 
         match op:  # TODO: support contains, starts, and ends
             case 'lt':

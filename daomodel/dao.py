@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from typing import Optional, Any, TypeVar, Iterable, Iterator
 
-from sqlalchemy import func, Column, text, UnaryExpression, desc, asc
+from sqlalchemy import Column, text, UnaryExpression, desc, asc, Function, PrimaryKeyConstraint
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
+from sqlalchemy.sql.functions import count
 
 from daomodel.list_util import dedupe, ensure_iter
 from daomodel.search_util import ConditionOperator
@@ -256,6 +257,28 @@ class DAO(TransactionMixin):
         for table in dedupe(foreign_tables):
             query = query.join(table)
 
+        # detect if any ORDER BY uses count(...)
+        needs_group_by = False
+        for o in order:
+            if isinstance(o, Function) and o.name.lower() == "count":
+                needs_group_by = True
+                break
+            if isinstance(o, UnaryExpression):
+                elem = o.element
+                if isinstance(elem, Function) and elem.name.lower() == "count":
+                    needs_group_by = True
+                    break
+
+        if needs_group_by:
+            pk = self.model_class.get_pk()
+            # unwrap PrimaryKeyConstraint → columns
+            if isinstance(pk, PrimaryKeyConstraint):
+                query = query.group_by(*pk.columns)
+            elif isinstance(pk, (list, tuple)):
+                query = query.group_by(*pk)
+            else:
+                query = query.group_by(pk)
+
         query = query.order_by(*order)
         query = self.filter_find(query, **filters)
 
@@ -272,34 +295,49 @@ class DAO(TransactionMixin):
     def _order(self,
                value: str|Column|UnaryExpression|Iterable[str|Column|UnaryExpression],
                foreign_tables: list[type[DAOModel]]) -> list[Column|UnaryExpression]:
-        order = []
-        if type(value) is str:
+        if isinstance(value, str):
             value = value.split(', ')
+
+        order = []
         for column in ensure_iter(value):
+            direction = asc
+            func = lambda x: x
+
             if isinstance(column, UnaryExpression):
-                if self.model_class.find_searchable_column(column.element, foreign_tables) is not None:
-                    order.append(column)
-            else:
-                if type(column) is str and column.startswith('!'):
-                    direction = desc
-                    column = column[1:]
-                else:
-                    direction = asc
-                order.append(direction(self.model_class.find_searchable_column(column, foreign_tables)))
+                if column.modifier:
+                    direction = column.modifier
+                column = column.element
+            if isinstance(column, Function) and column.name.lower() == 'count':
+                column = list(column.clauses)[0]
+                func = count
+
+            if isinstance(column, str) and column.startswith('!'):
+                column = column[1:]
+                direction = desc
+            if isinstance(column, str) and column.startswith('#'):
+                column = column[1:]
+                func = count
+
+            searchable_column = self.model_class.find_searchable_column(column, foreign_tables)
+            order.append(direction(func(searchable_column)))
         return order
 
     def _count(self, query: Query, prop: str, foreign_tables: list[type[DAOModel]], alias: str) -> Query:
         column = self.model_class.find_searchable_column(prop, foreign_tables)
-        subquery = (self.db.query(column, func.count(column).label('count'))
+        subquery = (self.db.query(column, count(column).label('count'))
                     .group_by(column)
                     .subquery()
                     .alias(alias))
         return query.join(subquery, column == text(f'{alias}.{column.name}'))
 
-    def _having_count(self, query: Query, prop: str, op: ConditionOperator|Any, foreign_tables: list[type[DAOModel]]):
+    def _having_count(self, query: Query, prop: str, op: ConditionOperator|int, foreign_tables: list[type[DAOModel]]):
         column = self.model_class.find_searchable_column(prop, foreign_tables)
-        count = func.count(column)
-        expr = op.get_expression(count) if isinstance(op, ConditionOperator) else count == op
+        if isinstance(op, ConditionOperator):
+            expr = op.get_expression(count(column))
+        elif type(op) is int:
+            expr = count(column) == op
+        else:
+            raise TypeError(f'Invalid type for op: {type(op)}')
         pk = self.model_class.get_pk().columns
         return query.group_by(*pk).having(expr)
 
