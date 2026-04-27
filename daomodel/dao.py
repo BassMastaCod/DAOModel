@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Any, TypeVar, Iterable, Iterator
+from typing import Optional, Any, TypeVar, Iterable
 
 from sqlalchemy import Column, text, UnaryExpression, desc, asc, Function, PrimaryKeyConstraint
 from sqlalchemy.orm import Session
@@ -32,23 +32,19 @@ class SearchResults(list[Model]):
     """The paginated results of a filtered search."""
     def __init__(self, results: list[Model], total: int = None, page: Optional[int] = None, per_page: Optional[int] = None):
         super().__init__(results)
-        self.results = results
-        self.total = len(results) if total is None else total
+        self.total = total or len(results)
         self.page = page
         self.per_page = per_page
 
-    def __iter__(self) -> Iterator[Model]:
-        return iter(self.results)
-
     def __eq__(self, other: 'SearchResults') -> bool:
-        return (self.results == other.results
+        return (self == other
                 and self.total == other.total
                 and self.page == other.page
                 and self.per_page == other.per_page
                 ) if type(self) == type(other) else False
 
     def __hash__(self) -> int:
-        return hash((tuple(self.results), self.total, self.page, self.per_page))
+        return hash((tuple(self), self.total, self.page, self.per_page))
 
     @property
     def page_start(self):
@@ -65,7 +61,7 @@ class SearchResults(list[Model]):
         return -(-self.total // self.per_page)
 
     def __str__(self) -> str:
-        string = str(self.results)
+        string = str([self])
         if self.page:
             string = f'Page {self.page} of {self.total_pages}; {self.page_start}-{self.page_end} of {self.total} results {string}'
         return string
