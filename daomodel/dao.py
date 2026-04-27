@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional, Any, TypeVar, Iterable
 
-from sqlalchemy import Column, text, UnaryExpression, desc, asc, Function, PrimaryKeyConstraint
+from sqlalchemy import Column, text, UnaryExpression, desc, asc, Function, PrimaryKeyConstraint, Label
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 from sqlalchemy.sql.functions import count
@@ -235,8 +235,9 @@ class DAO(TransactionMixin):
         foreign_tables = []
         if _order is None:
             order = self.model_class.get_pk()
+            select = set()
         else:
-            order = self._order(_order, foreign_tables)
+            order, select = self._order(_order, foreign_tables)
         if _duplicate:
             query = self._count(query, _duplicate, foreign_tables, 'dupe').where(text('dupe.count > 1'))
         if _unique:
@@ -260,15 +261,16 @@ class DAO(TransactionMixin):
             if isinstance(o, Function) and o.name.lower() == 'count':
                 needs_group_by = True
                 break
-            if isinstance(o, UnaryExpression):
-                elem = o.element
-                if isinstance(elem, Function) and elem.name.lower() == "count":
+        if not needs_group_by:
+            for o in select:
+                if isinstance(o, UnaryExpression) or isinstance(o, Label):
+                    o = o.element
+                if isinstance(o, Function) and o.name.lower() == 'count':
                     needs_group_by = True
                     break
 
         if needs_group_by:
             pk = self.model_class.get_pk()
-            # unwrap PrimaryKeyConstraint → columns
             if isinstance(pk, PrimaryKeyConstraint):
                 query = query.group_by(*pk.columns)
             elif isinstance(pk, (list, tuple)):
@@ -276,6 +278,7 @@ class DAO(TransactionMixin):
             else:
                 query = query.group_by(pk)
 
+        query = query.add_columns(*select)
         query = query.order_by(*order)
         query = self.filter_find(query, **filters)
 
@@ -291,7 +294,7 @@ class DAO(TransactionMixin):
 
     def _order(self,
                value: str|Column|UnaryExpression|Iterable[str|Column|UnaryExpression],
-               foreign_tables: list[type[DAOModel]]) -> list[Column|UnaryExpression]:
+               foreign_tables: list[type[DAOModel]]) -> tuple[list[Column|UnaryExpression], set[UnaryExpression]]:
         if isinstance(value, str):
             value = value.split(', ')
 
@@ -299,7 +302,7 @@ class DAO(TransactionMixin):
         select = set()
         for column in ensure_iter(value):
             direction = asc
-            func = lambda x: x
+            order_by_count = None
 
             if isinstance(column, UnaryExpression):
                 if column.modifier:
@@ -307,18 +310,24 @@ class DAO(TransactionMixin):
                 column = column.element
             if isinstance(column, Function) and column.name.lower() == 'count':
                 column = list(column.clauses)[0]
-                func = count
+                order_by_count = True
 
             if isinstance(column, str) and column.startswith('!'):
                 column = column[1:]
                 direction = desc
             if isinstance(column, str) and column.startswith('#'):
                 column = column[1:]
-                func = count
+                order_by_count = True
 
             searchable_column = self.model_class.find_searchable_column(column, foreign_tables)
-            order.append(direction(func(searchable_column)))
-        return order
+            if order_by_count:
+                is_foreign = searchable_column.table in foreign_tables
+                count_label = f'{searchable_column.table.name if is_foreign else searchable_column.name}_count'
+                select.add(count(searchable_column).label(count_label))
+                searchable_column = count_label
+
+            order.append(direction(searchable_column))
+        return order, select
 
     def _count(self, query: Query, prop: str, foreign_tables: list[type[DAOModel]], alias: str) -> Query:
         column = self.model_class.find_searchable_column(prop, foreign_tables)
