@@ -17,6 +17,7 @@ ColumnBreadcrumbs = tuple[type['DAOModel'], ..., Column]
 
 class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
     """An SQLModel specifically designed to support a DAO."""
+    _query_data: dict[str, Any] = {}
 
     @declared_attr
     def __tablename__(self) -> str:
@@ -222,6 +223,9 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
         """
         return self.get_values_of(self.get_property_names(*filters))
 
+    def get_query_data(self, label: str) -> Optional[Any]:
+        return self._query_data[label] if isinstance(self._query_data, dict) else None
+
     @classmethod
     def get_default(cls, column: Column|str):
         """Returns the default value for a given column
@@ -296,7 +300,7 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
             if type(column) is tuple:
                 tables = column[:-1]
                 column = column[-1]
-            if reference_of(column) in [prop, f'{cls.normalized_name()}.{prop}', f'{cls.normalized_name()}_{prop}']:
+            if reference_of(column) in [prop, f'{cls.normalized_name()}.{prop}', f'{cls.normalized_name()}_{prop}', prop.replace('_', '.', 1)]:
                 foreign_tables.extend([t.__table__ for t in tables])
                 if column.table is not cls.__table__:
                     foreign_tables.append(column.table)
