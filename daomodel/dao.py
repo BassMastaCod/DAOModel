@@ -253,10 +253,11 @@ class DAO(TransactionMixin):
         for table in dedupe(foreign_tables):
             query = query.join(table)
 
-        # detect if any ORDER BY uses count(...)
         needs_group_by = False
         for o in order:
-            if isinstance(o, Function) and o.name.lower() == "count":
+            if isinstance(o, UnaryExpression) or isinstance(o, Label):
+                o = o.element
+            if isinstance(o, Function) and o.name.lower() == 'count':
                 needs_group_by = True
                 break
             if isinstance(o, UnaryExpression):
@@ -295,6 +296,7 @@ class DAO(TransactionMixin):
             value = value.split(', ')
 
         order = []
+        select = set()
         for column in ensure_iter(value):
             direction = asc
             func = lambda x: x
