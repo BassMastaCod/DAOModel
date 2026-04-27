@@ -238,9 +238,9 @@ class DAO(TransactionMixin):
         else:
             order = self._order(_order, foreign_tables)
         if _duplicate:
-            query = self._count(query, _duplicate, foreign_tables, 'dupe').where(text(f'dupe.count > 1'))
+            query = self._count(query, _duplicate, foreign_tables, 'dupe').where(text('dupe.count > 1'))
         if _unique:
-            query = self._count(query, _unique, foreign_tables, 'uniq').where(text(f'uniq.count <= 1'))
+            query = self._count(query, _unique, foreign_tables, 'uniq').where(text('uniq.count <= 1'))
         if _having:
             for prop, op in _having.items():
                 query = self._having_count(query, prop, op, foreign_tables)
