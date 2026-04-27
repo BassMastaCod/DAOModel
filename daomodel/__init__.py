@@ -17,6 +17,7 @@ ColumnBreadcrumbs = tuple[type['DAOModel'], ..., Column]
 
 class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
     """An SQLModel specifically designed to support a DAO."""
+    _query_data: dict[str, Any] = {}
 
     @declared_attr
     def __tablename__(self) -> str:
@@ -221,6 +222,9 @@ class DAOModel(SQLModel, metaclass=DAOModelMetaclass):
         :return: A dict of property names and their values
         """
         return self.get_values_of(self.get_property_names(*filters))
+
+    def get_query_data(self, label: str) -> Optional[Any]:
+        return self._query_data[label] if isinstance(self._query_data, dict) else None
 
     @classmethod
     def get_default(cls, column: Column|str):
