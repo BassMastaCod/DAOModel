@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional, Any, TypeVar, Iterable
 
-from sqlalchemy import Column, text, UnaryExpression, desc, asc, Function, PrimaryKeyConstraint, Label
+from sqlalchemy import Column, text, UnaryExpression, desc, asc, Function, PrimaryKeyConstraint, Label, Row
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
 from sqlalchemy.sql.functions import count
@@ -30,8 +30,20 @@ class PrimaryKeyConflict(Conflict):
 Model = TypeVar('Model', bound=DAOModel)
 class SearchResults(list[Model]):
     """The paginated results of a filtered search."""
-    def __init__(self, results: list[Model], total: int = None, page: Optional[int] = None, per_page: Optional[int] = None):
-        super().__init__(results)
+    def __init__(self, results: list[Model|Row], total: int = None, page: Optional[int] = None, per_page: Optional[int] = None):
+        models = [r for r in results if isinstance(r, DAOModel)]
+        if not models:
+            for result in results:
+                model = None
+                data = {}
+                for label, value in zip(result._fields, result._data):
+                    if isinstance(value, int) or isinstance(value, str) or isinstance(value, float) or isinstance(value, bool):
+                        data[label] = value
+                    elif isinstance(value, DAOModel):
+                        model = value
+                model._query_data = data
+                models.append(model)
+        super().__init__(models)
         self.total = total or len(results)
         self.page = page
         self.per_page = per_page
