@@ -5,11 +5,11 @@ from typing import Any, Callable, TypeVar, Generic
 import pytest
 from _pytest.outcomes import fail
 from sqlalchemy.orm import sessionmaker
+from sqlmodel import SQLModel
 
 from daomodel import DAOModel
 from daomodel.dao import NotFound, DAO
-from daomodel.db import DAOFactory, create_engine, init_db
-
+from daomodel.db import DAOFactory, _create_engine
 
 T = TypeVar('T')
 
@@ -73,8 +73,8 @@ class TestDAOFactory(DAOFactory):
     :param debug: If True, uses a test.db file instead of an in-memory SQLite DB. (DB file must be deleted to rerun.
     """
     def __init__(self, debug: bool = False):
-        engine = create_engine() if not debug else create_engine('test.db')
-        init_db(engine)
+        engine = _create_engine() if not debug else _create_engine('test.db')
+        SQLModel.metadata.create_all(engine)
         super().__init__(sessionmaker(bind=engine))
 
     def __enter__(self) -> 'TestDAOFactory':
