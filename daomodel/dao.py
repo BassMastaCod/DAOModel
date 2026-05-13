@@ -49,7 +49,7 @@ class SearchResults(list[Model]):
         self.per_page = per_page
 
     def __eq__(self, other: 'SearchResults') -> bool:
-        return (self == other
+        return (list.__eq__(self, other)
                 and self.total == other.total
                 and self.page == other.page
                 and self.per_page == other.per_page
