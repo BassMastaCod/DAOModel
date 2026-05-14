@@ -49,7 +49,7 @@ class SearchResults(list[Model]):
         self.per_page = per_page
 
     def __eq__(self, other: 'SearchResults') -> bool:
-        return (self == other
+        return (list.__eq__(self, other)
                 and self.total == other.total
                 and self.page == other.page
                 and self.per_page == other.per_page
@@ -335,8 +335,9 @@ class DAO(TransactionMixin):
             if order_by_count:
                 is_foreign = searchable_column.table in foreign_tables
                 count_label = f'{searchable_column.table.name if is_foreign else searchable_column.name}_count'
-                select.add(count(searchable_column).label(count_label))
-                searchable_column = count_label
+                count_expr = count(searchable_column).label(count_label)
+                select.add(count_expr)
+                searchable_column = count_expr
 
             order.append(direction(searchable_column))
         return order, select

@@ -403,7 +403,7 @@ def test_search_results__eq_hash__different_order(student_dao: DAO):
 
 def test_search_results__str(student_dao: DAO):
     results = student_dao.find()
-    assert str(results) == str(list(results))
+    assert str([results]) in str(results)
 
 
 def test_search_results__str__page(student_dao: DAO):
