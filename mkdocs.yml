@@ -8,6 +8,7 @@ nav:
   - DAO: docs/usage/dao.md
   - Model: docs/usage/model.md
   - Service: docs/usage/service.md
+  - DataLayer: docs/usage/data_layer.md
 - Advanced:
   - Search: docs/advanced/search.md
   - Model Diff: docs/advanced/model_diff.md

@@ -376,8 +376,24 @@ def test_transaction__multiple_daos__error(daos: TestDAOFactory):
     daos.assert_not_in_db(Book, 'Physics')
 
 
-def test_transaction__multiple_sessions(daos: TestDAOFactory):
-    pytest.skip("This test does not work with in-memory database")
+def test_transaction__multiple_sessions(temp_data_layer):
+    with temp_data_layer.dao_context() as session_one:
+        student_dao = session_one[Student]
+        book_dao = session_one[Book]
+
+        student_dao.start_transaction()
+        student_dao.create_with(id=100, name='Alice')
+        book_dao.create_with(name='Math Book', subject='Math', owner=100)
+
+        with temp_data_layer.dao_context() as session_two:
+            assert not session_two[Student].exists(Student(id=100))
+            assert not session_two[Book].exists(Book(name='Math Book'))
+
+        student_dao.commit()
+
+    with temp_data_layer.dao_context() as session_three:
+        assert session_three[Student].exists(Student(id=100))
+        assert session_three[Book].exists(Book(name='Math Book'))
 
 
 def test_check_pk_arguments__single_column(daos: TestDAOFactory):

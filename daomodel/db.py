@@ -1,8 +1,7 @@
 from contextlib import contextmanager
 from typing import Optional
 
-import sqlalchemy
-from sqlalchemy import Engine, event
+from sqlalchemy import Engine, event, create_engine, StaticPool
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import SQLModel
 
@@ -25,17 +24,10 @@ def _create_engine(path: Optional[str] = None) -> Engine:
         cursor.execute('pragma foreign_keys=on')
         cursor.close()
 
-    if path is None:
-        path = ''
-        pool = sqlalchemy.StaticPool
+    if path:
+        return create_engine(f'sqlite:///{path}')
     else:
-        path = '/' + path
-        pool = None
-    return sqlalchemy.create_engine(
-        'sqlite://' + path,
-        connect_args={'check_same_thread': False},
-        poolclass=pool
-    )
+        return create_engine('sqlite://', poolclass=StaticPool)
 
 
 class DAOFactory(TransactionMixin):
