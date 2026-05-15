@@ -1,7 +1,10 @@
+import os
+from tempfile import NamedTemporaryFile
 from typing import Any, Generator
 
 import pytest
 
+from daomodel.db import DataLayer
 from daomodel.testing import TestDAOFactory
 
 
@@ -16,3 +19,18 @@ def daos_fixture() -> Generator[TestDAOFactory, Any, None]:
     """
     with TestDAOFactory() as daos:
         yield daos
+
+
+@pytest.fixture
+def temp_data_layer():
+    tmp = NamedTemporaryFile(delete=False)
+    tmp.close()
+
+    dl = DataLayer(sqlite_path=tmp.name)
+    dl.init_db()
+
+    try:
+        yield dl
+    finally:
+        dl.engine.dispose()
+        os.unlink(tmp.name)

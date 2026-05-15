@@ -134,8 +134,7 @@ or available to a frontend such as a website/mobile app.
 
 Otherwise, feel free to explore the advanced features of DAOModel:
 
-- The [DAOFactory](../advanced/dao_factory.md) class provides a convenient way to create and manage all of your Data Access Objects.
+- The [DataLayer](data_layer.md) provides a simple way to set up your database and manage all of your Data Access Objects.
 - The [Model Comparison and Diffing](../advanced/model_diff.md) feature allows you to compare models, track changes, and resolve conflicts.
 - The [Advanced Search](../advanced/search.md) features provide powerful search functionality beyond simple equality checks.
 - The [Testing Utilities](../advanced/testing.md) makes testing your DAOModel-based applications a breeze.
-

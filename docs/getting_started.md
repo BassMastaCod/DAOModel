@@ -52,10 +52,8 @@ While good to start, if/when this doesn't meet your needs, please refer to
 Once you have your engine, you'll need to initialize each of the tables representing your models.
 
 ```python
-init_db(engine)
+SQLModel.metadata.create_all(engine)
 ```
-
-This is simply a shortcut method of `SQLModel.metadata.create_all(engine)`.
 
 > **Note:** Be sure your Models are all imported (if defined outside of this file)
 > before executing this code or else those tables will not be included.
@@ -91,16 +89,16 @@ So there you have it, You now have a usable DAO layer for your model!
 Let's look at the full code:
 
 ```python
-from sqlmodel import Field, Session
+from sqlmodel import Field, Session, SQLModel
 from daomodel import DAOModel, DAO
-from daomodel.db import create_engine, init_db
+from daomodel.db import create_engine
 
 class Customer(DAOModel, table=True):
     id: int = Field(primary_key=True)
     name: str
 
 engine = create_engine('database.db')
-init_db(engine)
+SQLModel.metadata.create_all(engine)
 db = Session(engine)
 dao = DAO(Customer, db)
 ```

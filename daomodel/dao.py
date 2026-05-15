@@ -88,7 +88,7 @@ class SearchResults(list[Model]):
         :raises ValueError: If there are no results or more than one result
         """
         if len(self) != 1:
-            raise ValueError('Expected exactly one result')
+            raise ValueError(f'Expected exactly one result, got {len(self)}')
         return self.first()
 
 
