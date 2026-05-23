@@ -92,6 +92,54 @@ class SearchResults(list[Model]):
         return self.first()
 
 
+class SearchStream:
+    """A streaming iterator for search results that doesn't load everything into memory."""
+    def __init__(self, query: Query):
+        self.query = query
+
+    def __iter__(self):
+        query_iterator = iter(self.query)
+
+        for result in query_iterator:
+            if isinstance(result, DAOModel):
+                yield result
+            else:
+                model = None
+                data = {}
+                for label, value in zip(result._fields, result._data):
+                    if isinstance(value, int) or isinstance(value, str) or isinstance(value, float) or isinstance(value, bool):
+                        data[label] = value
+                    elif isinstance(value, DAOModel):
+                        model = value
+                if model is not None:
+                    model._query_data = data
+                    yield model
+
+    def first(self) -> Optional[Model]:
+        """Returns the first result or None if there are no results."""
+        try:
+            return next(iter(self))
+        except StopIteration:
+            return None
+
+    def only(self) -> Optional[Model]:
+        """Returns the single result that was found.
+
+        :raises ValueError: If there are no results or more than one result
+        """
+        iterator = iter(self)
+        try:
+            first_result = next(iterator)
+        except StopIteration:
+            raise ValueError('Expected exactly one result, got 0')
+
+        try:
+            next(iterator)
+            raise ValueError('Expected exactly one result, got more than 1')
+        except StopIteration:
+            return first_result
+
+
 class DAO(TransactionMixin):
     """A DAO implementation for SQLAlchemy to make your code less SQLly."""
     def __init__(self, model_class: type[Model], db: Session):
@@ -243,6 +291,53 @@ class DAO(TransactionMixin):
         :param filters: Criteria to filter down the number of results
         :return: The SearchResults for the provided filters
         """
+        query = self._build_query(_order, _duplicate, _unique, _having, **filters)
+
+        total = query.count()
+        if _per_page:
+            if not _page or _page < 1:
+                _page = 1
+            query = query.offset((_page - 1) * _per_page).limit(_per_page)
+        elif _page:
+            raise MissingInput('Must specify how many results per page')
+
+        return SearchResults(query.all(), total, _page, _per_page)
+
+    def stream(self,
+               _order: Optional[str|Column|UnaryExpression|Iterable[str|Column|UnaryExpression]] = None,
+               _duplicate: Optional[str] = None,
+               _unique: Optional[str] = None,
+               _having: Optional[dict[str, tuple[str, Any]]] = None,
+               **filters: Any) -> SearchStream:
+        """Streams all the DAOModel entries that match the criteria without loading everything into memory.
+
+        Note: Streaming results cannot provide pagination or total count information.
+
+        :param _order: How to sort the results
+        :param _duplicate: Filter the results to only duplicate values of a column
+        :param _unique: Filter the results to only unique values of a column
+        :param _having: Filter the results to only values having a specified number of relationships
+        :param filters: Criteria to filter down the number of results
+        :return: A SearchStream for iterating through the results
+        """
+        query = self._build_query(_order, _duplicate, _unique, _having, **filters)
+        return SearchStream(query)
+
+    def _build_query(self,
+                     _order: Optional[str|Column|UnaryExpression|Iterable[str|Column|UnaryExpression]] = None,
+                     _duplicate: Optional[str] = None,
+                     _unique: Optional[str] = None,
+                     _having: Optional[dict[str, tuple[str, Any]]] = None,
+                     **filters: Any) -> Query:
+        """Builds a query with the specified filters and ordering.
+
+        :param _order: How to sort the results
+        :param _duplicate: Filter the results to only duplicate values of a column
+        :param _unique: Filter the results to only unique values of a column
+        :param _having: Filter the results to only values having a specified number of relationships
+        :param filters: Criteria to filter down the number of results
+        :return: The built Query object
+        """
         query = self.query
         foreign_tables = []
         if _order is None:
@@ -293,16 +388,7 @@ class DAO(TransactionMixin):
         query = query.add_columns(*select)
         query = query.order_by(*order)
         query = self.filter_find(query, **filters)
-
-        total = query.count()
-        if _per_page:
-            if not _page or _page < 1:
-                _page = 1
-            query = query.offset((_page - 1) * _per_page).limit(_per_page)
-        elif _page:
-            raise MissingInput('Must specify how many results per page')
-
-        return SearchResults(query.all(), total, _page, _per_page)
+        return query
 
     def _order(self,
                value: str|Column|UnaryExpression|Iterable[str|Column|UnaryExpression],
@@ -330,6 +416,10 @@ class DAO(TransactionMixin):
             if isinstance(column, str) and column.startswith('#'):
                 column = column[1:]
                 order_by_count = True
+
+            if isinstance(column, Function) and column.name.lower() not in ('count',):
+                order.append(direction(column))
+                continue
 
             searchable_column = self.model_class.find_searchable_column(column, foreign_tables)
             if order_by_count:
