@@ -1,4 +1,4 @@
-from sqlalchemy.sql.functions import count
+from sqlalchemy.sql.functions import count, func
 from sqlmodel import desc
 
 from daomodel import UnsearchableError
@@ -218,6 +218,10 @@ def test_find__filter_by_none_of(person_dao: DAO):
 
 def test_find__default_order(person_dao: DAO):
     assert person_dao.find() == SearchResults(pk_ordered)
+
+
+def test_find__random_order(person_dao: DAO):
+    assert person_dao.find(_order=func.random()) != person_dao.find(_order=func.random())
 
 
 def test_find__specified_order(person_dao: DAO):

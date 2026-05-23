@@ -331,6 +331,10 @@ class DAO(TransactionMixin):
                 column = column[1:]
                 order_by_count = True
 
+            if isinstance(column, Function) and column.name.lower() not in ('count',):
+                order.append(direction(column))
+                continue
+
             searchable_column = self.model_class.find_searchable_column(column, foreign_tables)
             if order_by_count:
                 is_foreign = searchable_column.table in foreign_tables
