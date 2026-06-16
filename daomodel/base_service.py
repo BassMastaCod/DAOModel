@@ -1,4 +1,4 @@
-from typing import Any, Callable, List
+from typing import Any, Callable, List, Generic, get_args, TypeVar, Type, Optional
 
 from daomodel import DAOModel, all_models
 from daomodel.db import DAOFactory
@@ -59,17 +59,31 @@ class BaseService:
             raise e
 
 
-class SingleModelService(BaseService):
+T = TypeVar('T', bound=DAOModel)
+
+
+class SingleModelService(BaseService, Generic[T]):
     """A service layer specifically designed around a single DAOModel type.
 
-    This service extends BaseService and provides access to the DAO for the primary model 
-    through the `dao` property, allowing direct access to all DAO methods without creating 
-    pass-through methods. It also provides additional methods that add value beyond simple 
+    This service extends BaseService and provides access to the DAO for the primary model
+    through the `dao` property, allowing direct access to all DAO methods without creating
+    pass-through methods. It also provides additional methods that add value beyond simple
     DAO operations.
     """
-    def __init__(self, daos: DAOFactory, model_class: type[DAOModel]):
+    def __init__(self, daos: DAOFactory, model_class: Optional[type[T]] = None):
         super().__init__(daos)
-        self.dao = daos[model_class]
+        self.model_class = model_class or getattr(self, 'model_class', None)
+        if not self.model_class:
+            raise TypeError(f'{self.__class__.__name__} could not resolve model_class')
+        self.dao = self.daos[self.model_class]
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        for base in getattr(cls, '__orig_bases__', []):
+            if hasattr(base, '__origin__') and issubclass(base.__origin__, Generic):
+                if args := get_args(base):
+                    cls.model_class = args[0]
+                    return
 
     def merge(self, source: DAOModel, *destination_pk_values, **conflict_resolution: Preference|Callable|Any) -> None:
         """Merges the given source model into the specified destination.
