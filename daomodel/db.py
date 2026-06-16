@@ -21,7 +21,8 @@ def _create_engine(path: Optional[str] = None) -> Engine:
     @event.listens_for(Engine, 'connect')
     def enforce_fk_constraints_for_sqlite(connection, _connection_record) -> None:
         cursor = connection.cursor()
-        cursor.execute('pragma foreign_keys=on')
+        cursor.execute('PRAGMA foreign_keys=ON;')
+        cursor.execute('PRAGMA ignore_check_constraints=OFF;')
         cursor.close()
 
     if path:
