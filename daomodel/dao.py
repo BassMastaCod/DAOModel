@@ -387,7 +387,7 @@ class DAO(TransactionMixin):
 
         query = query.add_columns(*select)
         query = query.order_by(*order)
-        query = self.filter_find(query, **filters)
+        query = self._filter_find(query, **filters)
         return query
 
     def _order(self,
@@ -455,7 +455,7 @@ class DAO(TransactionMixin):
         column = self.model_class.find_searchable_column(key, foreign_tables)
         return query.filter(value.get_expression(column) if isinstance(value, ConditionOperator) else column == value)
 
-    def filter_find(self, query: Query, **filters: Any) -> Query:
+    def _filter_find(self, query: Query, **filters: Any) -> Query:
         """Overridable function to customize filtering.
 
         :param query: The session's SQLAlchemy Query
