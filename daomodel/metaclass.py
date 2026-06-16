@@ -1,6 +1,8 @@
 from typing import Dict, Any, Tuple, Type, get_origin, get_args, Union, Optional, List, ForwardRef
 import inspect
 import uuid
+
+from sqlalchemy.sql.schema import ScalarElementColumnDefault, Column
 from sqlmodel.main import SQLModelMetaclass, Field, FieldInfo, RelationshipInfo, Relationship
 from sqlalchemy import ForeignKey, JSON, String
 
@@ -116,7 +118,9 @@ class DAOModelMetaclass(SQLModelMetaclass):
             model.set_annotation(field)
             cls._process_existing_field(field, model)
 
-        return super().__new__(cls, name, bases, class_dict, **kwargs)
+        metaclass = super().__new__(cls, name, bases, class_dict, **kwargs)
+        cls._allow_initializing_fields_with_defaults_to_null(metaclass)
+        return metaclass
 
     @classmethod
     def _process_field_modifiers(cls, field: Annotation, model: ClassDictHelper) -> None:
@@ -205,3 +209,10 @@ class DAOModelMetaclass(SQLModelMetaclass):
             else:
                 field['default'] = existing_field
         model[field] = Field(**field.args)
+
+    @classmethod
+    def _allow_initializing_fields_with_defaults_to_null(cls, metaclass):
+        for name, col in metaclass.__dict__.items():
+            if isinstance(col, Column):
+                if col.nullable and isinstance(col.default, ScalarElementColumnDefault):
+                    col.default = None

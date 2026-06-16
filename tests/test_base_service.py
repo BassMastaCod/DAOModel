@@ -8,6 +8,10 @@ from daomodel.testing import TestDAOFactory
 from tests.school_models import Staff, Student, Book
 
 
+class StaffService(SingleModelService[Staff]):
+    pass
+
+
 def setup_staff(daos: TestDAOFactory) -> tuple[Staff, Staff]:
     dao = daos[Staff]
     ed = dao.create_with(id=1, name='Ed', hire_date=date(2023, 6, 15))
@@ -17,14 +21,14 @@ def setup_staff(daos: TestDAOFactory) -> tuple[Staff, Staff]:
 
 def test_merge(daos: TestDAOFactory):
     ed, edward = setup_staff(daos)
-    SingleModelService(daos, Staff).merge(ed, 2, name=longest, hire_date=min)
+    StaffService(daos).merge(ed, 2, name=longest, hire_date=min)
     daos.assert_in_db(Staff, 2, name='Edward', hire_date=date(2023, 6, 15))
     daos.assert_not_in_db(Staff, 1)
 
 
 def test_merge__source_destination_values(daos: TestDAOFactory):
     ed, edward = setup_staff(daos)
-    service = SingleModelService(daos, Staff)
+    service = StaffService(daos)
     service.merge(edward, 1, name=DESTINATION_VALUE, hire_date=SOURCE_VALUE)
     daos.assert_in_db(Staff, 1, name='Ed', hire_date=date(2024, 8, 20))
     daos.assert_not_in_db(Staff, 2)
@@ -32,7 +36,7 @@ def test_merge__source_destination_values(daos: TestDAOFactory):
 
 def test_merge__mismatched_model_type(daos: TestDAOFactory):
     setup_staff(daos)
-    service = SingleModelService(daos, Staff)
+    service = StaffService(daos)
     student = daos[Student].create_with(id=100, name='Student', gender='m')
 
     with pytest.raises(TypeError):
@@ -50,7 +54,7 @@ def test_merge__redirect(daos: TestDAOFactory):
 
 
 def test_dao(daos: TestDAOFactory):
-    service = SingleModelService(daos, Staff)
+    service = StaffService(daos)
     staff = service.dao.create_with(id=3, name='Alice', hire_date=date(2023, 1, 15))
 
     daos.assert_in_db(Staff, 3, name='Alice', hire_date=date(2023, 1, 15))
@@ -105,7 +109,7 @@ def test_bulk_update__multiple_models(daos: TestDAOFactory):
 
 
 def test_bulk_update__empty(daos: TestDAOFactory):
-    service = SingleModelService(daos, Staff)
+    service = StaffService(daos)
     service.bulk_update([], name='Should not be applied')
 
 
