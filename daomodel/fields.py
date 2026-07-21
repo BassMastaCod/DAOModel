@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from typing import TypeVar, Generic, Any, Optional
 
+from pydantic import computed_field
 from sqlmodel import Field
 from sqlalchemy import Column
 from sqlmodel.main import FieldInfo

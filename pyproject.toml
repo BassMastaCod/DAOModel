@@ -10,7 +10,7 @@ description = "Provides an automatic DAO layer for your models"
 keywords = ["dao", "crud", "model", "database", "db", "search", "query", "sql", "sqlmodel", "sqlalchemy", "pydantic"]
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["sqlalchemy", "sqlmodel", "str_case_util"]
+dependencies = ["sqlalchemy~=2.0.51", "sqlmodel~=0.0.39", "str_case_util~=1.0"]
 license = {text = "MIT"}
 classifiers = [
     "License :: OSI Approved :: MIT License",
