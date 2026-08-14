@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Dict, Any, Tuple, Type, get_origin, get_args, Union, Optional, List, ForwardRef
 import inspect
 import uuid
@@ -203,8 +204,10 @@ class DAOModelMetaclass(SQLModelMetaclass):
         if field in model:
             existing_field = model[field]
             if isinstance(existing_field, FieldInfo):
+                existing_field = deepcopy(existing_field)
                 for key, value in field.args.items():
                     setattr(existing_field, key, value)
+                model[field] = existing_field
                 return
             else:
                 field['default'] = existing_field
