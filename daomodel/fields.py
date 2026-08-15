@@ -132,8 +132,9 @@ class ServerDateTime(TypeDecorator):
             elif isinstance(value, date) and not isinstance(value, datetime):
                 value = datetime.combine(value, datetime.min.time())
 
-            value = value.astimezone(timezone.utc)
-            _to_server_local(value)
+            if value.tzinfo is None:
+                value = value.replace(tzinfo=datetime.now().astimezone().tzinfo)
+            value = _to_server_local(value)
         return value
 
     def process_result_value(self, value: Any, dialect: Any) -> Optional[datetime]:
@@ -141,8 +142,8 @@ class ServerDateTime(TypeDecorator):
             if isinstance(value, str):
                 value = parse_datetime(value)
             if value.tzinfo is None:
-                value = value.replace(tzinfo=timezone.utc)
-            return _to_server_local(value)
+                value = value.replace(tzinfo=datetime.now().astimezone().tzinfo)
+            value = _to_server_local(value)
         return value
 
 

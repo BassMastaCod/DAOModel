@@ -3,6 +3,7 @@ from typing import Optional
 from unittest.mock import Mock
 
 import pytest
+from sqlalchemy import text
 
 from daomodel import DAOModel
 from daomodel.fields import utc_now, Identifier, CurrentTimestampField, AutoUpdatingTimestampField, utc_datetime, \
@@ -150,12 +151,13 @@ def test_datetime_loading(field_type, value, expected_tz):
         (server_datetime, DATE_OTHER),
     ],
 })
-def test_datetime_value_roundtrip(field_type, value, expected):
+def test_datetime_storing(field_type, value, expected):
     model = create_test_model(field_type)
     with TestDAOFactory() as daos:
         daos[model].create_with(id=1, value=value)
-        loaded = daos[model].get(1).value.replace(tzinfo=None)
-        assert loaded == expected.replace(tzinfo=None)
+        with daos.session_factory() as session:
+            raw = session.execute(text(f'SELECT value FROM {model.__tablename__}')).scalar_one()
+            assert datetime.fromisoformat(raw).replace(tzinfo=None) == expected.replace(tzinfo=None)
 
 
 def test_server_datetime_treats_naive_as_server_local():
