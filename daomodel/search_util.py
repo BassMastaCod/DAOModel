@@ -1,4 +1,5 @@
 from datetime import datetime, date
+import inspect
 from typing import Optional, TypeVar, Generic
 
 from pydantic.v1.datetime_parse import parse_datetime
@@ -56,7 +57,7 @@ class ConditionOperator(Generic[T]):
                 core_schema.float_schema() if target_type is float else
                 core_schema.bool_schema() if target_type is bool else
                 core_schema.str_schema() if target_type is str else
-                core_schema.str_schema() if target_type.__name__ in ('datetime', 'date') else
+                core_schema.str_schema() if inspect.isclass(target_type) and issubclass(target_type, date) else
                 core_schema.str_schema() if target_type.__name__ == 'UUID' else
                 core_schema.str_schema()
             ),
@@ -80,7 +81,7 @@ class ConditionOperator(Generic[T]):
                 target_type = int
 
         def cast(v):
-            if target_type is datetime:
+            if inspect.isclass(target_type) and issubclass(target_type, datetime):
                 return parse_datetime(v)
             elif target_type is date:
                 return parse_datetime(v).date()

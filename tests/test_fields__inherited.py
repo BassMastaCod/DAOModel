@@ -4,7 +4,7 @@ from uuid import UUID
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from daomodel.fields import Protected, Identifier, Unsearchable, no_case_str
+from daomodel.fields import Protected, Identifier, Unsearchable, no_case_str, utc_datetime, server_datetime
 from daomodel.list_util import ensure_iter
 from daomodel.testing import labeled_tests, TestDAOFactory
 from daomodel.util import names_of
@@ -19,6 +19,8 @@ all_test_cases = {
     'reference inherited': InheritedModel,
     'protected reference': Protected[BasicModel],
     'no_case_str': no_case_str,
+    'utc_datetime': utc_datetime,
+    'server_datetime': server_datetime,
     'identifier field': Identifier[str],
     'identifier uuid': Identifier[UUID],
     # Note: dict cannot be an Identifier as it is not hashable
@@ -26,6 +28,8 @@ all_test_cases = {
     'identifier reference inherited': Identifier[InheritedModel],
     'identifier protected reference': Identifier[Protected[BasicModel]],
     'identifier no_case_str': Identifier[no_case_str],
+    'identifier utc_datetime': Identifier[utc_datetime],
+    'identifier server_datetime': Identifier[server_datetime],
     'optional field': Optional[str],
     'optional uuid': Optional[UUID],
     'optional dict': Optional[dict],
@@ -33,6 +37,8 @@ all_test_cases = {
     'optional reference inherited': Optional[InheritedModel],
     'optional protected reference': Protected[Optional[BasicModel]],
     'optional no_case_str': Optional[no_case_str],
+    'optional utc_datetime': Optional[utc_datetime],
+    'optional server_datetime': Optional[server_datetime],
     'unsearchable field': Unsearchable[str],
     'unsearchable uuid': Unsearchable[UUID],
     'unsearchable dict': Unsearchable[dict],
@@ -40,6 +46,8 @@ all_test_cases = {
     'unsearchable reference inherited': Unsearchable[InheritedModel],
     'unsearchable protected reference': Unsearchable[Protected[BasicModel]],
     'unsearchable no_case_str': Unsearchable[no_case_str],
+    'unsearchable utc_datetime': Unsearchable[utc_datetime],
+    'unsearchable server_datetime': Unsearchable[server_datetime],
     'identifier + optional field': Identifier[Optional[str]],
     'identifier + optional uuid': Identifier[Optional[UUID]],
     # Note: dict cannot be an Identifier as it is not hashable
@@ -47,6 +55,8 @@ all_test_cases = {
     'identifier + optional reference inherited': Identifier[Optional[InheritedModel]],
     'identifier + optional protected reference': Identifier[Protected[Optional[BasicModel]]],
     'identifier + optional no_case_str': Identifier[Optional[no_case_str]],
+    'identifier + optional utc_datetime': Identifier[Optional[utc_datetime]],
+    'identifier + optional server_datetime': Identifier[Optional[server_datetime]],
     'unsearchable + identifier field': Unsearchable[Identifier[str]],
     'unsearchable + identifier uuid': Unsearchable[Identifier[UUID]],
     # Note: dict cannot be an Identifier as it is not hashable
@@ -54,6 +64,8 @@ all_test_cases = {
     'unsearchable + identifier reference inherited': Unsearchable[Identifier[InheritedModel]],
     'unsearchable + identifier protected reference': Unsearchable[Identifier[Protected[BasicModel]]],
     'unsearchable + identifier no_case_str': Unsearchable[Identifier[no_case_str]],
+    'unsearchable + identifier utc_datetime': Unsearchable[Identifier[utc_datetime]],
+    'unsearchable + identifier server_datetime': Unsearchable[Identifier[server_datetime]],
     'unsearchable + optional field': Unsearchable[Optional[str]],
     'unsearchable + optional uuid': Unsearchable[Optional[UUID]],
     'unsearchable + optional dict': Unsearchable[Optional[dict]],
@@ -61,13 +73,17 @@ all_test_cases = {
     'unsearchable + optional reference inherited': Unsearchable[Optional[InheritedModel]],
     'unsearchable + optional protected reference': Unsearchable[Protected[Optional[BasicModel]]],
     'unsearchable + optional no_case_str': Unsearchable[Optional[no_case_str]],
+    'unsearchable + optional utc_datetime': Unsearchable[Optional[utc_datetime]],
+    'unsearchable + optional server_datetime': Unsearchable[Optional[server_datetime]],
     'unsearchable + identifier + optional field': Unsearchable[Identifier[Optional[str]]],
     'unsearchable + identifier + optional uuid': Unsearchable[Identifier[Optional[UUID]]],
     # Note: dict cannot be an Identifier as it is not hashable
     'unsearchable + identifier + optional reference': Unsearchable[Identifier[Optional[BasicModel]]],
     'unsearchable + identifier + optional reference inherited': Unsearchable[Identifier[Optional[InheritedModel]]],
     'unsearchable + identifier + optional protected reference': Unsearchable[Identifier[Protected[Optional[BasicModel]]]],
-    'unsearchable + identifier + optional no_case_str': Unsearchable[Identifier[Optional[no_case_str]]]
+    'unsearchable + identifier + optional no_case_str': Unsearchable[Identifier[Optional[no_case_str]]],
+    'unsearchable + identifier + optional utc_datetime': Unsearchable[Identifier[Optional[utc_datetime]]],
+    'unsearchable + identifier + optional server_datetime': Unsearchable[Identifier[Optional[server_datetime]]]
 }
 
 

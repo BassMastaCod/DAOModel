@@ -461,6 +461,22 @@ class Subscription(DAOModel, table=True):
 
 Timestamp fields with proper UTC handling are simplified to single-line declarations.
 
+#### Timezone-Aware Datetimes
+
+That covers the setting of datetime values, but when read, the code no longer has that context.
+
+```diff
+- date_joined: datetime
++ date_joined: utc_datetime
+```
+
+DAOModel provides `utc_datetime` (and `server_datetime`) marker types to ensure datetime fields
+automatically attach the appropriate timezone information when read from the database.
+- `utc_datetime`: Returns values with a UTC timezone (`timezone.utc`).
+- `server_datetime`: Returns values converted to the server's local timezone.
+
+> **Note:** `utc_datetime` is reccommended for robustness. `server_dateime` is avaiable for backwards compatability and other special cases
+
 Now that we've explored each of DAOModel's field shortcuts individually, let's see how they work together in real-world scenarios.
 
 ### Complete Example
