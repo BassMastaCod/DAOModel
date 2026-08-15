@@ -1,13 +1,18 @@
+from copy import deepcopy
 from typing import Dict, Any, Tuple, Type, get_origin, get_args, Union, Optional, List, ForwardRef
 import inspect
 import uuid
 
 from sqlalchemy.sql.schema import ScalarElementColumnDefault, Column
-from sqlmodel.main import SQLModelMetaclass, Field, FieldInfo, RelationshipInfo, Relationship
+from sqlmodel.main import SQLModelMetaclass, Field, FieldInfo, RelationshipInfo, Relationship, _get_sqlmodel_field_metadata
 from sqlalchemy import ForeignKey, JSON, String
 
+from datetime import datetime
 from daomodel.util import reference_of, UnsupportedFeatureError
-from daomodel.fields import no_case_str, Identifier, Unsearchable, Protected, ReferenceTo
+from daomodel.fields import (
+    no_case_str, utc_datetime, server_datetime, UTCDateTime, ServerDateTime,
+    Identifier, Unsearchable, Protected, ReferenceTo
+)
 
 
 class Annotation:
@@ -141,6 +146,12 @@ class DAOModelMetaclass(SQLModelMetaclass):
         elif field.type is no_case_str:
             field.type = str
             field['sa_type'] = String(collation='NOCASE')
+        elif field.type is utc_datetime:
+            field.type = datetime
+            field['sa_type'] = UTCDateTime
+        elif field.type is server_datetime:
+            field.type = datetime
+            field['sa_type'] = ServerDateTime
         elif model.is_reference(field) or field.is_dao_model():
             cls._process_reference_field(field, model)
 
@@ -203,8 +214,13 @@ class DAOModelMetaclass(SQLModelMetaclass):
         if field in model:
             existing_field = model[field]
             if isinstance(existing_field, FieldInfo):
+                existing_field = deepcopy(existing_field)
                 for key, value in field.args.items():
                     setattr(existing_field, key, value)
+                    meta = _get_sqlmodel_field_metadata(existing_field)
+                    if meta and hasattr(meta, key):
+                        setattr(meta, key, value)
+                model[field] = existing_field
                 return
             else:
                 field['default'] = existing_field

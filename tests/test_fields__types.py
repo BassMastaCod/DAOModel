@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Optional, Any
 from uuid import UUID
 
@@ -102,3 +103,29 @@ def test_no_case_str(annotation: Any):
         assert dao.find(value='testValue').only().id == 1
 
         assert dao.find(id=1).only().value == 'TeStVaLuE'
+
+
+@labeled_tests(get_test_cases('utc_datetime'))
+def test_utc_datetime(annotation: Any):
+    model_type = create_test_model(annotation)
+    dt = datetime(2026, 8, 14, 12, 0, 0)
+    with TestDAOFactory() as daos:
+        dao = daos[model_type]
+        dao.create_with(id=1, value=dt)
+
+        entry = dao.find(id=1).only()
+        assert entry.value is not None
+        assert entry.value.tzinfo is timezone.utc
+
+
+@labeled_tests(get_test_cases('server_datetime'))
+def test_server_datetime(annotation: Any):
+    model_type = create_test_model(annotation)
+    dt = datetime(2026, 8, 14, 12, 0, 0)
+    with TestDAOFactory() as daos:
+        dao = daos[model_type]
+        dao.create_with(id=1, value=dt)
+
+        entry = dao.find(id=1).only()
+        assert entry.value is not None
+        assert entry.value.tzinfo is not None

@@ -1,9 +1,11 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from typing import TypeVar, Generic, Any, Optional
 
 from pydantic import computed_field
+from pydantic.v1.datetime_parse import parse_datetime
 from sqlmodel import Field
 from sqlalchemy import Column
+from sqlalchemy.types import TypeDecorator, DateTime
 from sqlmodel.main import FieldInfo
 
 from daomodel.util import reference_of
@@ -78,6 +80,90 @@ class ReferenceTo(FieldInfo):
 class no_case_str(str):
     """Marker type for a case-insensitive string column."""
     pass
+
+
+class utc_datetime(datetime):
+    """Marker type for a UTC datetime column."""
+    pass
+
+
+class server_datetime(datetime):
+    """Marker type for a server datetime column."""
+    pass
+
+
+class UTCDateTime(TypeDecorator):
+    """SQLAlchemy TypeDecorator for UTC datetime columns."""
+    impl = DateTime(timezone=True)
+    cache_ok = True
+
+    def process_bind_param(self, value: Any, dialect: Any) -> Optional[datetime]:
+        if value is not None:
+            if isinstance(value, str):
+                value = parse_datetime(value)
+            elif isinstance(value, date) and not isinstance(value, datetime):
+                value = datetime.combine(value, datetime.min.time())
+
+            if value.tzinfo is None:
+                value = value.replace(tzinfo=timezone.utc)
+            else:
+                value = value.astimezone(timezone.utc)
+        return value
+
+    def process_result_value(self, value: Any, dialect: Any) -> Optional[datetime]:
+        if value is not None:
+            if isinstance(value, str):
+                value = parse_datetime(value)
+            if value.tzinfo is None:
+                return value.replace(tzinfo=timezone.utc)
+            return value.astimezone(timezone.utc)
+        return value
+
+
+class ServerDateTime(TypeDecorator):
+    """SQLAlchemy TypeDecorator for server local datetime columns."""
+    impl = DateTime(timezone=True)
+    cache_ok = True
+
+    def process_bind_param(self, value: Any, dialect: Any) -> Optional[datetime]:
+        if value is not None:
+            if isinstance(value, str):
+                value = parse_datetime(value)
+            elif isinstance(value, date) and not isinstance(value, datetime):
+                value = datetime.combine(value, datetime.min.time())
+
+            value = value.astimezone(timezone.utc)
+            _to_server_local(value)
+        return value
+
+    def process_result_value(self, value: Any, dialect: Any) -> Optional[datetime]:
+        if value is not None:
+            if isinstance(value, str):
+                value = parse_datetime(value)
+            if value.tzinfo is None:
+                value = value.replace(tzinfo=timezone.utc)
+            return _to_server_local(value)
+        return value
+
+
+class ServerDateTimeError(ValueError):
+    """Indicates that a datetime cannot be represented as server-local time on this platform."""
+    def __init__(self, value: datetime):
+        self.detail = (
+            f'Cannot convert {value.isoformat()} to server-local time on this platform '
+            f'(Windows cannot represent datetimes whose local time predates 1970-01-01). '
+            f'This may be existing data migrated from a non-Windows system, or a value too early to '
+            f'be displayed as local time on Windows. To fix it: store the value in UTC instead by '
+            f'using `utc_datetime`, or correct the stored value on the system that created it.'
+        )
+
+
+def _to_server_local(value: datetime) -> datetime:
+    """Converts a UTC-aware datetime to server-local time, raising a clear error if the platform cannot do so."""
+    try:
+        return value.astimezone()
+    except OSError as err:
+        raise ServerDateTimeError(value) from err
 
 
 def utc_now():
