@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from datetime import datetime, timezone, date
 from typing import TypeVar, Generic, Any, Optional
 
@@ -92,55 +93,44 @@ class server_datetime(datetime):
     pass
 
 
-class UTCDateTime(TypeDecorator):
-    """SQLAlchemy TypeDecorator for UTC datetime columns."""
+class _DateTimeType(TypeDecorator, ABC):
+    """Shared SQLAlchemy TypeDecorator for timezone-aware datetime columns."""
     impl = DateTime(timezone=True)
     cache_ok = True
 
     def process_bind_param(self, value: Any, dialect: Any) -> Optional[datetime]:
-        if value is not None:
-            if isinstance(value, str):
-                value = parse_datetime(value)
-            elif isinstance(value, date) and not isinstance(value, datetime):
-                value = datetime.combine(value, datetime.min.time())
+        return self._coerce(self._parse(value))
 
+    def process_result_value(self, value: Any, dialect: Any) -> Optional[datetime]:
+        return self._coerce(self._parse(value))
+
+    def _parse(self, value: Any) -> Any:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            value = parse_datetime(value)
+        elif isinstance(value, date) and not isinstance(value, datetime):
+            value = datetime.combine(value, datetime.min.time())
+        return value
+
+    @abstractmethod
+    def _coerce(self, value: Any) -> Any:
+        raise NotImplementedError
+
+
+class UTCDateTime(_DateTimeType):
+    def _coerce(self, value: Any) -> Any:
+        if isinstance(value, datetime):
             if value.tzinfo is None:
                 value = value.replace(tzinfo=timezone.utc)
             else:
                 value = value.astimezone(timezone.utc)
         return value
 
-    def process_result_value(self, value: Any, dialect: Any) -> Optional[datetime]:
-        if value is not None:
-            if isinstance(value, str):
-                value = parse_datetime(value)
-            if value.tzinfo is None:
-                return value.replace(tzinfo=timezone.utc)
-            return value.astimezone(timezone.utc)
-        return value
 
-
-class ServerDateTime(TypeDecorator):
-    """SQLAlchemy TypeDecorator for server local datetime columns."""
-    impl = DateTime(timezone=True)
-    cache_ok = True
-
-    def process_bind_param(self, value: Any, dialect: Any) -> Optional[datetime]:
-        if value is not None:
-            if isinstance(value, str):
-                value = parse_datetime(value)
-            elif isinstance(value, date) and not isinstance(value, datetime):
-                value = datetime.combine(value, datetime.min.time())
-
-            if value.tzinfo is None:
-                value = value.replace(tzinfo=datetime.now().astimezone().tzinfo)
-            value = _to_server_local(value)
-        return value
-
-    def process_result_value(self, value: Any, dialect: Any) -> Optional[datetime]:
-        if value is not None:
-            if isinstance(value, str):
-                value = parse_datetime(value)
+class ServerDateTime(_DateTimeType):
+    def _coerce(self, value: Any) -> Any:
+        if isinstance(value, datetime):
             if value.tzinfo is None:
                 value = value.replace(tzinfo=datetime.now().astimezone().tzinfo)
             value = _to_server_local(value)

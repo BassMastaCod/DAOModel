@@ -7,7 +7,7 @@ from sqlalchemy import text
 
 from daomodel import DAOModel
 from daomodel.fields import utc_now, Identifier, CurrentTimestampField, AutoUpdatingTimestampField, utc_datetime, \
-    server_datetime, ServerDateTimeError, _to_server_local
+    server_datetime, ServerDateTimeError, ServerDateTime
 from daomodel.testing import labeled_tests, Expected, TestDAOFactory
 from tests.model_factory import create_test_model
 
@@ -174,7 +174,10 @@ def test_server_datetime_error_message():
     assert 'utc_datetime' in err.detail
 
 
-def test_to_server_local_raises_clear_error_on_unrepresentable():
-    value = Mock(astimezone=Mock(side_effect=OSError))
-    with pytest.raises(ServerDateTimeError):
-        _to_server_local(value)
+def test_server_datetime_raises_clear_error_on_unrepresentable():
+    type_ = ServerDateTime()
+    for method in ('process_bind_param', 'process_result_value'):
+        value = Mock(astimezone=Mock(side_effect=OSError))
+        value.__class__ = datetime
+        with pytest.raises(ServerDateTimeError):
+            getattr(type_, method)(value, None)
