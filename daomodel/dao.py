@@ -266,7 +266,7 @@ class DAO(TransactionMixin):
         :raises NotFound: if the entry does not exist in the database
         """
         pk = values_from_dict(*self.model_class.get_pk_names(), **values)
-        model = self.query.get(pk)
+        model = self.db.get(self.model_class, pk)
         if model is None:
             raise NotFound(self.model_class(**values))
         model.set_values(ignore_pk=True, **values)
