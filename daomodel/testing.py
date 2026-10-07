@@ -72,6 +72,8 @@ class TestDAOFactory(DAOFactory):
 
     :param debug: If True, uses a test.db file instead of an in-memory SQLite DB. (DB file must be deleted to rerun.
     """
+    __test__ = False
+
     def __init__(self, debug: bool = False):
         engine = _create_engine() if not debug else _create_engine('test.db')
         SQLModel.metadata.create_all(engine)

@@ -1,6 +1,9 @@
+import typing
 from copy import deepcopy
-from typing import Dict, Any, Tuple, Type, get_origin, get_args, Union, Optional, List, ForwardRef
+from types import UnionType
+from typing import Dict, Any, Tuple, Type, get_origin, get_args, Union, Optional, List
 import inspect
+import sys
 import uuid
 
 from sqlalchemy.sql.schema import ScalarElementColumnDefault, Column
@@ -15,6 +18,18 @@ from daomodel.fields import (
 )
 
 
+def _is_forward_ref(assignment) -> bool:
+    try:
+        from annotationlib import ForwardRef
+        return isinstance(assignment, (str, typing.ForwardRef, ForwardRef))
+    except ImportError: # pre-3.14 support
+        return isinstance(assignment, (str, typing.ForwardRef))
+
+
+def _get_annotations(obj: Any) -> dict[str, Any]:
+    return inspect.get_annotations(obj) if hasattr(inspect, 'get_annotations') else getattr(obj, '__annotations__', {})
+
+
 class Annotation:
     """A utility class to help manage a type-annotated field."""
     def __init__(self, field_name: str, field_type: type[Any]):
@@ -25,11 +40,11 @@ class Annotation:
             if get_origin(field_type) is modifier:
                 self.modifiers.add(modifier)
                 field_type = get_args(field_type)[0]
-        if get_origin(field_type) is Union:
+        if get_origin(field_type) in (Union, UnionType):
             args = get_args(field_type)
-            if len(args) == 2 and args[1] is type(None):
+            if len(args) == 2 and type(None) in args:
                 self.modifiers.add(Optional)
-                field_type = args[0]
+                field_type = args[0 if args[1] is type(None) else 1]
 
         self.type = field_type
         self.args = {}
@@ -52,7 +67,7 @@ class Annotation:
         if origin not in (list, List):
             return False
         args = get_args(self.type)
-        return args and len(args) == 1 and (isinstance(args[0], (str, ForwardRef)) or inspect.isclass(args[0]))
+        return len(args) == 1 and (_is_forward_ref(args[0]) or inspect.isclass(args[0]))
 
     def is_dao_model(self) -> bool:
         """Check whether the annotation is a DAOModel."""
@@ -72,7 +87,16 @@ class ClassDictHelper:
 
     @property
     def annotations(self) -> dict[str, Any]:
-        return self.class_dict.get('__annotations__', {})
+        if '__annotations__' not in self.class_dict:
+            annotations = {}
+            try:
+                from annotationlib import Format, call_annotate_function, get_annotate_from_class_namespace
+                if annotate := get_annotate_from_class_namespace(self.class_dict):
+                    annotations = dict(call_annotate_function(annotate, format=Format.FORWARDREF))
+            except ImportError: # pre-3.14 support
+                pass
+            self.class_dict['__annotations__'] = annotations
+        return self.class_dict['__annotations__']
 
     def set_annotation(self, field: Annotation) -> None:
         """Set an annotation for a field, automatically handling optional types if nullable is True."""
@@ -183,17 +207,13 @@ class DAOModelMetaclass(SQLModelMetaclass):
                 f'Reference(str) instead. i.e. field: int = Reference("{first_pk}")'
             )
 
-        pk_type = None
         for base in inspect.getmro(field.type):
-            if hasattr(base, '__annotations__') and first_pk.name in base.__annotations__:
-                pk_type = base.__annotations__[first_pk.name]
-                break
+            if pk_type := _get_annotations(base).get(first_pk.name, None):
+                field.type = pk_type
+                field['foreign_key'] = reference_of(first_pk)
+                return
 
-        if pk_type is None:
-            raise KeyError(f'Could not find type annotation for primary key "{first_pk.name}" in {field.type.__name__} or its parent classes')
-
-        field.type = pk_type
-        field['foreign_key'] = reference_of(first_pk)
+        raise KeyError(f'Could not find type annotation for primary key "{first_pk.name}" in {field.type.__name__} or its parent classes')
 
     @classmethod
     def _determine_ondelete_behavior(cls, field: Annotation, model: ClassDictHelper) -> str:
