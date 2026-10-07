@@ -1,4 +1,5 @@
 from typing import Any
+import sys
 import uuid
 
 from daomodel import DAOModel
@@ -18,11 +19,14 @@ def create_test_model(field_type: Any = None, field_name: str = 'value', base_mo
     if field_type is not None:
         annotations[field_name] = field_type
 
+    def annotate(format=None):
+        return dict(annotations)
+
     model = type(
         f'DynamicModel{uuid.uuid4().hex[:8].capitalize()}',
         (base_model or DAOModel,),
         {
-            '__annotations__': annotations,
+            **({'__annotations__': annotations} if sys.version_info < (3, 14) else {'__annotate__': annotate}),
             '__module__': 'tests.field_tests.model_factory'
         },
         table=not inherited
