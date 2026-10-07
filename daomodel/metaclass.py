@@ -1,4 +1,5 @@
 from copy import deepcopy
+from types import UnionType
 from typing import Dict, Any, Tuple, Type, get_origin, get_args, Union, Optional, List, ForwardRef
 import inspect
 import uuid
@@ -25,11 +26,11 @@ class Annotation:
             if get_origin(field_type) is modifier:
                 self.modifiers.add(modifier)
                 field_type = get_args(field_type)[0]
-        if get_origin(field_type) is Union:
+        if get_origin(field_type) in (Union, UnionType):
             args = get_args(field_type)
-            if len(args) == 2 and args[1] is type(None):
+            if len(args) == 2 and type(None) in args:
                 self.modifiers.add(Optional)
-                field_type = args[0]
+                field_type = args[0 if args[1] is type(None) else 1]
 
         self.type = field_type
         self.args = {}
